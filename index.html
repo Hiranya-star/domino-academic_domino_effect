@@ -6,240 +6,93 @@
   <meta name="theme-color" content="#6366f1" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="DOMINO" />
   <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ONBOARDING PROFIL SISWA -->
-  <div id="onboardingModal" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <div class="modal-brand">
-        <svg class="brand-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-          <rect width="512" height="512" rx="112" fill="#0f172a"/>
-          <g transform="translate(115, 130) rotate(-18)">
-            <rect x="0" y="0" width="84" height="168" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="10"/>
-            <circle cx="42" cy="42" r="10" fill="#38bdf8"/>
-            <circle cx="42" cy="126" r="10" fill="#38bdf8"/>
-          </g>
-          <g transform="translate(260, 160) rotate(24)">
-            <rect x="0" y="0" width="84" height="168" rx="16" fill="#6366f1" stroke="#f472b6" stroke-width="10"/>
-            <circle cx="42" cy="42" r="10" fill="#fff"/>
-            <circle cx="42" cy="126" r="10" fill="#fff"/>
-          </g>
-        </svg>
-        <div>
-          <h2>Selamat Datang di DOMINO!</h2>
-          <p class="hint">One Delayed Task, A Chain of Consequences.</p>
-        </div>
-      </div>
-      <form id="onboardingForm" class="stack-form">
-        <div class="form-group">
-          <label>Nama Siswa</label>
-          <input type="text" id="obName" placeholder="Contoh: Raka Pratama" required />
-        </div>
-        <div class="form-group">
-          <label>Kelas & Jurusan</label>
-          <input type="text" id="obClass" placeholder="Contoh: XI IPA 2" required />
-        </div>
-        <div class="form-group">
-          <label>Target Belajar Mandiri di Rumah (per hari)</label>
-          <select id="obStudyHours">
-            <option value="2">2 Jam / hari</option>
-            <option value="3" selected>3 Jam / hari (Standar SMA)</option>
-            <option value="4">4 Jam / hari (Intensif)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Mulai dengan Data Awal:</label>
-          <select id="obStartMode">
-            <option value="empty">Kosong (Langsung catat tugasku sendiri)</option>
-            <option value="sample">Isi 4 tugas berantai contoh (Rantai Proyek Biologi)</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">🚀 Mulai Gunakan DOMINO</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- INSTALL PWA BANNER UNIVERSAL -->
+  <!-- BANNER INSTALASI APLIKASI (PWA) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
-      <div>
-        <strong>📲 Download / Install Aplikasi DOMINO</strong>
-        <small>Pasang ke HP/Laptop (Mendukung Chrome, Safari, Edge, Firefox, dll)</small>
-      </div>
+      <strong>📲 Install Aplikasi DOMINO</strong>
+      <small>Pasang langsung di HP agar bisa offline & memunculkan teror guru.</small>
     </div>
     <div class="install-btns">
-      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install / Panduan</button>
-      <button id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
+      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install</button>
+      <button id="btnCloseInstall" class="btn-icon">✕</button>
     </div>
   </div>
 
   <div class="app-shell">
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR / MENU NAVIGASI -->
     <aside class="sidebar" id="sidebar">
-      <div>
-        <div class="brand">
-          <svg class="brand-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-            <rect width="512" height="512" rx="112" fill="#0f172a"/>
-            <g transform="translate(115, 130) rotate(-18)">
-              <rect x="0" y="0" width="84" height="168" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="10"/>
-              <circle cx="42" cy="42" r="10" fill="#38bdf8"/>
-              <circle cx="42" cy="126" r="10" fill="#38bdf8"/>
-            </g>
-            <g transform="translate(260, 160) rotate(24)">
-              <rect x="0" y="0" width="84" height="168" rx="16" fill="#6366f1" stroke="#f472b6" stroke-width="10"/>
-              <circle cx="42" cy="42" r="10" fill="#fff"/>
-              <circle cx="42" cy="126" r="10" fill="#fff"/>
-            </g>
-          </svg>
-          <div>
-            <h1>DOMINO</h1>
-            <span id="sidebarStudentTag">Planner Siswa SMA</span>
-          </div>
-        </div>
-
-        <nav class="nav-menu">
-          <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
-          <button class="nav-item" data-page="assignments">📝 <span>My Assignments</span> <span class="badge-soft" id="navTaskCount">0</span></button>
-          <button class="nav-item" data-page="map">🕸️ <span>Dependency Map</span></button>
-          <button class="nav-item" data-page="simulator">🁢 <span>Domino Simulator</span></button>
-          <button class="nav-item" data-page="alerts">🔔 <span>Teacher Terror</span> <span class="badge" id="alertCountBadge">0</span></button>
-          <button class="nav-item" data-page="recovery">🛠️ <span>Recovery Planner</span></button>
-          <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
-          <button class="nav-item" data-page="classshare">🤝 <span>Bagikan Kelas</span></button>
-        </nav>
+      <div class="brand">
+        <h1>DOMINO</h1>
+        <span id="sidebarStudentTag">Planner Siswa SMA</span>
       </div>
-
+      <nav class="nav-menu">
+        <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
+        <button class="nav-item" data-page="assignments">📝 <span>Daftar Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button class="nav-item" data-page="simulator">🁢 <span>Simulasi Domino</span></button>
+        <button class="nav-item" data-page="alerts">🔔 <span>Teror Guru</span></button>
+        <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
+      </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnSidebarInstall" class="btn btn-primary btn-block">📲 Download / Install App</button>
-        <button id="btnSidebarTestTerror" class="btn btn-warning btn-block">🔔 Tes Popup & Notif HP</button>
-        <button id="btnEnableNotif" class="btn btn-outline btn-block">⚙️ Aktifkan Notif Layar</button>
-        <button id="btnEditProfile" class="btn btn-outline btn-block">👤 Profil Siswa</button>
+        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up</button>
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- KONTEN UTAMA -->
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left">
-          <button id="btnMenuToggle" class="btn-icon mobile-only" aria-label="Menu">☰</button>
-          <div>
-            <h2 id="pageTitle">Dashboard Akademik</h2>
-            <p class="tagline" id="welcomeGreeting">One Delayed Task, A Chain of Consequences.</p>
-          </div>
+          <button id="btnMenuToggle" class="btn-icon mobile-only">☰</button>
+          <h2 id="pageTitle">Dashboard Akademik</h2>
         </div>
         <div class="topbar-right">
-          <button id="btnTopTheme" class="btn btn-secondary btn-sm" title="Ganti Tema Terang / Gelap">☀️ Terang</button>
           <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas Baru</button>
-          <button id="btnTopTestTerror" class="btn btn-warning btn-sm">🔔 Tes Popup HP</button>
-          <button id="btnTopInstall" class="btn btn-outline btn-sm">📲 Install App</button>
         </div>
       </header>
 
-      <!-- PAGE 1: DASHBOARD -->
+      <!-- HALAMAN DASHBOARD -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
-            <span class="label">ACADEMIC STABILITY INDEX</span>
-            <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
-            <p id="stabilityDesc">Belum ada rantai tugas yang terancam efek domino.</p>
-          </div>
-          <div class="stability-meter">
-            <div class="meter-track"><div class="meter-fill" id="stabilityFill" style="width: 100%;"></div></div>
+            <span class="label">STATUS JADWAL SEKOLAH</span>
+            <h3 id="stabilityScore">100% — Jadwal Aman</h3>
+            <p id="stabilityDesc">Belum ada tugas yang memicu efek domino.</p>
           </div>
         </div>
-
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <span class="kpi-title">Tugas Aktif</span>
-            <strong class="kpi-value" id="kpiActive">0</strong>
-            <small id="kpiDoneSummary">0 selesai</small>
-          </div>
-          <div class="kpi-card danger">
-            <span class="kpi-title">Terlambat / Jalur Kritis</span>
-            <strong class="kpi-value" id="kpiCritical">0</strong>
-            <small>Slack time ≤ 0 jam (Pemicu Domino)</small>
-          </div>
-          <div class="kpi-card warning">
-            <span class="kpi-title">Deadline Terdekat</span>
-            <strong class="kpi-value" id="kpiNearest">-</strong>
-            <small id="kpiNearestTask">Tidak ada tugas</small>
-          </div>
-          <div class="kpi-card info">
-            <span class="kpi-title">Rantai Efek Domino</span>
-            <strong class="kpi-value" id="kpiChainCount">0 Tugas</strong>
-            <small>Saling bergantung</small>
-          </div>
-        </div>
-
         <div class="dashboard-split">
           <div class="card">
-            <div class="card-header">
-              <h3>🔔 Teror Guru Terbaru</h3>
-              <button class="btn btn-sm btn-outline" onclick="navigateTo('alerts')">Lihat Semua</button>
-            </div>
+            <h3>🔔 Teror Guru Terbaru</h3>
             <div id="dashboardAlertsList" class="alert-list"></div>
           </div>
-
           <div class="card">
-            <div class="card-header">
-              <h3>⛓️ Urutan Prioritas & Risiko Domino</h3>
-              <button class="btn btn-sm btn-primary" onclick="navigateTo('simulator')">Simulasi Domino</button>
-            </div>
-            <div id="todayActionList" class="chain-preview-list"></div>
+            <h3>⛓️ Prioritas Tugas & Risiko</h3>
+            <div id="todayActionList"></div>
           </div>
         </div>
       </section>
 
-      <!-- PAGE 2: MY ASSIGNMENTS -->
+      <!-- HALAMAN DAFTAR TUGAS -->
       <section id="page-assignments" class="page">
-        <div class="card form-card">
-          <div class="card-header">
-            <h3 id="formModeTitle">➕ Tambah Tugas Sekolah</h3>
-            <button type="button" id="btnCancelEdit" class="btn btn-sm btn-outline hidden">Batal Edit</button>
-          </div>
+        <div class="card">
+          <h3>➕ Tambah / Edit Tugas</h3>
           <form id="taskForm" class="task-form">
-            <input type="hidden" id="editTaskId" value="" />
+            <input type="hidden" id="editTaskId" />
             <div class="form-group">
               <label>Nama Tugas *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Membuat Laporan Penelitian" required />
+              <input type="text" id="tTitle" placeholder="Contoh: Laporan Praktikum Biologi" required />
             </div>
             <div class="form-group">
               <label>Mata Pelajaran *</label>
-              <input type="text" id="tSubject" list="subjectPresets" placeholder="Pilih atau ketik mapel..." required />
-              <datalist id="subjectPresets">
-                <option value="Matematika Wajib" />
-                <option value="Matematika Peminatan" />
-                <option value="Biologi" />
-                <option value="Fisika" />
-                <option value="Kimia" />
-                <option value="Bahasa Indonesia" />
-                <option value="Bahasa Inggris" />
-                <option value="Sejarah" />
-                <option value="Ekonomi" />
-                <option value="Geografi" />
-                <option value="Sosiologi" />
-                <option value="Informatika" />
-                <option value="PKN" />
-              </datalist>
+              <input type="text" id="tSubject" placeholder="Contoh: Biologi" required />
             </div>
             <div class="form-group">
-              <label>Nama Guru Pemberi Tugas *</label>
+              <label>Nama Guru & Karakter Teror *</label>
               <input type="text" id="tTeacher" placeholder="Contoh: Pak Yudha" required />
-            </div>
-            <div class="form-group">
-              <label>Karakter Teror Guru</label>
-              <select id="tPersona">
-                <option value="sarkas">Sarkas / Humoris Pedas</option>
-                <option value="tegas">Tegas & Disiplin Tinggi</option>
-                <option value="santai">Santai tapi Menghanyutkan</option>
-              </select>
             </div>
             <div class="form-group">
               <label>Deadline (Tanggal & Jam) *</label>
@@ -247,229 +100,76 @@
             </div>
             <div class="form-group">
               <label>Estimasi Durasi Pengerjaan (Jam) *</label>
-              <input type="number" id="tDuration" min="0.5" max="48" step="0.5" value="2" required />
+              <input type="number" id="tDuration" min="0.5" step="0.5" value="2" required />
             </div>
             <div class="form-group">
               <label>Bergantung Pada Tugas (Rantai Domino)</label>
               <select id="tDependsOn">
-                <option value="">-- Tidak Ada (Tugas Awal / Mandiri) --</option>
+                <option value="">-- Tidak Ada (Tugas Mandiri) --</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label>Notifikasi Layar HP</label>
-              <select id="tNotifEnabled">
-                <option value="true">Aktif (Kirim Popup & Notif Bar HP)</option>
-                <option value="false">Nonaktif</option>
-              </select>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label>Langkah Pengerjaan / Sub-tugas (Pisahkan dengan koma, opsional)</label>
-              <input type="text" id="tNotes" placeholder="Contoh: Kumpulkan data, Analisis hasil, Cetak laporan" />
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas</button>
+              <button type="submit" class="btn btn-primary">💾 Simpan Tugas ke Memori HP</button>
             </div>
           </form>
         </div>
-
         <div class="card">
-          <div class="card-header">
-            <h3>📋 Daftar Tugas (<span id="totalTasksLabel">0</span>)</h3>
-            <select id="filterStatus" style="width: auto;">
-              <option value="active">Tugas Aktif</option>
-              <option value="all">Semua Tugas</option>
-              <option value="done">Selesai</option>
-            </select>
-          </div>
+          <h3>📋 Daftar Tugas (<span id="totalTasksLabel">0</span>)</h3>
           <div id="assignmentsList" class="assignments-grid"></div>
         </div>
       </section>
 
-      <!-- PAGE 3: DEPENDENCY MAP -->
-      <section id="page-map" class="page">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3>🕸️ Peta Hubungan Antartugas (SVG)</h3>
-              <p class="hint">Hijau: aman | Kuning: mepet (&lt;6 jam) | Merah berkedip: jalur kritis efek domino</p>
-            </div>
-          </div>
-          <div class="svg-wrapper">
-            <svg id="dependencySvg" width="900" height="440" viewBox="0 0 900 440"></svg>
-          </div>
-        </div>
-      </section>
-
-      <!-- PAGE 4: DOMINO EFFECT SIMULATOR -->
+      <!-- HALAMAN SIMULATOR DOMINO -->
       <section id="page-simulator" class="page">
-        <div class="card simulator-controls">
-          <h3>🁢 Domino Effect Simulator</h3>
-          <p class="hint">Pilih tugas lalu geser keterlambatan untuk melihat kartu domino yang jatuh, jadwal baru, dan teror berantai dari guru-guru tugas berikutnya.</p>
-
-          <div class="sim-inputs">
-            <div class="form-group">
-              <label>Jika Tugas Ini Terlambat:</label>
-              <select id="simTaskSelect"></select>
-            </div>
-            <div class="form-group">
-              <label>Simulasi Keterlambatan: <strong id="simDelayLabel" class="highlight-text">+0 Jam (0 Hari)</strong></label>
-              <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
-              <div class="slider-ticks">
-                <span>0 Jam</span>
-                <span>+12 Jam</span>
-                <span>+1 Hari</span>
-                <span>+2 Hari</span>
-                <span>+3 Hari</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="sim-metrics">
-            <div class="sim-box">
-              <span>Keterlambatan</span>
-              <strong id="simMetricDelay">0 Hari</strong>
-            </div>
-            <div class="sim-box">
-              <span>Waktu Cadangan (Slack)</span>
-              <strong id="simMetricSlack">0 Jam</strong>
-            </div>
-            <div class="sim-box">
-              <span>Tugas Ikut Terdampak</span>
-              <strong id="simMetricAffected">0 Tugas</strong>
-            </div>
-          </div>
-        </div>
-
         <div class="card">
-          <h3>Visualisasi Rantai Efek Domino</h3>
-          <div id="dominoVisualStage" class="domino-stage"></div>
-          <div id="simConclusionBox" class="sim-conclusion"></div>
+          <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
+          <p class="hint">Geser waktu keterlambatan untuk melihat tugas mana saja di bawahmu yang ikut hancur berantakan.</p>
+          <div class="form-group">
+            <label>Jika Tugas Ini Terlambat:</label>
+            <select id="simTaskSelect"></select>
+          </div>
+          <div class="form-group">
+            <label>Simulasi Keterlambatan: <strong id="simDelayLabel" class="highlight-text">+0 Jam</strong></label>
+            <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
+          </div>
+          <div id="simConclusionBox" class="sim-conclusion" style="margin-top:15px;"></div>
         </div>
       </section>
 
-      <!-- PAGE 5: TEACHER TERROR ALERTS -->
+      <!-- HALAMAN TEROR GURU -->
       <section id="page-alerts" class="page">
         <div class="card">
-          <div class="card-header">
-            <div>
-              <h3>🔔 Teacher Terror Popup & Notification Center</h3>
-              <p class="hint">Memunculkan <strong>Popup Banner Melayang di Layar HP/PC</strong> seketika, sekaligus mengirim notifikasi ke bar sistem HP.</p>
-            </div>
-            <button id="btnTriggerChainTerror" class="btn btn-danger btn-sm">🔔 Tes Popup ke Layar Sekarang</button>
-          </div>
+          <h3>🔔 Pusat Notifikasi & Teror Guru</h3>
+          <p class="hint">Notifikasi ini disiapkan untuk muncul di bar notifikasi dan heads-up pop-up HP-mu.</p>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
 
-      <!-- PAGE 6: RECOVERY PLANNER -->
-      <section id="page-recovery" class="page">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3>🛠️ Recovery Planner</h3>
-              <p class="hint">Menyusun ulang jadwal ketika terdeteksi efek domino agar semua tugas kembali terkendali.</p>
-            </div>
-            <button id="btnPanicMode" class="btn btn-danger btn-sm">🔥 Panic Mode (SKS 24 Jam)</button>
-          </div>
-          <div id="recoveryOptions" class="recovery-grid"></div>
-        </div>
-      </section>
-
-      <!-- PAGE 7: FOCUS TIMER -->
+      <!-- HALAMAN MODE FOKUS -->
       <section id="page-focus" class="page">
-        <div class="card focus-card">
-          <span class="subject-pill">⏱️ LIVE FOCUS TIMER</span>
-          <h3>Mode Fokus Pengerjaan Tugas</h3>
-          <p class="hint">Waktu fokusmu langsung mengurangi sisa estimasi jam pengerjaan tugas agar terhindar dari efek domino.</p>
-
-          <div class="form-group" style="max-width: 440px; margin: 16px auto;">
-            <label>Pilih Tugas yang Dikerjakan:</label>
-            <select id="focusTaskSelect"></select>
-          </div>
-
+        <div class="card focus-card" style="text-align:center;">
+          <h3>⏱️ Mode Fokus Pengerjaan</h3>
+          <p class="hint">Kurangi sisa waktu pengerjaan tugasmu tanpa distraksi.</p>
           <div class="timer-display" id="timerDisplay">25:00</div>
-
-          <div class="timer-presets">
-            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(25)">25 Menit</button>
-            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(45)">45 Menit</button>
-            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(15)">15 Menit</button>
-          </div>
-
-          <div class="timer-controls">
-            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
-            <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
-            <button id="btnFinishSession" class="btn btn-warning">✅ Catat Progres</button>
-          </div>
-          <p id="focusStatusText" class="hint" style="margin-top: 12px;">Siap belajar!</p>
-        </div>
-      </section>
-
-      <!-- PAGE 8: CLASS SHARE -->
-      <section id="page-classshare" class="page">
-        <div class="dashboard-split">
-          <div class="card">
-            <h3>🤝 Bagikan Rantai Tugas ke Teman Sekelas</h3>
-            <p class="hint" style="margin-bottom: 12px;">
-              Bagikan daftar tugas beserta ketergantungannya ke grup WhatsApp kelas agar temanmu tinggal Import tanpa mengetik ulang.
-            </p>
-            <div class="form-actions" style="justify-content: flex-start; gap: 8px; margin-bottom: 12px;">
-              <button id="btnGenerateShareCode" class="btn btn-primary btn-sm">📋 Salin Kode Tugas Kelas</button>
-              <button id="btnShareWhatsApp" class="btn btn-secondary btn-sm">💬 Kirim ke WhatsApp</button>
-            </div>
-            <textarea id="shareCodeBox" rows="4" placeholder="Kode tugas kelas akan muncul di sini..."></textarea>
-          </div>
-
-          <div class="card">
-            <h3>📥 Import Tugas dari Teman / Backup</h3>
-            <p class="hint" style="margin-bottom: 12px;">
-              Tempel kode tugas DOMINO dari teman sekelas atau kelompokmu untuk langsung ditambahkan ke jadwalmu.
-            </p>
-            <textarea id="importCodeBox" rows="4" placeholder="Tempel kode tugas dari teman di sini..."></textarea>
-            <div class="form-actions" style="justify-content: flex-start; gap: 8px; margin-top: 12px;">
-              <button id="btnImportShareCode" class="btn btn-primary btn-sm">📥 Import Tugas</button>
-              <button id="btnExportJsonFile" class="btn btn-outline btn-sm">💾 Backup JSON</button>
-            </div>
-          </div>
+          <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
+          <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- BOTTOM NAV MOBILE -->
-  <nav class="mobile-bottom-nav">
-    <button class="m-nav active" data-page="dashboard">📊<span>Home</span></button>
-    <button class="m-nav" data-page="assignments">📝<span>Tugas</span></button>
-    <button class="m-nav" data-page="simulator">🁢<span>Domino</span></button>
-    <button class="m-nav" data-page="alerts">🔔<span>Teror</span></button>
-    <button class="m-nav" data-page="recovery">🛠️<span>Pulihkan</span></button>
-  </nav>
-
-  <!-- POPUP NOTIFICATION MELAYAR (HEADS-UP BANNER) -->
+  <!-- POPUP MELAYAR DI LAYAR HP (HEADS-UP NOTIFICATION BANNER) -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
-        <span id="popupTeacherTag" class="subject-pill">Pak Yudha • Biologi</span>
-        <span id="popupStageTag" class="slack-pill slack-danger">H-1 TEROR</span>
+        <span id="popupTeacherTag" class="subject-pill">Guru • Mapel</span>
+        <span class="slack-pill slack-danger">DARURAT</span>
       </div>
-      <h4 id="popupTaskTitle">Membuat Laporan Penelitian</h4>
-      <p id="popupTerrorText" class="alert-msg">"Sudah H-1, apakah tugasnya sudah ada isinya atau baru buat folder doang?"</p>
-      <div class="popup-actions">
-        <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block">Tutup / Kerjakan</button>
-      </div>
+      <h4 id="popupTaskTitle">Judul Tugas</h4>
+      <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
+      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan</button>
     </div>
   </div>
-
-  <!-- INSTALL HELP DIALOG UNIVERSAL (CHROME, SAFARI, EDGE, FIREFOX, DLL) -->
-  <dialog id="installHelpDialog" class="custom-dialog">
-    <h3>📲 Cara Install Aplikasi DOMINO</h3>
-    <p>Aplikasi ini dapat diinstal di semua browser dan perangkat (HP / Laptop):</p>
-    <ol>
-      <li><strong>Google Chrome / Edge (Android / PC):</strong> Ketuk menu titik tiga (⋮) atau ikon Install (⊕) di address bar, lalu pilih <strong>"Install app"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
-      <li><strong>Safari (iPhone / iPad / Mac):</strong> Ketuk ikon <strong>Bagikan (Share)</strong> di bagian bawah Safari, lalu pilih <strong>"Add to Home Screen" (Tambahkan ke Layar Utama)</strong>.</li>
-      <li><strong>Mozilla Firefox / Samsung Internet:</strong> Ketuk menu opsi browser➔ pilih <strong>"Install"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
-    </ol>
-    <button id="btnCloseHelpDialog" class="btn btn-primary btn-block">Mengerti</button>
-  </dialog>
 
   <script src="app.js"></script>
 </body>
