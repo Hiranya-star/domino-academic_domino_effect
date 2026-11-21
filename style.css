@@ -233,7 +233,7 @@ input:focus, select:focus {
 .alert-card.urgent { border-left-color: var(--danger); }
 .alert-msg { font-style: italic; font-size: 0.88rem; margin-top: 4px; }
 
-/* POPUP HEADS-UP MELAYAR DI LAYAR HP */
+/* POPUP HEADS-UP MELAYAR DI LAYAR */
 .popup-terror-container {
   position: fixed;
   top: 15px;
