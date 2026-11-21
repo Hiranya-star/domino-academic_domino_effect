@@ -1,7 +1,7 @@
 {
-  "name": "DOMINO — Academic Domino Effect & Teacher Terror Planner",
+  "name": "DOMINO — Academic Domino Effect Simulator",
   "short_name": "DOMINO",
-  "description": "Planner siswa SMA dengan simulasi efek domino dan notifikasi teror guru.",
+  "description": "Aplikasi manajemen tugas, penjadwalan pengerjaan, dan simulasi rantai keterlambatan.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
