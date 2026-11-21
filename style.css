@@ -268,7 +268,7 @@ input:focus, select:focus {
 }
 .badge { background: var(--danger); }
 
-/* POPUP HEADS-UP MELAYAR DI LAYAR */
+/* POPUP TEROR GURU MELAYAR DI LAYAR */
 .popup-terror-container {
   position: fixed;
   top: 15px;
