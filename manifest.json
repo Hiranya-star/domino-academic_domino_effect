@@ -1,8 +1,8 @@
 {
-  "id": "/domino-academic-planner",
-  "name": "DOMINO — Academic Domino Effect Simulator & Planner",
+  "id": "/domino-academic-terror-planner",
+  "name": "DOMINO — Academic Domino Effect & Teacher Terror Planner",
   "short_name": "DOMINO",
-  "description": "Aplikasi manajemen tugas, penjadwalan pengerjaan, profil siswa, dan simulasi rantai keterlambatan.",
+  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat teror kepribadian guru.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
