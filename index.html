@@ -17,7 +17,7 @@
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <strong>📲 Download / Install Aplikasi DOMINO</strong>
-      <small>Pasang sebagai aplikasi penuh di perangkatmu (Bukan sekadar pintasan web)</small>
+      <small>Pasang sebagai aplikasi penuh di HP/Laptop (Bukan sekadar pintasan web)</small>
     </div>
     <div class="install-btns">
       <button id="btnInstallApp" class="btn btn-primary btn-sm">Install App</button>
@@ -30,7 +30,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <h1>DOMINO</h1>
-        <span>Academic Effect Simulator</span>
+        <span id="sidebarStudentTag">Planner & Simulator Akademik</span>
       </div>
       <nav class="nav-menu">
         <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
@@ -38,6 +38,7 @@
         <button class="nav-item" data-page="simulator">🁢 <span>Simulasi Domino</span></button>
         <button class="nav-item" data-page="alerts">🔔 <span>Pusat Notifikasi</span> <span class="badge" id="alertCountBadge">0</span></button>
         <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
+        <button class="nav-item" data-page="profile">👤 <span>Profil Siswa</span></button>
       </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
@@ -63,7 +64,7 @@
           <div class="stability-info">
             <span class="label">ACADEMIC STABILITY INDEX</span>
             <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
-            <p id="stabilityDesc">Belum ada rantai tugas yang terancam efek domino.</p>
+            <p id="stabilityDesc">Belum ada tugas yang terdaftar. Tambahkan tugas pertamamu untuk mulai memantau risiko rantai domino.</p>
           </div>
         </div>
         <div class="dashboard-split">
@@ -86,21 +87,20 @@
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
               <label>Nama Tugas *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Analisis Proyek Penelitian" required />
+              <input type="text" id="tTitle" placeholder="Contoh: Laporan Praktikum / Makalah" required />
             </div>
             <div class="form-group">
               <label>Kategori / Mata Pelajaran *</label>
-              <input type="text" id="tSubject" placeholder="Contoh: Metodologi Penelitian" required />
+              <input type="text" id="tSubject" placeholder="Contoh: Biologi / Fisika / Pemrograman" required />
             </div>
             <div class="form-group">
-              <label>Nama Pemberi Tugas / Pengampu *</label>
-              <input type="text" id="tTeacher" placeholder="Contoh: Dr. Aris, M.Sc." required />
+              <label>Nama Guru / Pengampu *</label>
+              <input type="text" id="tTeacher" placeholder="Masukkan nama guru atau pengampu mata pelajaran" required />
             </div>
             <div class="form-group">
               <label>Deadline (Tanggal & Jam) *</label>
               <input type="datetime-local" id="tDeadline" required />
             </div>
-            <!-- WAKTU PENGERJAAN TUGAS (TIME-BLOCKING) -->
             <div class="form-group">
               <label>Rencana Waktu Mulai Pengerjaan *</label>
               <input type="datetime-local" id="tWorkSchedule" required />
@@ -164,20 +164,45 @@
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan</h3>
           <p class="hint">Atur durasi waktumu sendiri dan mulai sesi fokus tanpa distraksi.</p>
-          
-          <!-- PENGATURAN TIMER KUSTOM -->
           <div class="form-group" style="max-width: 280px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
             <input type="number" id="customTimerInput" min="1" max="180" value="25" />
           </div>
-
           <div class="timer-display" id="timerDisplay" style="font-size:3rem; font-weight:bold; margin:15px 0; color:var(--primary);">25:00</div>
-          
           <div style="display:flex; justify-content:center; gap:10px;">
             <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
             <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
             <button id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
           </div>
+        </div>
+      </section>
+
+      <!-- HALAMAN 6: PROFIL SISWA -->
+      <section id="page-profile" class="page">
+        <div class="card">
+          <h3>👤 Profil Siswa & Preferensi Akademik</h3>
+          <p class="hint">Lengkapi identitasmu untuk mempersonalisasi planner akademik ini.</p>
+          <form id="profileForm" class="task-form" style="margin-top:12px;">
+            <div class="form-group">
+              <label>Nama Lengkap *</label>
+              <input type="text" id="pName" placeholder="Masukkan namamu" required />
+            </div>
+            <div class="form-group">
+              <label>Kelas / Jurusan / Program Studi</label>
+              <input type="text" id="pClass" placeholder="Contoh: XII IPA 1 / Teknik Informatika" />
+            </div>
+            <div class="form-group">
+              <label>Sekolah / Institusi</label>
+              <input type="text" id="pSchool" placeholder="Contoh: SMA Negeri 1" />
+            </div>
+            <div class="form-group">
+              <label>Target Belajar Harian (Jam)</label>
+              <input type="number" id="pTargetHours" min="1" max="16" value="3" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">💾 Simpan Profil</button>
+            </div>
+          </form>
         </div>
       </section>
     </main>
