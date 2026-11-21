@@ -1,6 +1,6 @@
-const TASKS_KEY = 'domino_tasks_v6';
-const PROFILE_KEY = 'domino_profile_v6';
-const ALARM_MODE_KEY = 'domino_alarm_mode_v6';
+const TASKS_KEY = 'domino_tasks_v7';
+const PROFILE_KEY = 'domino_profile_v7';
+const ALARM_MODE_KEY = 'domino_alarm_mode_v7';
 
 let tasks = [];
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
@@ -51,7 +51,7 @@ function updateThemeButtonText(theme) {
   if (btn) btn.textContent = theme === 'dark' ? '☀️ Mode Terang' : '🌙 Mode Gelap';
 }
 
-// Manajemen Profil Siswa
+// Manajemen Profil Siswa (SMA / SMK)
 function loadProfile() {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
@@ -84,7 +84,7 @@ function saveProfile(e) {
   renderAll();
 }
 
-// Manajemen Tugas (Kosong di awal, tanpa contoh guru)
+// Manajemen Tugas (Bersih di awal tanpa contoh guru bawaan)
 function loadTasks() {
   try {
     const raw = localStorage.getItem(TASKS_KEY);
@@ -96,7 +96,7 @@ function saveTasks() {
   localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
 }
 
-// Instalasi PWA Mandiri (Standalone)
+// Instalasi PWA Mandiri (Standalone WebAPK)
 let deferredPrompt = null;
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -115,6 +115,29 @@ function setupPWAInstall() {
   document.getElementById('btnCloseInstall').addEventListener('click', () => {
     document.getElementById('installBanner').classList.add('hidden');
   });
+}
+
+// Generator Kalimat Teror Berdasarkan Tipe Kepribadian Guru
+function generateTerrorMessage(task, slack) {
+  const persona = task.persona || 'killer';
+  const isUrgent = slack <= 2;
+
+  const scripts = {
+    killer: isUrgent
+      ? `"${task.title}" (${task.subject}) belum selesai?! Jangan harap ada dispensasi nilai dari ${task.teacher}. Kumpulkan sekarang atau tanggung akibatnya!`
+      : `Ingat, ${task.teacher} tidak pernah menerima alasan lupa. Segera selesaikan "${task.title}" sebelum batas waktu habis!`,
+    sarcastic: isUrgent
+      ? `Santai banget ngerjain "${task.title}"? ${task.teacher} sudah siap kasih nilai kosong yang estetik buat rapor ${task.subject} kamu.`
+      : `Tenang saja, deadline "${task.title}" masih ada sisa waktu. Tapi jangan sampai ${task.teacher} nyindir namamu di depan kelas.`,
+    disciplined: isUrgent
+      ? `PERINGATAN WAKTU: Toleransi keterlambatan dari ${task.teacher} adalah 0 detik. Tugas "${task.title}" wajib tuntas secepatnya!`
+      : `Sesuai standar kedisiplinan ${task.teacher}, "${task.title}" (${task.subject}) harus mulai dicicil sesuai jadwal.`,
+    friendly: isUrgent
+      ? `Ayo semangat! ${task.teacher} sudah nungguin hasil "${task.title}" kamu. Jangan bikin beliau kecewa karena telat ya!`
+      : `Halo, ${task.teacher} menitip pesan agar "${task.title}" (${task.subject}) dikerjakan tepat waktu supaya hasilnya maksimal.`
+  };
+
+  return scripts[persona] || scripts.killer;
 }
 
 // Kalkulasi Slack Time & Rantai Domino
@@ -144,11 +167,14 @@ function getDownstreamTasks(taskId) {
   return affected;
 }
 
-// Notifikasi Pop-up Layar & Bar Sistem
+// Notifikasi Pop-up Layar & Bar Sistem di Luar Aplikasi
 function showScreenPopup(task) {
+  const slack = calculateSlack(task);
+  const terrorMsg = generateTerrorMessage(task, slack);
+
   document.getElementById('popupTeacherTag').textContent = `${task.teacher} • ${task.subject}`;
   document.getElementById('popupTaskTitle').textContent = task.title;
-  document.getElementById('popupTerrorText').textContent = `Pengingat: Waktu pengerjaan "${task.title}" telah tiba atau mendekati batas waktu!`;
+  document.getElementById('popupTerrorText').textContent = terrorMsg;
   document.getElementById('popupTerrorBanner').classList.remove('hidden');
 
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
@@ -167,19 +193,21 @@ document.getElementById('btnClosePopup').addEventListener('click', () => {
 
 async function triggerNotifications(task) {
   showScreenPopup(task);
+  const slack = calculateSlack(task);
+  const terrorMsg = generateTerrorMessage(task, slack);
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
 
   if ('Notification' in window && Notification.permission === 'granted') {
     if (swRegistration && swRegistration.showNotification) {
-      swRegistration.showNotification(`🚨 Pengingat Tugas: ${task.teacher}`, {
-        body: `${task.title} (${task.subject}) — Mulai: ${task.workSchedule ? task.workSchedule.replace('T', ' ') : '-'} | Deadline: ${task.deadline.replace('T', ' ')}`,
+      swRegistration.showNotification(`🚨 TEROR ${task.teacher.toUpperCase()} (${task.subject})`, {
+        body: terrorMsg,
         vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
         silent: mode === 'silent',
         requireInteraction: true
       });
     } else {
-      new Notification(`🚨 Pengingat Tugas: ${task.teacher}`, {
-        body: `${task.title} (${task.subject}) mendekati waktu pengerjaan/deadline!`,
+      new Notification(`🚨 TEROR ${task.teacher.toUpperCase()} (${task.subject})`, {
+        body: terrorMsg,
         silent: mode === 'silent'
       });
     }
@@ -201,14 +229,46 @@ function startWatchdog() {
   }, 30000);
 }
 
+// Panic Button (Rencana Darurat Kilat)
+function triggerPanicMode() {
+  const active = tasks.filter(t => t.status === 'active');
+  const panicBox = document.getElementById('panicBox');
+  const panicContent = document.getElementById('panicContent');
+
+  if (active.length === 0) {
+    panicBox.classList.remove('hidden');
+    panicContent.innerHTML = '<p class="hint">Tidak ada tugas aktif saat ini. Jadwalmu masih aman terkendali!</p>';
+    return;
+  }
+
+  const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
+  let planHtml = '<ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">';
+
+  sorted.forEach((t, idx) => {
+    const slack = calculateSlack(t);
+    const mins = Math.round(t.duration * 60);
+    const statusText = slack <= 0 ? 'KRITIS — KERJAKAN SEKARANG!' : `Sisa cadangan ${slack} jam`;
+    planHtml += `
+      <li>
+        <strong>[Langkah ${idx + 1}] ${t.title} (${t.subject} - ${t.teacher})</strong><br/>
+        <small>Alokasi Kilat: <strong>${mins} menit</strong> • Status: <span style="color:var(--danger)">${statusText}</span></small>
+      </li>
+    `;
+  });
+  planHtml += '</ol>';
+
+  panicBox.classList.remove('hidden');
+  panicContent.innerHTML = planHtml;
+}
+
 // Navigasi Halaman
 const pageTitles = {
-  dashboard: 'Dashboard Akademik',
-  assignments: 'Daftar & Jadwal Tugas',
+  dashboard: 'Dashboard Akademik & Kejuruan',
+  assignments: 'Daftar Tugas & Teror Guru',
   simulator: 'Simulasi Efek Domino',
-  alerts: 'Pusat Notifikasi & Pengingat',
+  alerts: 'Pusat Notifikasi & Alarm Senyap',
   focus: 'Mode Fokus Kustom',
-  profile: 'Profil Siswa'
+  profile: 'Profil Siswa (SMA / SMK)'
 };
 
 function navigateTo(pageId) {
@@ -256,7 +316,7 @@ function setupFocusTimerUI() {
           if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
           if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
             swRegistration.showNotification('⏱️ Sesi Fokus Selesai!', {
-              body: 'Waktu fokusmu sudah habis. Silakan istirahat sejenak.',
+              body: 'Waktu fokusmu sudah habis. Silakan istirahat sejenak sebelum lanjut tugas berikutnya.',
               silent: mode === 'silent'
             });
           }
@@ -290,6 +350,7 @@ function updateTimerDisplay() {
 function setupEventListeners() {
   document.getElementById('btnSidebarTheme').addEventListener('click', toggleTheme);
   document.getElementById('profileForm').addEventListener('submit', saveProfile);
+  document.getElementById('btnPanic').addEventListener('click', triggerPanicMode);
 
   const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   const alarmSelect = document.getElementById('alarmModeSelect');
@@ -303,7 +364,7 @@ function setupEventListeners() {
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if ('Notification' in window) {
       const p = await Notification.requestPermission();
-      alert(p === 'granted' ? '✅ Notifikasi sistem & pop-up berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
+      alert(p === 'granted' ? '✅ Notifikasi sistem & teror pop-up berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
     } else {
       alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
     }
@@ -317,6 +378,7 @@ function setupEventListeners() {
       title: document.getElementById('tTitle').value.trim(),
       subject: document.getElementById('tSubject').value.trim(),
       teacher: document.getElementById('tTeacher').value.trim(),
+      persona: document.getElementById('tPersona').value,
       deadline: document.getElementById('tDeadline').value,
       workSchedule: document.getElementById('tWorkSchedule').value,
       duration: parseFloat(document.getElementById('tDuration').value),
@@ -361,28 +423,36 @@ function renderDashboard() {
   document.getElementById('navTaskCount').textContent = active.length;
   const critical = active.filter(t => calculateSlack(t) <= 0);
 
+  // Kalkulasi Skor Beban Mental (Mental Load Meter)
+  const totalWorkHours = active.reduce((sum, t) => sum + (t.duration || 0), 0);
+  const targetDaily = userProfile.targetHours || 3;
+  const mentalLoadPercent = Math.min(100, Math.round((totalWorkHours / (targetDaily * 2)) * 100));
+
   const scoreEl = document.getElementById('stabilityScore');
   const descEl = document.getElementById('stabilityDesc');
   const greeting = userProfile.name ? `Halo, ${userProfile.name}! ` : '';
 
   if (active.length === 0) {
-    scoreEl.textContent = '100% — Jadwal Kosong';
-    descEl.textContent = `${greeting}Belum ada tugas yang ditambahkan. Klik "+ Tugas Baru" untuk mulai mengatur jadwalmu.`;
+    scoreEl.textContent = '100% — Jadwal Stabil | Beban Mental: 0%';
+    descEl.textContent = `${greeting}Belum ada tugas yang ditambahkan. Klik "+ Tugas Baru" untuk mulai mengatur jadwal teori maupun kejuruan.`;
   } else if (critical.length > 0) {
-    scoreEl.textContent = `⚠️ ${Math.max(10, 100 - critical.length * 25)}% — Terdeteksi Jalur Kritis!`;
-    descEl.textContent = `${greeting}Terdapat ${critical.length} tugas dengan waktu cadangan tipis atau berisiko memicu efek domino.`;
+    scoreEl.textContent = `⚠️ Jalur Kritis (${critical.length} Tugas) | Beban Mental: ${mentalLoadPercent}%`;
+    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button jika waktu pengerjaan sudah sangat mepet.`;
   } else {
-    scoreEl.textContent = '100% — Jadwal Stabil';
-    descEl.textContent = `${greeting}Semua rantai tugas memiliki waktu cadangan (slack time) yang aman.`;
+    scoreEl.textContent = `✅ Jadwal Aman | Beban Mental: ${mentalLoadPercent}%`;
+    descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Tetap patuhi time-blocking agar tidak menumpuk.`;
   }
 
   const list = document.getElementById('dashboardAlertsList');
-  list.innerHTML = active.slice(0, 3).map(t => `
-    <div class="alert-card ${calculateSlack(t) <= 0 ? 'urgent' : ''}">
-      <strong>${t.teacher} — ${t.subject}</strong>
-      <p class="alert-msg">Tugas: ${t.title} (Mulai: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'})</p>
-    </div>
-  `).join('') || '<p class="hint">Belum ada pengingat tugas aktif.</p>';
+  list.innerHTML = active.slice(0, 3).map(t => {
+    const slack = calculateSlack(t);
+    return `
+      <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
+        <strong>${t.teacher} — ${t.subject}</strong>
+        <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
+      </div>
+    `;
+  }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
 
   const priorityList = document.getElementById('todayActionList');
   const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
@@ -391,7 +461,7 @@ function renderDashboard() {
     return `
       <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
         <strong>#${i + 1} ${t.title} (${t.subject})</strong>
-        <p class="hint">Guru: ${t.teacher} • Sisa Cadangan (Slack): ${slack} jam</p>
+        <p class="hint">Pengampu: ${t.teacher} • Sisa Cadangan (Slack): ${slack} jam</p>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada daftar prioritas tugas.</p>';
@@ -411,7 +481,7 @@ function renderAssignments() {
           <span class="slack-pill ${slack <= 0 ? 'slack-danger' : 'slack-safe'}">Slack: ${slack}j</span>
         </div>
         <h4>${t.title}</h4>
-        <small class="hint">Guru: ${t.teacher}</small>
+        <small class="hint">Guru/Instruktur: ${t.teacher}</small>
         <small class="hint">Mulai Kerja: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'}</small>
         <small class="hint">Deadline: ${t.deadline.replace('T', ' ')}</small>
         ${parent ? `<small class="hint">⛓️ Bergantung pada: ${parent.title}</small>` : ''}
@@ -455,22 +525,25 @@ function renderSimulator() {
     const slack = calculateSlack(selectedTask);
     const over = delay - slack;
     box.innerHTML = over > 0
-      ? `<div class="alert-card urgent">⚠️ <strong>Melewati Deadline:</strong> Keterlambatan +${delay} jam membuat tugas ini telat ${Math.round(over * 10) / 10} jam dari batas waktu!</div>`
+      ? `<div class="alert-card urgent">⚠️ <strong>Melewati Deadline:</strong> Keterlambatan +${delay} jam membuat tugas ini telat ${Math.round(over * 10) / 10} jam! ${generateTerrorMessage(selectedTask, -1)}</div>`
       : `<div class="alert-card">⚠️ <strong>Waktu Cadangan Berkurang:</strong> Masih aman karena tertutup slack time (${slack} jam), namun tidak ada tugas lanjutan yang bergantung padanya.</div>`;
   } else {
     const affectedNames = downstream.map(d => `${d.title} (${d.teacher})`).join(', ');
-    box.innerHTML = `<div class="alert-card urgent">🚨 <strong>Efek Domino Terjadi!</strong> Keterlambatan +${delay} jam pada "${selectedTask?.title}" berpotensi mengacaukan ${downstream.length} tugas berikutnya: <strong>${affectedNames}</strong>.</div>`;
+    box.innerHTML = `<div class="alert-card urgent">🚨 <strong>Efek Domino Terjadi!</strong> Keterlambatan +${delay} jam pada "${selectedTask?.title}" mengacaukan ${downstream.length} tugas berikutnya: <strong>${affectedNames}</strong>.</div>`;
   }
 }
 
 function renderAlerts() {
   const active = tasks.filter(t => t.status === 'active');
   document.getElementById('alertCountBadge').textContent = active.length;
-  document.getElementById('fullAlertsList').innerHTML = active.map(t => `
-    <div class="alert-card">
-      <strong>${t.teacher} (${t.subject}) — ${t.title}</strong>
-      <p class="alert-msg">Jadwal Kerja: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'} | Deadline: ${t.deadline.replace('T', ' ')}</p>
-      <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up & Notifikasi</button>
-    </div>
-  `).join('') || '<p class="hint">Belum ada pengingat aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
+  document.getElementById('fullAlertsList').innerHTML = active.map(t => {
+    const slack = calculateSlack(t);
+    return `
+      <div class="alert-card">
+        <strong>${t.teacher} (${t.subject}) — ${t.title}</strong>
+        <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
+        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up & Notifikasi Luar</button>
+      </div>
+    `;
+  }).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
 }
