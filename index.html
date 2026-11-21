@@ -6,25 +6,27 @@
   <meta name="theme-color" content="#6366f1" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DOMINO" />
   <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- BANNER INSTALASI APLIKASI (PWA) -->
+  <!-- BANNER INSTALL PWA MANDIRI (STANDALONE) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
-      <strong>📲 Install Aplikasi DOMINO</strong>
-      <small>Pasang langsung di HP agar bisa offline & memunculkan teror guru.</small>
+      <strong>📲 Download / Install Aplikasi DOMINO</strong>
+      <small>Pasang sebagai aplikasi penuh di HP (Bukan sekadar pintasan web)</small>
     </div>
     <div class="install-btns">
-      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install</button>
+      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install App</button>
       <button id="btnCloseInstall" class="btn-icon">✕</button>
     </div>
   </div>
 
   <div class="app-shell">
-    <!-- SIDEBAR / MENU NAVIGASI -->
+    <!-- SIDEBAR NAVIGASI -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <h1>DOMINO</h1>
@@ -34,12 +36,12 @@
         <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
         <button class="nav-item" data-page="assignments">📝 <span>Daftar Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
         <button class="nav-item" data-page="simulator">🁢 <span>Simulasi Domino</span></button>
-        <button class="nav-item" data-page="alerts">🔔 <span>Teror Guru</span></button>
+        <button class="nav-item" data-page="alerts">🔔 <span>Teror Guru</span> <span class="badge" id="alertCountBadge">0</span></button>
         <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
       </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up</button>
+        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up HP</button>
       </div>
     </aside>
 
@@ -55,13 +57,13 @@
         </div>
       </header>
 
-      <!-- HALAMAN DASHBOARD -->
+      <!-- HALAMAN 1: DASHBOARD -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
-            <span class="label">STATUS JADWAL SEKOLAH</span>
-            <h3 id="stabilityScore">100% — Jadwal Aman</h3>
-            <p id="stabilityDesc">Belum ada tugas yang memicu efek domino.</p>
+            <span class="label">ACADEMIC STABILITY INDEX</span>
+            <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
+            <p id="stabilityDesc">Belum ada rantai tugas yang terancam efek domino.</p>
           </div>
         </div>
         <div class="dashboard-split">
@@ -70,16 +72,16 @@
             <div id="dashboardAlertsList" class="alert-list"></div>
           </div>
           <div class="card">
-            <h3>⛓️ Prioritas Tugas & Risiko</h3>
+            <h3>⛓️ Urutan Prioritas & Risiko</h3>
             <div id="todayActionList"></div>
           </div>
         </div>
       </section>
 
-      <!-- HALAMAN DAFTAR TUGAS -->
+      <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3>➕ Tambah / Edit Tugas</h3>
+          <h3 id="formModeTitle">➕ Tambah Tugas Sekolah</h3>
           <form id="taskForm" class="task-form">
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
@@ -109,7 +111,7 @@
               </select>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">💾 Simpan Tugas ke Memori HP</button>
+              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas ke Memori HP</button>
             </div>
           </form>
         </div>
@@ -119,7 +121,7 @@
         </div>
       </section>
 
-      <!-- HALAMAN SIMULATOR DOMINO -->
+      <!-- HALAMAN 3: SIMULATOR DOMINO -->
       <section id="page-simulator" class="page">
         <div class="card">
           <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
@@ -136,23 +138,25 @@
         </div>
       </section>
 
-      <!-- HALAMAN TEROR GURU -->
+      <!-- HALAMAN 4: TEROR GURU -->
       <section id="page-alerts" class="page">
         <div class="card">
           <h3>🔔 Pusat Notifikasi & Teror Guru</h3>
-          <p class="hint">Notifikasi ini disiapkan untuk muncul di bar notifikasi dan heads-up pop-up HP-mu.</p>
+          <p class="hint">Memunculkan notifikasi bar sistem dan pop-up heads-up di layar HP bahkan saat aplikasi ditutup.</p>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
 
-      <!-- HALAMAN MODE FOKUS -->
+      <!-- HALAMAN 5: MODE FOKUS -->
       <section id="page-focus" class="page">
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan</h3>
           <p class="hint">Kurangi sisa waktu pengerjaan tugasmu tanpa distraksi.</p>
-          <div class="timer-display" id="timerDisplay">25:00</div>
-          <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
-          <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+          <div class="timer-display" id="timerDisplay" style="font-size:3rem; font-weight:bold; margin:20px 0; color:var(--primary);">25:00</div>
+          <div style="display:flex; justify-content:center; gap:10px;">
+            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
+            <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+          </div>
         </div>
       </section>
     </main>
