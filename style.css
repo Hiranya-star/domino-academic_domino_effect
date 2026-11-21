@@ -98,6 +98,12 @@ body {
   font-weight: 600;
 }
 
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* KONTEN UTAMA */
 .main-content {
   flex: 1;
@@ -135,6 +141,7 @@ body {
 .btn-danger { background: var(--danger); color: #fff; }
 .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 .btn-block { width: 100%; }
+.btn-icon { background: transparent; border: none; color: var(--text-main); font-size: 1.2rem; cursor: pointer; }
 
 .page { display: none; }
 .page.active { display: block; }
@@ -153,6 +160,23 @@ body {
   border-radius: var(--radius);
   padding: 18px;
   margin-bottom: 18px;
+}
+
+.stability-info .label {
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  color: #a5b4fc;
+  font-weight: 700;
+}
+
+.stability-info h3 {
+  margin: 6px 0;
+  font-size: 1.3rem;
+}
+
+.stability-info p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .dashboard-split {
@@ -232,6 +256,17 @@ input:focus, select:focus {
 }
 .alert-card.urgent { border-left-color: var(--danger); }
 .alert-msg { font-style: italic; font-size: 0.88rem; margin-top: 4px; }
+.hint { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+
+.badge, .badge-soft {
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 99px;
+  margin-left: auto;
+}
+.badge { background: var(--danger); }
 
 /* POPUP HEADS-UP MELAYAR DI LAYAR */
 .popup-terror-container {
@@ -283,6 +318,12 @@ input:focus, select:focus {
   align-items: center;
   z-index: 1000;
   box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+.install-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mobile-only { display: none; }
