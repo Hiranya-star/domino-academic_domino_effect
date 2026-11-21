@@ -1,28 +1,29 @@
 // ==========================================================
 // DOMINO — Academic Domino Effect & Teacher Terror Planner
-// Separated JS Edition (HTML + CSS + JS + Push Notif & Getar)
+// v2: System OS Push Notification (Native HP), Light/Dark Mode, Full PWA Install
 // ==========================================================
 
-const TASKS_KEY = 'domino_student_tasks_single_v1';
-const PROFILE_KEY = 'domino_student_profile_single_v1';
+const TASKS_KEY = 'domino_student_tasks_v2';
+const PROFILE_KEY = 'domino_student_profile_v2';
+const THEME_KEY = 'domino_theme_mode_v2';
 
 let tasks = [];
 let studentProfile = null;
 let deferredInstallPrompt = null;
+let swRegistration = null;
 
 // Notification state
 let snoozedUntil = {};
 let notifiedTaskIds = new Set();
-let currentNotifTaskId = null;
-let toastAutoHideTimer = null;
 
 // Focus Timer state
 let focusSecondsRemaining = 25 * 60;
 let focusInitialSeconds = 25 * 60;
 let focusTimerInterval = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-  injectDynamicManifest();
+document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  await registerServiceWorker();
   loadState();
   setupPWAInstall();
   setupNavigation();
@@ -32,30 +33,51 @@ document.addEventListener('DOMContentLoaded', () => {
   startNotificationWatchdog();
 });
 
-// Inject PWA Manifest secara dinamis
-function injectDynamicManifest() {
-  try {
-    const manifest = {
-      name: 'DOMINO — Academic Domino Effect & Teacher Terror Planner',
-      short_name: 'DOMINO',
-      start_url: window.location.href,
-      display: 'standalone',
-      background_color: '#0b1120',
-      theme_color: '#6366f1',
-      icons: [{
-        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E",
-        sizes: '512x512',
-        type: 'image/svg+xml'
-      }]
-    };
-    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = URL.createObjectURL(blob);
-    document.head.appendChild(link);
-  } catch (e) {}
+// ==========================================================
+// 1. SERVICE WORKER REGISTRATION (AGAR BISA DI-DOWNLOAD NORMAL & KIRIM NOTIF SISTEM HP)
+// ==========================================================
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      swRegistration = await navigator.serviceWorker.register('./sw.js');
+    } catch (err) {
+      console.warn('Service Worker membutuhkan protokol HTTPS atau localhost:', err);
+    }
+  }
 }
 
+// ==========================================================
+// 2. MODE TERANG & GELAP (LIGHT / DARK THEME)
+// ==========================================================
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', theme === 'light' ? '#4f46e5' : '#0b1120');
+  }
+
+  const topBtn = document.getElementById('btnTopTheme');
+  const sideBtn = document.getElementById('btnSidebarTheme');
+  if (topBtn) topBtn.textContent = theme === 'light' ? '🌙 Gelap' : '☀️ Terang';
+  if (sideBtn) sideBtn.textContent = theme === 'light' ? '🌙 Mode Gelap' : '☀️ Mode Terang';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+  renderDependencySvg();
+}
+
+// ==========================================================
+// 3. STATE MANAGEMENT
+// ==========================================================
 function loadState() {
   try {
     const rawProfile = localStorage.getItem(PROFILE_KEY);
@@ -164,12 +186,19 @@ function applyProfileToUI() {
     `Halo, ${studentProfile.name} (${studentProfile.className}) — One Delayed Task, A Chain of Consequences.`;
 }
 
-// --- PWA INSTALL ---
+// ==========================================================
+// 4. DOWNLOAD / INSTALL PWA NORMAL
+// ==========================================================
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
     document.getElementById('installBanner').classList.remove('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    document.getElementById('installBanner').classList.add('hidden');
   });
 
   const handleInstall = async () => {
@@ -196,7 +225,9 @@ function setupPWAInstall() {
   });
 }
 
-// --- CORE DOMINO & SLACK ALGORITHM ---
+// ==========================================================
+// 5. ALGORITMA DOMINO & SLACK TIME
+// ==========================================================
 function calculateSlackHours(task) {
   if (!task.dependsOn) {
     const hoursLeft = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
@@ -263,7 +294,9 @@ function simulateDominoCascade(rootTaskId, extraDelayHours) {
   return result;
 }
 
-// --- TEACHER TERROR PUSH NOTIFICATION & SHORT VIBRATION ---
+// ==========================================================
+// 6. NOTIFIKASI SISTEM HP LANGSUNG (OS STATUS BAR / LOCKSCREEN)
+// ==========================================================
 function generateTeacherTerrorMessage(task, hoursLeft) {
   const stage =
     hoursLeft < 0 ? 'TERLAMBAT' :
@@ -307,62 +340,61 @@ function triggerShortVibration() {
   }
 }
 
-function sendTeacherTerrorPush(task) {
-  currentNotifTaskId = task.id;
+async function sendNativePhoneNotification(task) {
+  if (!('Notification' in window)) {
+    alert('Browser HP ini tidak mendukung notifikasi sistem.');
+    return;
+  }
+
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+
+  if (Notification.permission !== 'granted') {
+    alert('⚠️ Izin notifikasi HP masih diblokir. Silakan izinkan notifikasi browser agar teror guru muncul di bar notifikasi HP.');
+    return;
+  }
+
   const hoursLeft = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
   const msg = generateTeacherTerrorMessage(task, hoursLeft);
   const downstream = getDownstreamTasks(task.id);
 
-  // 1. Getar sebentar di HP (tanpa suara sirine)
+  // Getar singkat di perangkat
   triggerShortVibration();
 
-  // 2. Tampilkan banner Push Notification in-app
-  const toast = document.getElementById('terrorToast');
-  document.getElementById('toastStageBadge').textContent = `TEROR GURU • ${msg.stage}`;
-  document.getElementById('toastTeacher').textContent = `${task.teacher} — ${task.subject}`;
-  document.getElementById('toastTaskTitle').textContent = task.title;
-  document.getElementById('toastQuote').textContent = msg.text;
-
-  const chainEl = document.getElementById('toastChainInfo');
-  if (downstream.length > 0) {
-    const names = downstream.map((d) => `${d.teacher} (${d.title})`).join(' ➔ ');
-    chainEl.innerHTML = `⛓️ <strong>Efek Domino:</strong> ${downstream.length} tugas berikutnya ikut tertahan (${names})`;
-    chainEl.classList.remove('hidden');
-  } else {
-    chainEl.classList.add('hidden');
-  }
-
-  toast.classList.remove('hidden');
-  if (toastAutoHideTimer) clearTimeout(toastAutoHideTimer);
-  toastAutoHideTimer = setTimeout(() => {
-    toast.classList.add('hidden');
-  }, 12000);
-
-  // 3. Kirim Native Browser / OS Push Notification
-  const notifBody = downstream.length > 0
-    ? `${task.title}: ${msg.text} (⚠️ Menahan ${downstream.length} tugas berikutnya!)`
+  const title = `🔔 ${task.teacher} (${task.subject}) • ${msg.stage}`;
+  const body = downstream.length > 0
+    ? `${task.title}: ${msg.text}\n⛓️ Efek Domino: Menahan ${downstream.length} tugas berikutnya (${downstream.map(d => d.title).join(' ➔ ')})`
     : `${task.title}: ${msg.text}`;
 
-  sendSystemPushNotification(
-    `🔔 ${task.teacher} (${task.subject}) — ${msg.stage}`,
-    notifBody
-  );
-}
+  const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E";
 
-function sendSystemPushNotification(title, body) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const options = {
+    body,
+    icon: iconSvg,
+    badge: iconSvg,
+    vibrate: [200, 100, 200],
+    tag: `domino-terror-${task.id}`,
+    renotify: true,
+    requireInteraction: true,
+    data: { taskId: task.id }
+  };
+
+  // Kirim via Service Worker agar muncul sebagai Native Android/OS Heads-Up Notification
   try {
-    const notif = new Notification(title, {
-      body,
-      vibrate: [200, 100, 200],
-      tag: 'domino-teacher-terror',
-      renotify: true
-    });
-    notif.onclick = () => {
-      window.focus();
-      notif.close();
-    };
+    const reg = swRegistration || (await navigator.serviceWorker?.getRegistration());
+    if (reg && reg.showNotification) {
+      await reg.showNotification(title, options);
+      return;
+    }
   } catch (e) {}
+
+  // Fallback jika SW belum aktif
+  const notif = new Notification(title, options);
+  notif.onclick = () => {
+    window.focus();
+    notif.close();
+  };
 }
 
 function startNotificationWatchdog() {
@@ -375,14 +407,16 @@ function startNotificationWatchdog() {
       const hoursLeft = (new Date(task.deadline).getTime() - now) / 3600000;
       if (hoursLeft <= 24 && !notifiedTaskIds.has(task.id)) {
         notifiedTaskIds.add(task.id);
-        sendTeacherTerrorPush(task);
+        sendNativePhoneNotification(task);
         break;
       }
     }
   }, 15000);
 }
 
-// --- NAVIGATION & EVENTS ---
+// ==========================================================
+// 7. NAVIGATION & EVENTS
+// ==========================================================
 function navigateTo(pageId) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.querySelectorAll('.nav-item, .m-nav').forEach((b) => b.classList.remove('active'));
@@ -416,6 +450,10 @@ function setupNavigation() {
 }
 
 function setupEventListeners() {
+  // Theme Toggle
+  document.getElementById('btnTopTheme').addEventListener('click', toggleTheme);
+  document.getElementById('btnSidebarTheme').addEventListener('click', toggleTheme);
+
   // Onboarding
   document.getElementById('onboardingForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -505,63 +543,28 @@ function setupEventListeners() {
   document.getElementById('btnPauseTimer').addEventListener('click', pauseFocusTimer);
   document.getElementById('btnFinishSession').addEventListener('click', finishFocusSession);
 
-  // Push Notification Toast Controls
-  document.getElementById('btnCloseToast').addEventListener('click', () => {
-    document.getElementById('terrorToast').classList.add('hidden');
-  });
-
-  document.getElementById('btnToastDomino').addEventListener('click', () => {
-    document.getElementById('terrorToast').classList.add('hidden');
-    navigateTo('simulator');
-    if (currentNotifTaskId) {
-      document.getElementById('simTaskSelect').value = currentNotifTaskId;
-      document.getElementById('simDelaySlider').value = 12;
-      renderSimulator();
-    }
-  });
-
-  document.getElementById('btnToastSnooze').addEventListener('click', () => {
-    document.getElementById('terrorToast').classList.add('hidden');
-    if (currentNotifTaskId) {
-      snoozedUntil[currentNotifTaskId] = Date.now() + 5 * 60 * 1000;
-      notifiedTaskIds.delete(currentNotifTaskId);
-    }
-  });
-
-  document.getElementById('btnToastFocus').addEventListener('click', () => {
-    document.getElementById('terrorToast').classList.add('hidden');
-    navigateTo('focus');
-    if (currentNotifTaskId) {
-      document.getElementById('focusTaskSelect').value = currentNotifTaskId;
-    }
-    startFocusTimer();
-  });
-
-  const testPushHandler = async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission().catch(() => {});
-    }
+  // Test Native Phone Notification
+  const testNativeNotifHandler = async () => {
     const active = tasks.filter((t) => t.status !== 'done');
     const target = active[0] || createStarterSampleTasks()[0];
-    sendTeacherTerrorPush(target);
+    await sendNativePhoneNotification(target);
   };
-  document.getElementById('btnTopTestTerror').addEventListener('click', testPushHandler);
-  document.getElementById('btnSidebarTestTerror').addEventListener('click', testPushHandler);
-  document.getElementById('btnTriggerChainTerror').addEventListener('click', testPushHandler);
+  document.getElementById('btnTopTestTerror').addEventListener('click', testNativeNotifHandler);
+  document.getElementById('btnSidebarTestTerror').addEventListener('click', testNativeNotifHandler);
+  document.getElementById('btnTriggerChainTerror').addEventListener('click', testNativeNotifHandler);
 
-  // Notification Permission
+  // Enable System Notification Permission
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if (!('Notification' in window)) {
-      alert('Browser ini tidak mendukung Push Notification.');
+      alert('Browser ini tidak mendukung Notifikasi Sistem.');
       return;
     }
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
-      triggerShortVibration();
-      sendSystemPushNotification('DOMINO Push Notification Aktif!', 'Notifikasi teror guru siap dikirim ke HP kamu.');
-      alert('✅ Push notification & getar singkat berhasil diaktifkan!');
+      const sampleTask = tasks.find((t) => t.status !== 'done') || createStarterSampleTasks()[0];
+      await sendNativePhoneNotification(sampleTask);
     } else {
-      alert('⚠️ Izin notifikasi ditolak di pengaturan browser.');
+      alert('⚠️ Izin notifikasi ditolak di pengaturan HP/Browser.');
     }
   });
 
@@ -648,7 +651,9 @@ function resetTaskFormMode() {
   document.getElementById('taskForm').reset();
 }
 
-// --- FOCUS TIMER ---
+// ==========================================================
+// 8. FOCUS TIMER
+// ==========================================================
 window.setFocusMinutes = (mins) => {
   pauseFocusTimer();
   focusInitialSeconds = mins * 60;
@@ -701,7 +706,9 @@ function finishFocusSession() {
   setFocusMinutes(25);
 }
 
-// --- RENDERING ---
+// ==========================================================
+// 9. RENDERING UI
+// ==========================================================
 function renderAll() {
   populateSelectOptions();
   renderDashboard();
@@ -773,7 +780,6 @@ function renderDashboard() {
     document.getElementById('kpiNearestTask').textContent = 'Tidak ada tugas aktif';
   }
 
-  // Dashboard Alerts
   const dashAlerts = document.getElementById('dashboardAlertsList');
   dashAlerts.innerHTML = sorted.slice(0, 3).map((t) => {
     const hrs = (new Date(t.deadline) - Date.now()) / 3600000;
@@ -791,7 +797,6 @@ function renderDashboard() {
     `;
   }).join('') || '<p class="hint">Belum ada teror guru aktif.</p>';
 
-  // Priority & Domino Chain
   const actionList = document.getElementById('todayActionList');
   actionList.innerHTML = sorted.slice(0, 4).map((t, idx) => {
     const slack = calculateSlackHours(t);
@@ -912,12 +917,20 @@ window.deleteTask = (id) => {
   renderAll();
 };
 
-// --- SVG DEPENDENCY MAP ---
+// ==========================================================
+// 10. SVG DEPENDENCY MAP (ADAPTIF TERANG / GELAP)
+// ==========================================================
 function renderDependencySvg() {
   const svg = document.getElementById('dependencySvg');
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const nodeFill = isLight ? '#ffffff' : '#131c31';
+  const titleFill = isLight ? '#0f172a' : '#f1f5f9';
+  const subFill = isLight ? '#4f46e5' : '#a5b4fc';
+  const metaFill = isLight ? '#475569' : '#94a3b8';
+
   const active = tasks.filter((t) => t.status !== 'done');
   if (active.length === 0) {
-    svg.innerHTML = '<text x="450" y="220" fill="#94a3b8" text-anchor="middle">Belum ada tugas aktif untuk dipetakan.</text>';
+    svg.innerHTML = `<text x="450" y="220" fill="${metaFill}" text-anchor="middle">Belum ada tugas aktif untuk dipetakan.</text>`;
     return;
   }
 
@@ -973,10 +986,10 @@ function renderDependencySvg() {
     const stroke = slack <= 0 ? '#ef4444' : slack <= 6 ? '#f59e0b' : '#6366f1';
     nodesSvg += `
       <g transform="translate(${x}, ${y})">
-        <rect width="170" height="72" rx="10" fill="#131c31" stroke="${stroke}" stroke-width="2" />
-        <text x="10" y="22" fill="#a5b4fc" font-size="11" font-weight="bold">${t.subject}</text>
-        <text x="10" y="40" fill="#f1f5f9" font-size="12" font-weight="600">${t.title.slice(0, 21)}</text>
-        <text x="10" y="58" fill="#94a3b8" font-size="10">${t.teacher} • Slack: ${slack}j</text>
+        <rect width="170" height="72" rx="10" fill="${nodeFill}" stroke="${stroke}" stroke-width="2" />
+        <text x="10" y="22" fill="${subFill}" font-size="11" font-weight="bold">${t.subject}</text>
+        <text x="10" y="40" fill="${titleFill}" font-size="12" font-weight="600">${t.title.slice(0, 21)}</text>
+        <text x="10" y="58" fill="${metaFill}" font-size="10">${t.teacher} • Slack: ${slack}j</text>
       </g>
     `;
   });
@@ -984,7 +997,9 @@ function renderDependencySvg() {
   svg.innerHTML = edgesSvg + nodesSvg;
 }
 
-// --- DOMINO SIMULATOR ---
+// ==========================================================
+// 11. DOMINO SIMULATOR
+// ==========================================================
 function renderSimulator() {
   const rootId = document.getElementById('simTaskSelect').value;
   const delayHours = parseInt(document.getElementById('simDelaySlider').value, 10) || 0;
@@ -1021,7 +1036,7 @@ function renderSimulator() {
         <h4 style="margin:8px 0 4px;">${item.task.title}</h4>
         <small class="hint">Guru: ${item.task.teacher}</small><br/>
         <small class="hint">Waktu cadangan: ${item.slackBefore} jam</small>
-        <div style="margin-top:8px; font-size:0.8rem; font-weight:bold; color:${item.isAffected ? '#f87171' : '#34d399'};">
+        <div style="margin-top:8px; font-size:0.8rem; font-weight:bold; color:${item.isAffected ? 'var(--danger)' : 'var(--success)'};">
           ${item.isAffected ? `⚠️ Mundur +${item.delayHours} jam (${newTime})` : '✅ Jadwal Aman'}
         </div>
       </div>
@@ -1036,12 +1051,14 @@ function renderSimulator() {
     const affectedTeachers = [...new Set(affectedItems.map((x) => `${x.task.teacher} (${x.task.subject})`))].join(', ');
     conclusion.innerHTML = `
       <strong>🚨 EFEK DOMINO TERJADI!</strong> Keterlambatan +${delayHours} jam melampaui waktu cadangan dan menjatuhkan <strong>${affectedItems.length} tugas berikutnya</strong>.<br/>
-      <span style="color:#fca5a5;">🔔 Teror Berantai Aktif: <strong>${affectedTeachers}</strong> akan mengirim notifikasi penagihan!</span>
+      <span style="color:var(--danger); font-weight:600;">🔔 Teror Berantai Aktif: ${affectedTeachers} akan mengirim notifikasi ke bar HP!</span>
     `;
   }
 }
 
-// --- TEACHER TERROR ALERTS ---
+// ==========================================================
+// 12. TEACHER TERROR ALERTS LIST
+// ==========================================================
 function renderAlerts() {
   const active = tasks.filter((t) => t.status !== 'done');
   document.getElementById('alertCountBadge').textContent = active.length;
@@ -1057,7 +1074,7 @@ function renderAlerts() {
           <strong>${t.teacher} — ${t.subject} (${t.title})</strong>
           <div>
             <span class="slack-pill ${hrs <= 24 ? 'slack-danger' : 'slack-warn'}">${msg.stage}</span>
-            <button class="btn btn-sm btn-danger" style="margin-left:6px;" onclick="triggerPushForId('${t.id}')">📲 Kirim Push Teror</button>
+            <button class="btn btn-sm btn-danger" style="margin-left:6px;" onclick="triggerNativeNotifForId('${t.id}')">🔔 Kirim ke Bar HP</button>
           </div>
         </div>
         <p class="alert-msg">${msg.text}</p>
@@ -1067,12 +1084,14 @@ function renderAlerts() {
   }).join('') || '<p class="hint">Tidak ada notifikasi teror aktif.</p>';
 }
 
-window.triggerPushForId = (id) => {
+window.triggerNativeNotifForId = async (id) => {
   const t = tasks.find((x) => x.id === id);
-  if (t) sendTeacherTerrorPush(t);
+  if (t) await sendNativePhoneNotification(t);
 };
 
-// --- RECOVERY PLANNER ---
+// ==========================================================
+// 13. RECOVERY PLANNER
+// ==========================================================
 function renderRecoveryPlanner() {
   const container = document.getElementById('recoveryOptions');
   const active = tasks.filter((t) => t.status !== 'done');
