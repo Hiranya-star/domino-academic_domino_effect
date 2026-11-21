@@ -2,47 +2,47 @@
 <html lang="id" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#6366f1" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="DOMINO" />
-  <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
+  <meta name="apple-mobile-web-app-title" content="DOMIFECT" />
+  <title>DOMIFECT — Academic & Vocational Domino Effect Planner</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- BANNER DOWNLOAD / INSTALL APLIKASI (STANDALONE WEBAPK) -->
+  <!-- BANNER DOWNLOAD / INSTALL APLIKASI (WEBAPK ASLI DARI CHROME) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
-      <strong>📲 Download & Install Aplikasi DOMINO</strong>
-      <small>Pasang sebagai aplikasi penuh di HP/Laptop (Bukan sekadar pintasan web)</small>
+      <strong>📲 Download & Install DOMIFECT</strong>
+      <small>Pasang sebagai aplikasi penuh di HP (Bukan sekadar pintasan web)</small>
     </div>
     <div class="install-btns">
-      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install App</button>
-      <button id="btnCloseInstall" class="btn-icon">✕</button>
+      <button id="btnInstallApp" class="btn btn-primary btn-sm">Download App</button>
+      <button id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
     </div>
   </div>
 
   <div class="app-shell">
-    <!-- SIDEBAR NAVIGASI -->
+    <!-- SIDEBAR NAVIGASI (DESKTOP) & BOTTOM NAV (HP) -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <h1>DOMINO</h1>
+        <h1>DOMIFECT</h1>
         <span id="sidebarStudentTag">Planner SMA & SMK</span>
       </div>
       <nav class="nav-menu">
-        <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
-        <button class="nav-item" data-page="assignments">📝 <span>Daftar Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
-        <button class="nav-item" data-page="simulator">🁢 <span>Simulasi Domino</span></button>
-        <button class="nav-item" data-page="alerts">🔔 <span>Pusat Notifikasi</span> <span class="badge" id="alertCountBadge">0</span></button>
-        <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
-        <button class="nav-item" data-page="profile">👤 <span>Profil Siswa</span></button>
+        <button class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
+        <button class="nav-item" data-page="assignments">📝 <span>Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
+        <button class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
+        <button class="nav-item" data-page="focus">⏱️ <span>Fokus</span></button>
+        <button class="nav-item" data-page="profile">👤 <span>Profil</span></button>
       </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Teror</button>
+        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
       </div>
     </aside>
 
@@ -50,11 +50,16 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left">
-          <button id="btnMenuToggle" class="btn-icon mobile-only">☰</button>
-          <h2 id="pageTitle">Dashboard Akademik & Kejuruan</h2>
+          <div class="mobile-brand">
+            <strong>DOMIFECT</strong>
+            <small id="mobileStudentTag">SMA & SMK</small>
+          </div>
+          <h2 id="pageTitle" class="desktop-title">Dashboard Akademik & Kejuruan</h2>
         </div>
         <div class="topbar-right">
-          <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas Baru</button>
+          <button id="btnMobileTheme" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
+          <button id="btnMobileNotif" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
+          <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas</button>
         </div>
       </header>
 
@@ -62,31 +67,33 @@
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
-            <span class="label">ACADEMIC STABILITY INDEX & MENTAL LOAD</span>
+            <span class="label">INDEKS STABILITAS & BEBAN MENTAL</span>
             <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
-            <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk mulai memantau rantai domino dan beban mental.</p>
+            <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
           </div>
-          <!-- PANIC BUTTON -->
-          <div style="margin-top: 12px;">
+          <div style="margin-top: 14px;">
             <button id="btnPanic" class="btn btn-danger btn-block">🚨 PANIC BUTTON (Rencana Darurat Kilat)</button>
           </div>
         </div>
 
         <!-- KOTAK RENCANA DARURAT -->
         <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
-          <h3 style="color: var(--danger);">🚨 Emergency Action Plan (Rencana Darurat)</h3>
-          <p class="hint">Hasil analisis kilat untuk menyelamatkan deadline terdekatmu:</p>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="color: var(--danger);">🚨 Rencana Darurat Kilat</h3>
+            <button class="btn-icon" onclick="document.getElementById('panicBox').classList.add('hidden')">✕</button>
+          </div>
+          <p class="hint">Urutan eksekusi menit-per-menit untuk menyelamatkan deadline:</p>
           <div id="panicContent" style="margin-top: 10px;"></div>
         </div>
 
         <div class="dashboard-split">
           <div class="card">
-            <h3>🚨 Teror Guru Aktif</h3>
-            <div id="dashboardAlertsList" class="alert-list"></div>
+            <h3>🚨 Teror Guru Aktif (500+ Variasi)</h3>
+            <div id="dashboardAlertsList" class="alert-list" style="margin-top:10px;"></div>
           </div>
           <div class="card">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <div id="todayActionList"></div>
+            <div id="todayActionList" style="margin-top:10px;"></div>
           </div>
         </div>
       </section>
@@ -94,8 +101,8 @@
       <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3 id="formModeTitle">➕ Tambah Tugas & Atur Karakter Guru</h3>
-          <form id="taskForm" class="task-form">
+          <h3 id="formModeTitle">➕ Tambah Tugas & Karakter Guru</h3>
+          <form id="taskForm" class="task-form" style="margin-top:12px;">
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
               <label>Nama Tugas / Laporan Praktikum / Project PKL *</label>
@@ -109,9 +116,8 @@
               <label>Nama Guru / Instruktur Pengampu *</label>
               <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
             </div>
-            <!-- PILIHAN KARAKTER / TIPE GURU -->
             <div class="form-group">
-              <label>Karakter / Tipe Guru & Gaya Teror *</label>
+              <label>Karakter / Tipe Guru (Mesin 500+ Kalimat Teror) *</label>
               <select id="tPersona" required>
                 <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
                 <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
@@ -120,38 +126,43 @@
                 <option value="vocational">🔧 Instruktur Bengkel / Lab (Khas SMK & SOP)</option>
                 <option value="silentkiller">👻 Misterius / Silent Killer (Langsung coret nama)</option>
                 <option value="motivator">📢 Ceramah Panjang / Motivator (Bawa-bawa masa depan)</option>
-                <option value="custom">💬 Custom Persona (Buatan / Jargon khas sendiri)</option>
+                <option value="custom">💬 Custom Persona (Jargon khas gurumu sendiri)</option>
               </select>
             </div>
-            <div class="form-group" id="customPersonaGroup" style="display:none;">
-              <label>Masukkan Kalimat/Jargon Khas Gurumu:</label>
-              <input type="text" id="tCustomText" placeholder="Contoh: Awas kalau berani bolos kumpul laporan!" />
+            <div class="form-group hidden" id="customPersonaGroup">
+              <label>Masukkan Kalimat / Jargon Khas Gurumu:</label>
+              <input type="text" id="tCustomText" placeholder="Contoh: Awas kalau berani telat kumpul laporan!" />
             </div>
-            <div class="form-group">
-              <label>Deadline (Tanggal & Jam) *</label>
-              <input type="datetime-local" id="tDeadline" required />
+            <div class="form-row-mobile">
+              <div class="form-group">
+                <label>Mulai Kerja (Time-Blocking) *</label>
+                <input type="datetime-local" id="tWorkSchedule" required />
+              </div>
+              <div class="form-group">
+                <label>Deadline Akhir *</label>
+                <input type="datetime-local" id="tDeadline" required />
+              </div>
             </div>
-            <div class="form-group">
-              <label>Rencana Waktu Mulai Pengerjaan (Time-Blocking) *</label>
-              <input type="datetime-local" id="tWorkSchedule" required />
-            </div>
-            <div class="form-group">
-              <label>Estimasi Durasi Pengerjaan (Jam) *</label>
-              <input type="number" id="tDuration" min="0.5" step="0.5" value="2" required />
-            </div>
-            <div class="form-group">
-              <label>Bergantung Pada Tugas Lain (Rantai Domino)</label>
-              <select id="tDependsOn">
-                <option value="">-- Tidak Ada (Tugas Mandiri) --</option>
-              </select>
+            <div class="form-row-mobile">
+              <div class="form-group">
+                <label>Estimasi Durasi (Jam) *</label>
+                <input type="number" id="tDuration" min="0.5" step="0.5" value="2" required />
+              </div>
+              <div class="form-group">
+                <label>Bergantung Pada Tugas (Domino)</label>
+                <select id="tDependsOn">
+                  <option value="">-- Tugas Mandiri --</option>
+                </select>
+              </div>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas & Teror</button>
+              <button type="submit" class="btn btn-primary btn-block" id="btnSubmitTask">💾 Simpan Tugas & Aktifkan Teror</button>
             </div>
           </form>
         </div>
+
         <div class="card">
-          <h3>📋 Daftar Tugas (<span id="totalTasksLabel">0</span>)</h3>
+          <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
           <div id="assignmentsList" class="assignments-grid"></div>
         </div>
       </section>
@@ -160,13 +171,13 @@
       <section id="page-simulator" class="page">
         <div class="card">
           <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
-          <p class="hint">Geser waktu keterlambatan untuk menganalisis dampak berantai pada tugas-tugas berikutnya.</p>
-          <div class="form-group">
-            <label>Jika Tugas Ini Terlambat:</label>
+          <p class="hint">Geser waktu keterlambatan untuk melihat dampak berantai pada tugas berikutnya.</p>
+          <div class="form-group" style="margin-top:12px;">
+            <label>Pilih Tugas yang Terlambat:</label>
             <select id="simTaskSelect"></select>
           </div>
           <div class="form-group">
-            <label>Simulasi Keterlambatan: <strong id="simDelayLabel" class="highlight-text">+0 Jam</strong></label>
+            <label>Simulasi Keterlambatan: <strong id="simDelayLabel" style="color:var(--warning);">+0 Jam</strong></label>
             <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
           </div>
           <div id="simConclusionBox" class="sim-conclusion" style="margin-top:15px;"></div>
@@ -177,15 +188,16 @@
       <section id="page-alerts" class="page">
         <div class="card">
           <h3>🔔 Pusat Notifikasi & Teror Guru</h3>
-          <p class="hint">Mengelola notifikasi sistem, pop-up heads-up, dan pengingat tanpa suara.</p>
-          <div class="form-group">
+          <p class="hint">Atur mode pengingat dan uji coba teror kata-kata guru di layar HP.</p>
+          <div class="form-group" style="margin-top:12px;">
             <label>Mode Alarm Pengingat:</label>
             <select id="alarmModeSelect">
               <option value="sound">Dengan Suara & Getar Default</option>
               <option value="silent">Pengingat Senyap (Tanpa Suara / Getar Saja)</option>
             </select>
           </div>
-          <div id="fullAlertsList" class="alert-list" style="margin-top:15px;"></div>
+          <button id="btnEnableNotifMobile" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
+          <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
 
@@ -194,13 +206,13 @@
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan Kustom</h3>
           <p class="hint">Atur durasi waktumu sendiri untuk menyelesaikan tugas teori maupun kejuruan.</p>
-          <div class="form-group" style="max-width: 280px; margin: 15px auto; text-align: left;">
+          <div class="form-group" style="max-width: 260px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
             <input type="number" id="customTimerInput" min="1" max="180" value="25" />
           </div>
-          <div class="timer-display" id="timerDisplay" style="font-size:3rem; font-weight:bold; margin:15px 0; color:var(--primary);">25:00</div>
-          <div style="display:flex; justify-content:center; gap:10px;">
-            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
+          <div class="timer-display" id="timerDisplay" style="font-size:3.2rem; font-weight:800; margin:18px 0; color:var(--primary);">25:00</div>
+          <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai</button>
             <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
             <button id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
           </div>
@@ -210,8 +222,8 @@
       <!-- HALAMAN 6: PROFIL SISWA (SMA / SMK) -->
       <section id="page-profile" class="page">
         <div class="card">
-          <h3>👤 Profil Siswa & Personalisasi (SMA / SMK)</h3>
-          <p class="hint">Lengkapi identitasmu agar sistem teror dan planner akademik menyesuaikan.</p>
+          <h3>👤 Profil Siswa (SMA / SMK)</h3>
+          <p class="hint">Identitas ini digunakan untuk personalisasi pengingat dan kalkulator beban mental.</p>
           <form id="profileForm" class="task-form" style="margin-top:12px;">
             <div class="form-group">
               <label>Nama Lengkap *</label>
@@ -219,10 +231,10 @@
             </div>
             <div class="form-group">
               <label>Jenjang & Jurusan / Program Keahlian *</label>
-              <input type="text" id="pClass" placeholder="Contoh: XII TKJ 2 / XII Mesin / XII IPA" required />
+              <input type="text" id="pClass" placeholder="Contoh: XII TKJ 2 / XII Mesin / XII MIPA" required />
             </div>
             <div class="form-group">
-              <label>Sekolah (SMA / SMK Negeri / Swasta)</label>
+              <label>Nama Sekolah (SMA / SMK)</label>
               <input type="text" id="pSchool" placeholder="Contoh: SMK Negeri 1 / SMA Negeri 2" />
             </div>
             <div class="form-group">
@@ -230,7 +242,7 @@
               <input type="number" id="pTargetHours" min="1" max="16" value="3" />
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">💾 Simpan Profil Siswa</button>
+              <button type="submit" class="btn btn-primary btn-block">💾 Simpan Profil Siswa</button>
             </div>
           </form>
         </div>
@@ -238,16 +250,16 @@
     </main>
   </div>
 
-  <!-- POPUP TEROR GURU DI LUAR APLIKASI (HEADS-UP BANNER) -->
+  <!-- POPUP TEROR GURU DI LAYAR HP (HEADS-UP BANNER) -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
-        <span id="popupTeacherTag" class="subject-pill">Guru • Teror</span>
-        <span class="slack-pill slack-danger">DARURAT</span>
+        <span id="popupTeacherTag" class="subject-pill">Guru • Mapel</span>
+        <span class="slack-pill slack-danger">TEROR AKTIF</span>
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
       <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
-      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan Sekarang</button>
+      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
     </div>
   </div>
 
