@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DOMINO" />
-  <title>DOMINO — Academic Domino Effect Simulator & Planner</title>
+  <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- BANNER INSTALL PWA MANDIRI (STANDALONE) -->
+  <!-- BANNER INSTALL PWA MANDIRI (STANDALONE WEBAPK) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <strong>📲 Download / Install Aplikasi DOMINO</strong>
@@ -30,7 +30,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <h1>DOMINO</h1>
-        <span id="sidebarStudentTag">Planner & Simulator Akademik</span>
+        <span id="sidebarStudentTag">Planner SMA & SMK</span>
       </div>
       <nav class="nav-menu">
         <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
@@ -58,18 +58,30 @@
         </div>
       </header>
 
-      <!-- HALAMAN 1: DASHBOARD -->
+      <!-- HALAMAN 1: DASHBOARD & PANIC BUTTON -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
-            <span class="label">ACADEMIC STABILITY INDEX</span>
+            <span class="label">ACADEMIC STABILITY INDEX & MENTAL LOAD</span>
             <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
-            <p id="stabilityDesc">Belum ada tugas yang terdaftar. Tambahkan tugas pertamamu untuk mulai memantau risiko rantai domino.</p>
+            <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk mulai memantau rantai domino dan beban mental.</p>
+          </div>
+          <!-- PANIC BUTTON -->
+          <div style="margin-top: 12px;">
+            <button id="btnPanic" class="btn btn-danger btn-block">🚨 PANIC BUTTON (Rencana Darurat Kilat)</button>
           </div>
         </div>
+
+        <!-- KOTAK RENCANA DARURAT (MUNCUL JIKA PANIC BUTTON DIKLIK) -->
+        <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
+          <h3 style="color: var(--danger);">🚨 Emergency Action Plan (Rencana Darurat)</h3>
+          <p class="hint">Hasil analisis kilat untuk menyelamatkan deadline terdekatmu:</p>
+          <div id="panicContent" style="margin-top: 10px;"></div>
+        </div>
+
         <div class="dashboard-split">
           <div class="card">
-            <h3>🔔 Notifikasi & Pengingat</h3>
+            <h3>🔔 Teror & Pengingat Aktif</h3>
             <div id="dashboardAlertsList" class="alert-list"></div>
           </div>
           <div class="card">
@@ -82,27 +94,37 @@
       <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3 id="formModeTitle">➕ Tambah Tugas Baru</h3>
+          <h3 id="formModeTitle">➕ Tambah Tugas & Atur Teror Guru</h3>
           <form id="taskForm" class="task-form">
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
-              <label>Nama Tugas *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Laporan Praktikum / Makalah" required />
+              <label>Nama Tugas / Laporan Praktikum *</label>
+              <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Project PKL" required />
             </div>
             <div class="form-group">
-              <label>Kategori / Mata Pelajaran *</label>
-              <input type="text" id="tSubject" placeholder="Contoh: Biologi / Fisika / Pemrograman" required />
+              <label>Mata Pelajaran / Produktif Kejuruan *</label>
+              <input type="text" id="tSubject" placeholder="Contoh: Pemesinan / TKJ / RPL / Matematika" required />
             </div>
             <div class="form-group">
-              <label>Nama Guru / Pengampu *</label>
-              <input type="text" id="tTeacher" placeholder="Masukkan nama guru atau pengampu mata pelajaran" required />
+              <label>Nama Guru / Instruktur Pengampu *</label>
+              <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
+            </div>
+            <!-- PILIHAN TIPE KEPRIBADIAN GURU -->
+            <div class="form-group">
+              <label>Tipe Kepribadian Guru / Instruktur *</label>
+              <select id="tPersona" required>
+                <option value="killer">🔥 Tegas / Killer (Sangat ketat, ancaman nilai)</option>
+                <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
+                <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik)</option>
+                <option value="friendly">🤝 Ramah tapi Menagih (Kecewa kalau telat)</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Deadline (Tanggal & Jam) *</label>
               <input type="datetime-local" id="tDeadline" required />
             </div>
             <div class="form-group">
-              <label>Rencana Waktu Mulai Pengerjaan *</label>
+              <label>Rencana Waktu Mulai Pengerjaan (Time-Blocking) *</label>
               <input type="datetime-local" id="tWorkSchedule" required />
             </div>
             <div class="form-group">
@@ -110,13 +132,13 @@
               <input type="number" id="tDuration" min="0.5" step="0.5" value="2" required />
             </div>
             <div class="form-group">
-              <label>Bergantung Pada Tugas (Rantai Domino)</label>
+              <label>Bergantung Pada Tugas Lain (Rantai Domino)</label>
               <select id="tDependsOn">
                 <option value="">-- Tidak Ada (Tugas Mandiri) --</option>
               </select>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas</button>
+              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas & Teror</button>
             </div>
           </form>
         </div>
@@ -146,8 +168,8 @@
       <!-- HALAMAN 4: PUSAT NOTIFIKASI -->
       <section id="page-alerts" class="page">
         <div class="card">
-          <h3>🔔 Pusat Notifikasi & Pengingat Sistem</h3>
-          <p class="hint">Mengelola notifikasi sistem, pop-up heads-up, dan pengingat senyap (tanpa suara).</p>
+          <h3>🔔 Pusat Notifikasi & Alarm Senyap</h3>
+          <p class="hint">Mengelola notifikasi sistem, pop-up heads-up, dan pengingat tanpa suara.</p>
           <div class="form-group">
             <label>Mode Alarm Pengingat:</label>
             <select id="alarmModeSelect">
@@ -162,8 +184,8 @@
       <!-- HALAMAN 5: MODE FOKUS -->
       <section id="page-focus" class="page">
         <div class="card focus-card" style="text-align:center;">
-          <h3>⏱️ Mode Fokus Pengerjaan</h3>
-          <p class="hint">Atur durasi waktumu sendiri dan mulai sesi fokus tanpa distraksi.</p>
+          <h3>⏱️ Mode Fokus Pengerjaan Kustom</h3>
+          <p class="hint">Atur durasi waktumu sendiri untuk menyelesaikan tugas teori maupun kejuruan.</p>
           <div class="form-group" style="max-width: 280px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
             <input type="number" id="customTimerInput" min="1" max="180" value="25" />
@@ -177,30 +199,30 @@
         </div>
       </section>
 
-      <!-- HALAMAN 6: PROFIL SISWA -->
+      <!-- HALAMAN 6: PROFIL SISWA (SMA / SMK) -->
       <section id="page-profile" class="page">
         <div class="card">
-          <h3>👤 Profil Siswa & Preferensi Akademik</h3>
-          <p class="hint">Lengkapi identitasmu untuk mempersonalisasi planner akademik ini.</p>
+          <h3>👤 Profil Siswa & Personalisasi (SMA / SMK)</h3>
+          <p class="hint">Lengkapi identitasmu agar sistem teror dan planner akademik menyesuaikan.</p>
           <form id="profileForm" class="task-form" style="margin-top:12px;">
             <div class="form-group">
               <label>Nama Lengkap *</label>
               <input type="text" id="pName" placeholder="Masukkan namamu" required />
             </div>
             <div class="form-group">
-              <label>Kelas / Jurusan / Program Studi</label>
-              <input type="text" id="pClass" placeholder="Contoh: XII IPA 1 / Teknik Informatika" />
+              <label>Jenjang & Jurusan / Program Keahlian *</label>
+              <input type="text" id="pClass" placeholder="Contoh: XII TKJ 2 / XII Mesin / XII IPA" required />
             </div>
             <div class="form-group">
-              <label>Sekolah / Institusi</label>
-              <input type="text" id="pSchool" placeholder="Contoh: SMA Negeri 1" />
+              <label>Sekolah (SMA / SMK Negeri / Swasta)</label>
+              <input type="text" id="pSchool" placeholder="Contoh: SMK Negeri 1 / SMA Negeri 2" />
             </div>
             <div class="form-group">
-              <label>Target Belajar Harian (Jam)</label>
+              <label>Target Belajar / Praktek Harian (Jam)</label>
               <input type="number" id="pTargetHours" min="1" max="16" value="3" />
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">💾 Simpan Profil</button>
+              <button type="submit" class="btn btn-primary">💾 Simpan Profil Siswa</button>
             </div>
           </form>
         </div>
@@ -208,16 +230,16 @@
     </main>
   </div>
 
-  <!-- POPUP MELAYAR DI LAYAR (HEADS-UP NOTIFICATION BANNER) -->
+  <!-- POPUP TEROR KATA-KATANYA GURU DI LUAR APLIKASI (HEADS-UP BANNER) -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
-        <span id="popupTeacherTag" class="subject-pill">Sistem • Pengingat</span>
+        <span id="popupTeacherTag" class="subject-pill">Guru • Teror</span>
         <span class="slack-pill slack-danger">DARURAT</span>
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
-      <p id="popupTerrorText" class="alert-msg">Pesan pengingat deadline...</p>
-      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan</button>
+      <p id="popupTerrorText" class="alert-msg">Kalimat teror guru...</p>
+      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan Sekarang</button>
     </div>
   </div>
 
