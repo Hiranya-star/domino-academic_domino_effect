@@ -1,23 +1,27 @@
 {
-  "id": "/domino-academic-terror-planner",
-  "name": "DOMINO — Academic Domino Effect & Teacher Terror Planner",
-  "short_name": "DOMINO",
-  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat teror kepribadian guru.",
+  "id": "/domifect-academic-vocational-planner",
+  "name": "DOMIFECT — Academic & Vocational Domino Effect Planner",
+  "short_name": "DOMIFECT",
+  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat karakter guru.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "background_color": "#0b1120",
   "theme_color": "#6366f1",
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b1120'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%23131c31' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23ec4899' stroke-width='12'/%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b1120'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%23131c31' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23ec4899' stroke-width='12'/%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
