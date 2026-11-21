@@ -1,6 +1,6 @@
-const TASKS_KEY = 'domino_tasks_v8';
-const PROFILE_KEY = 'domino_profile_v8';
-const ALARM_MODE_KEY = 'domino_alarm_mode_v8';
+const TASKS_KEY = 'domino_tasks_v9';
+const PROFILE_KEY = 'domino_profile_v9';
+const ALARM_MODE_KEY = 'domino_alarm_mode_v9';
 
 let tasks = [];
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
@@ -113,49 +113,49 @@ function setupPWAInstall() {
   });
 }
 
-// BANK KALIMAT TEROR GAYA DUOLINGO (SUPER BANYAK & ACAK)
-const duolingoTerrorPools = {
+// BANK KALIMAT TEROR KATA-KATA GURU (VARIATIF & DINAMIS)
+const teacherTerrorPools = {
   killer: [
     "Kamu benar-benar mau menguji kesabaran ${t.teacher}? Tugas '${t.title}' belum disentuh sama sekali!",
-    "Nilai rapor ${t.subject}-mu sedang menangis melihat kamu mengabaikan tugas ini. Buka DOMINO sekarang!",
-    "${t.teacher} tidak suka menunggu. Selesaikan tugasnya atau siapkan mentalmu besok pagi!",
+    "Nilai rapor ${t.subject}-mu sedang terancam karena mengabaikan tugas ini. Buka DOMINO sekarang!",
+    "${t.teacher} tidak suka menunggu. Selesaikan tugasnya atau tanggung konsekuensinya besok pagi!",
     "Hati-hati, ${t.teacher} sudah menyiapkan nilai kosong spesial buat kamu di buku rekap!",
-    "Tugas '${t.title}' ini gampang kok, tapi kalau kamu biarkan lewat deadline, tamatlah riwayat nilai ${t.subject}-mu."
+    "Tugas '${t.title}' ini wajib tuntas, atau siap-siap berurusan langsung dengan ${t.teacher}."
   ],
   sarcastic: [
     "Wah, hebat ya.. Main HP terus, tapi tugas '${t.title}' dari ${t.teacher} dibiarkan terbengkalai begitu saja.",
     "Tenang saja, ${t.teacher} sudah menyiapkan format remidi khusus buat kamu kok. Lanjut santai aja yuk?",
-    "Kamu nge-ghosting tugas '${t.title}' lebih parah daripada nge-ghosting doi. Ayo kerjakan!",
-    "Hebat sekali prestasimu menunda-nunda. ${t.teacher} pasti bangga melihat kemalasan ini.",
-    "Asyik ya rebahan? Jangan kaget kalau nanti ${t.teacher} menyindir namamu di depan satu kelas."
+    "Kamu menunda tugas '${t.title}' ini terlalu lama. Ayo segera dikerjakan!",
+    "Hebat sekali prestasimu menunda-nunda. ${t.teacher} pasti menunggu hasil kerjamu.",
+    "Asyik ya rebahan? Jangan kaget kalau nanti ${t.teacher} menagih langsung di depan kelas."
   ],
   disciplined: [
     "Waktu berjalan terus, ${t.teacher} menghitung setiap detik keterlambatan tugas '${t.title}'.",
     "Kedisiplinan adalah nomor satu. Jika '${t.title}' tidak dikerjakan sesuai jadwal, habislah poin kedisiplinanmu.",
-    "Jangan ubah jadwal sesuka hati! ${t.teacher} sangat benci keterlambatan sekecil apapun.",
+    "Jangan ubah jadwal sesuka hati! ${t.teacher} sangat tegas pada ketepatan waktu.",
     "Detik-detik menuju deadline '${t.title}' semakin menipis. Cepat buka buku atau laptopmu!"
   ],
   friendly: [
-    "Ayo semangat! ${t.teacher} sudah nungguin hasil '${t.title}' kamu. Jangan bikin beliau kecewa ya...",
-    "Halo! ${t.teacher} nitip senyum nih, tapi kalau tugas '${t.subject}' gak dikumpul, senyumnya berubah jadi tangisan lho.",
-    "Aku tahu kamu bisa kok ngerjain '${t.title}'. Yuk cicil sekarang biar nanti malam bisa tidur nyenyak!",
-    "Sayang banget kalau nilai ${t.subject} kamu turun cuma karena malas sebentar. Yuk bangkit!"
+    "Ayo semangat! ${t.teacher} menunggu hasil '${t.title}' kamu. Jangan biarkan beliau kecewa ya...",
+    "Halo! ${t.teacher} berpesan agar tugas '${t.subject}' segera dikumpul supaya hasilnya maksimal.",
+    "Kamu pasti bisa menyelesaikan '${t.title}' dengan baik. Yuk dicicil sekarang!",
+    "Sayang sekali kalau nilai ${t.subject} turun cuma karena menunda waktu. Yuk bangkit!"
   ],
   vocational: [
-    "Mesin dan laporan praktek tidak bisa dibohongi. Kalau '${t.title}' lewat deadline, ${t.teacher} coret namamu dari daftar praktikum!",
-    "Alat lab sudah siap, tapi laporan ${t.subject} kamu malah kosong. Mau mangkir dari instruktur bengkel?",
-    "Project PKL dan laporan kejuruan bukan untuk ditunda-tunda. Bergerak sekarang sebelum ${t.teacher} turun tangan!",
-    "Standar Operasional Prosedur (SOP) bengkel itu mutlak! Selesaikan '${t.title}' sekarang juga!"
+    "Mesin dan laporan praktek tidak bisa dibohongi. Kalau '${t.title}' lewat deadline, ${t.teacher} mencatat namamu!",
+    "Alat lab dan bengkel sudah siap, tapi laporan ${t.subject} kamu malah kosong. Mau tertinggal dari temanmu?",
+    "Project PKL dan laporan kejuruan bukan untuk ditunda-tunda. Bergerak sekarang sebelum ${t.teacher} menegur!",
+    "Standar Operasional Prosedur (SOP) kejuruan itu mutlak! Selesaikan '${t.title}' sekarang juga!"
   ],
   silentkiller: [
-    "Sst.. ${t.teacher} tidak banyak bicara di kelas, tapi namanya sudah mencoret tugasmu dari daftar aman.",
-    "Silent killer beraksi. Tanpa peringatan panjang, nilai '${t.title}' langsung dikosongkan.",
-    "Kamu mengira ${t.teacher} lupa? Oh tentu tidak. Beliau sedang mengamati kelalaianmu dalam diam."
+    "Sst.. ${t.teacher} tidak banyak bicara di kelas, tapi namanya sudah mencatat tugasmu yang kosong.",
+    "Tanpa peringatan panjang, nilai '${t.title}' langsung diberi catatan merah oleh ${t.teacher}.",
+    "Kamu mengira ${t.teacher} lupa? Beliau sedang mengamati kelalaianmu dalam diam."
   ],
   motivator: [
-    "Mau jadi apa masa depanmu kalau tugas '${t.title}' saja disepelakan? Ingat perjuangan orang tua!",
-    "Orang sukses tidak pernah menunda pekerjaan. ${t.teacher} mendidikmu jadi orang hebat, bukan pemalas!",
-    "Setiap detik penundaan tugas '${t.subject}' adalah langkah mundur menuju mimpimu."
+    "Mau jadi apa masa depanmu kalau tugas '${t.title}' saja disepelakan? Ingat tanggung jawabmu!",
+    "Orang sukses tidak pernah menunda pekerjaan. ${t.teacher} mendidikmu jadi orang hebat!",
+    "Setiap detik penundaan tugas '${t.subject}' adalah langkah mundur dari target suksesmu."
   ],
   custom: [
     (t) => t.customText ? `"${t.customText}" — Peringatan tegas dari ${t.teacher}!` : `Ayo segera selesaikan tugas ${t.subject} dari ${t.teacher}!`
@@ -164,13 +164,12 @@ const duolingoTerrorPools = {
 
 function generateTerrorMessage(task, slack) {
   const persona = task.persona || 'killer';
-  const pool = duolingoTerrorPools[persona] || duolingoTerrorPools.killer;
+  const pool = teacherTerrorPools[persona] || teacherTerrorPools.killer;
   
   if (persona === 'custom' && typeof pool[0] === 'function') {
     return pool[0](task);
   }
 
-  // Pilih kalimat secara acak dari pool
   const randomIndex = Math.floor(Math.random() * pool.length);
   let template = pool[randomIndex] || pool[0];
 
@@ -237,14 +236,14 @@ async function triggerNotifications(task) {
 
   if ('Notification' in window && Notification.permission === 'granted') {
     if (swRegistration && swRegistration.showNotification) {
-      swRegistration.showNotification(`🦉 TEROR DUOLINGO: ${task.teacher.toUpperCase()} (${task.subject})`, {
+      swRegistration.showNotification(`🚨 TEROR GURU: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
         vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
         silent: mode === 'silent',
         requireInteraction: true
       });
     } else {
-      new Notification(`🦉 TEROR DUOLINGO: ${task.teacher.toUpperCase()} (${task.subject})`, {
+      new Notification(`🚨 TEROR GURU: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
         silent: mode === 'silent'
       });
@@ -267,7 +266,6 @@ function startWatchdog() {
   }, 30000);
 }
 
-// Panic Button (Rencana Darurat Kilat)
 function triggerPanicMode() {
   const active = tasks.filter(t => t.status === 'active');
   const panicBox = document.getElementById('panicBox');
@@ -301,7 +299,7 @@ function triggerPanicMode() {
 
 const pageTitles = {
   dashboard: 'Dashboard Akademik & Kejuruan',
-  assignments: 'Daftar Tugas & Teror Duolingo',
+  assignments: 'Daftar Tugas & Teror Guru',
   simulator: 'Simulasi Efek Domino',
   alerts: 'Pusat Notifikasi & Teror',
   focus: 'Mode Fokus Kustom',
@@ -414,7 +412,7 @@ function setupEventListeners() {
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if ('Notification' in window) {
       const p = await Notification.requestPermission();
-      alert(p === 'granted' ? '✅ Notifikasi sistem & teror Duolingo berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
+      alert(p === 'granted' ? '✅ Notifikasi sistem & teror guru berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
     } else {
       alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
     }
@@ -499,11 +497,11 @@ function renderDashboard() {
     const slack = calculateSlack(t);
     return `
       <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-        <strong>🦉 ${t.teacher} — ${t.subject}</strong>
+        <strong>🚨 ${t.teacher} — ${t.subject}</strong>
         <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
       </div>
     `;
-  }).join('') || '<p class="hint">Belum ada teror Duolingo aktif.</p>';
+  }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
 
   const priorityList = document.getElementById('todayActionList');
   const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
@@ -591,9 +589,9 @@ function renderAlerts() {
     const slack = calculateSlack(t);
     return `
       <div class="alert-card">
-        <strong>🦉 ${t.teacher} (${t.subject}) — ${t.title}</strong>
+        <strong>🚨 ${t.teacher} (${t.subject}) — ${t.title}</strong>
         <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
-        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up Teror Duolingo</button>
+        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up Teror Guru</button>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
