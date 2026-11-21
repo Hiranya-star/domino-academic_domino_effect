@@ -1,8 +1,8 @@
 {
-  "id": "/domino-academic-terror-planner",
-  "name": "DOMINO — Academic Domino Effect & Teacher Terror Planner",
+  "id": "/domino-academic-duolingo-planner",
+  "name": "DOMINO — Academic Domino Effect & Duolingo Terror Planner",
   "short_name": "DOMINO",
-  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat teror kepribadian guru.",
+  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan notifikasi teror gaya Duolingo.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
