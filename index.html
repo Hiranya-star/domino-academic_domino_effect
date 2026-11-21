@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DOMINO" />
-  <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
+  <title>DOMINO — Academic Domino Effect Simulator & Planner</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -17,7 +17,7 @@
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <strong>📲 Download / Install Aplikasi DOMINO</strong>
-      <small>Pasang sebagai aplikasi penuh di HP (Bukan sekadar pintasan web)</small>
+      <small>Pasang sebagai aplikasi penuh di perangkatmu (Bukan sekadar pintasan web)</small>
     </div>
     <div class="install-btns">
       <button id="btnInstallApp" class="btn btn-primary btn-sm">Install App</button>
@@ -30,18 +30,18 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <h1>DOMINO</h1>
-        <span id="sidebarStudentTag">Planner Siswa SMA</span>
+        <span>Academic Effect Simulator</span>
       </div>
       <nav class="nav-menu">
         <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
         <button class="nav-item" data-page="assignments">📝 <span>Daftar Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
         <button class="nav-item" data-page="simulator">🁢 <span>Simulasi Domino</span></button>
-        <button class="nav-item" data-page="alerts">🔔 <span>Teror Guru</span> <span class="badge" id="alertCountBadge">0</span></button>
+        <button class="nav-item" data-page="alerts">🔔 <span>Pusat Notifikasi</span> <span class="badge" id="alertCountBadge">0</span></button>
         <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
       </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up HP</button>
+        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up</button>
       </div>
     </aside>
 
@@ -68,7 +68,7 @@
         </div>
         <div class="dashboard-split">
           <div class="card">
-            <h3>🔔 Teror Guru Terbaru</h3>
+            <h3>🔔 Notifikasi & Pengingat</h3>
             <div id="dashboardAlertsList" class="alert-list"></div>
           </div>
           <div class="card">
@@ -81,24 +81,29 @@
       <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3 id="formModeTitle">➕ Tambah Tugas Sekolah</h3>
+          <h3 id="formModeTitle">➕ Tambah Tugas Baru</h3>
           <form id="taskForm" class="task-form">
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
               <label>Nama Tugas *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Laporan Praktikum Biologi" required />
+              <input type="text" id="tTitle" placeholder="Contoh: Analisis Proyek Penelitian" required />
             </div>
             <div class="form-group">
-              <label>Mata Pelajaran *</label>
-              <input type="text" id="tSubject" placeholder="Contoh: Biologi" required />
+              <label>Kategori / Mata Pelajaran *</label>
+              <input type="text" id="tSubject" placeholder="Contoh: Metodologi Penelitian" required />
             </div>
             <div class="form-group">
-              <label>Nama Guru & Karakter Teror *</label>
-              <input type="text" id="tTeacher" placeholder="Contoh: Pak Yudha" required />
+              <label>Nama Pemberi Tugas / Pengampu *</label>
+              <input type="text" id="tTeacher" placeholder="Contoh: Dr. Aris, M.Sc." required />
             </div>
             <div class="form-group">
               <label>Deadline (Tanggal & Jam) *</label>
               <input type="datetime-local" id="tDeadline" required />
+            </div>
+            <!-- WAKTU PENGERJAAN TUGAS (TIME-BLOCKING) -->
+            <div class="form-group">
+              <label>Rencana Waktu Mulai Pengerjaan *</label>
+              <input type="datetime-local" id="tWorkSchedule" required />
             </div>
             <div class="form-group">
               <label>Estimasi Durasi Pengerjaan (Jam) *</label>
@@ -111,7 +116,7 @@
               </select>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas ke Memori HP</button>
+              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas</button>
             </div>
           </form>
         </div>
@@ -125,7 +130,7 @@
       <section id="page-simulator" class="page">
         <div class="card">
           <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
-          <p class="hint">Geser waktu keterlambatan untuk melihat tugas mana saja di bawahmu yang ikut hancur berantakan.</p>
+          <p class="hint">Geser waktu keterlambatan untuk menganalisis dampak berantai pada tugas-tugas berikutnya.</p>
           <div class="form-group">
             <label>Jika Tugas Ini Terlambat:</label>
             <select id="simTaskSelect"></select>
@@ -138,12 +143,19 @@
         </div>
       </section>
 
-      <!-- HALAMAN 4: TEROR GURU -->
+      <!-- HALAMAN 4: PUSAT NOTIFIKASI -->
       <section id="page-alerts" class="page">
         <div class="card">
-          <h3>🔔 Pusat Notifikasi & Teror Guru</h3>
-          <p class="hint">Memunculkan notifikasi bar sistem dan pop-up heads-up di layar HP bahkan saat aplikasi ditutup.</p>
-          <div id="fullAlertsList" class="alert-list"></div>
+          <h3>🔔 Pusat Notifikasi & Pengingat Sistem</h3>
+          <p class="hint">Mengelola notifikasi sistem, pop-up heads-up, dan pengingat senyap (tanpa suara).</p>
+          <div class="form-group">
+            <label>Mode Alarm Pengingat:</label>
+            <select id="alarmModeSelect">
+              <option value="sound">Dengan Suara & Getar Default</option>
+              <option value="silent">Pengingat Senyap (Tanpa Suara / Getar Saja)</option>
+            </select>
+          </div>
+          <div id="fullAlertsList" class="alert-list" style="margin-top:15px;"></div>
         </div>
       </section>
 
@@ -151,26 +163,35 @@
       <section id="page-focus" class="page">
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan</h3>
-          <p class="hint">Kurangi sisa waktu pengerjaan tugasmu tanpa distraksi.</p>
-          <div class="timer-display" id="timerDisplay" style="font-size:3rem; font-weight:bold; margin:20px 0; color:var(--primary);">25:00</div>
+          <p class="hint">Atur durasi waktumu sendiri dan mulai sesi fokus tanpa distraksi.</p>
+          
+          <!-- PENGATURAN TIMER KUSTOM -->
+          <div class="form-group" style="max-width: 280px; margin: 15px auto; text-align: left;">
+            <label>Atur Durasi Fokus (Menit):</label>
+            <input type="number" id="customTimerInput" min="1" max="180" value="25" />
+          </div>
+
+          <div class="timer-display" id="timerDisplay" style="font-size:3rem; font-weight:bold; margin:15px 0; color:var(--primary);">25:00</div>
+          
           <div style="display:flex; justify-content:center; gap:10px;">
             <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
             <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+            <button id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
           </div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- POPUP MELAYAR DI LAYAR HP (HEADS-UP NOTIFICATION BANNER) -->
+  <!-- POPUP MELAYAR DI LAYAR (HEADS-UP NOTIFICATION BANNER) -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
-        <span id="popupTeacherTag" class="subject-pill">Guru • Mapel</span>
+        <span id="popupTeacherTag" class="subject-pill">Sistem • Pengingat</span>
         <span class="slack-pill slack-danger">DARURAT</span>
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
-      <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
+      <p id="popupTerrorText" class="alert-msg">Pesan pengingat deadline...</p>
       <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan</button>
     </div>
   </div>
