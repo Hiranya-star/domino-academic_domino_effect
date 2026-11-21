@@ -268,7 +268,7 @@ input:focus, select:focus {
 }
 .badge { background: var(--danger); }
 
-/* POPUP TEROR GURU MELAYAR DI LAYAR */
+/* POPUP TEROR GAYA DUOLINGO MELAYAR DI LAYAR */
 .popup-terror-container {
   position: fixed;
   top: 15px;
@@ -301,7 +301,7 @@ input:focus, select:focus {
   align-items: center;
 }
 
-/* BANNER INSTALASI PWA */
+/* BANNER DOWNLOAD / INSTALL PWA */
 .install-banner {
   position: fixed;
   bottom: 15px;
