@@ -8,15 +8,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DOMINO" />
-  <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
+  <title>DOMINO — Academic Domino Effect & Duolingo Terror Planner</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- BANNER INSTALL PWA MANDIRI (STANDALONE WEBAPK) -->
+  <!-- BANNER DOWNLOAD / INSTALL APLIKASI (STANDALONE WEBAPK) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
-      <strong>📲 Download / Install Aplikasi DOMINO</strong>
+      <strong>🦉 Download & Install Aplikasi DOMINO</strong>
       <small>Pasang sebagai aplikasi penuh di HP/Laptop (Bukan sekadar pintasan web)</small>
     </div>
     <div class="install-btns">
@@ -42,7 +42,7 @@
       </nav>
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Pop-up</button>
+        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi Teror</button>
       </div>
     </aside>
 
@@ -51,7 +51,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button id="btnMenuToggle" class="btn-icon mobile-only">☰</button>
-          <h2 id="pageTitle">Dashboard Akademik</h2>
+          <h2 id="pageTitle">Dashboard Akademik & Kejuruan</h2>
         </div>
         <div class="topbar-right">
           <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas Baru</button>
@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <!-- KOTAK RENCANA DARURAT (MUNCUL JIKA PANIC BUTTON DIKLIK) -->
+        <!-- KOTAK RENCANA DARURAT -->
         <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
           <h3 style="color: var(--danger);">🚨 Emergency Action Plan (Rencana Darurat)</h3>
           <p class="hint">Hasil analisis kilat untuk menyelamatkan deadline terdekatmu:</p>
@@ -81,7 +81,7 @@
 
         <div class="dashboard-split">
           <div class="card">
-            <h3>🔔 Teror & Pengingat Aktif</h3>
+            <h3>🦉 Teror Ala Duolingo Aktif</h3>
             <div id="dashboardAlertsList" class="alert-list"></div>
           </div>
           <div class="card">
@@ -94,12 +94,12 @@
       <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3 id="formModeTitle">➕ Tambah Tugas & Atur Teror Guru</h3>
+          <h3 id="formModeTitle">➕ Tambah Tugas & Atur Karakter Guru</h3>
           <form id="taskForm" class="task-form">
             <input type="hidden" id="editTaskId" />
             <div class="form-group">
-              <label>Nama Tugas / Laporan Praktikum *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Project PKL" required />
+              <label>Nama Tugas / Laporan Praktikum / Project PKL *</label>
+              <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Uji Kompetensi" required />
             </div>
             <div class="form-group">
               <label>Mata Pelajaran / Produktif Kejuruan *</label>
@@ -109,15 +109,23 @@
               <label>Nama Guru / Instruktur Pengampu *</label>
               <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
             </div>
-            <!-- PILIHAN TIPE KEPRIBADIAN GURU -->
+            <!-- PILIHAN KARAKTER / TIPE GURU -->
             <div class="form-group">
-              <label>Tipe Kepribadian Guru / Instruktur *</label>
+              <label>Karakter / Tipe Guru & Gaya Teror *</label>
               <select id="tPersona" required>
-                <option value="killer">🔥 Tegas / Killer (Sangat ketat, ancaman nilai)</option>
+                <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
                 <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
-                <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik)</option>
-                <option value="friendly">🤝 Ramah tapi Menagih (Kecewa kalau telat)</option>
+                <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
+                <option value="friendly">🤝 Ramah tapi Menagih (Memelas penuh rasa kecewa)</option>
+                <option value="vocational">🔧 Instruktur Bengkel / Lab (Khas SMK & SOP)</option>
+                <option value="silentkiller">👻 Misterius / Silent Killer (Langsung coret nama)</option>
+                <option value="motivator">📢 Ceramah Panjang / Motivator (Bawa-bawa masa depan)</option>
+                <option value="custom">💬 Custom Persona (Buatan / Jargon khas sendiri)</option>
               </select>
+            </div>
+            <div class="form-group" id="customPersonaGroup" style="display:none;">
+              <label>Masukkan Kalimat/Jargon Khas Gurumu:</label>
+              <input type="text" id="tCustomText" placeholder="Contoh: Awas kalau berani bolos kumpul laporan!" />
             </div>
             <div class="form-group">
               <label>Deadline (Tanggal & Jam) *</label>
@@ -168,7 +176,7 @@
       <!-- HALAMAN 4: PUSAT NOTIFIKASI -->
       <section id="page-alerts" class="page">
         <div class="card">
-          <h3>🔔 Pusat Notifikasi & Alarm Senyap</h3>
+          <h3>🔔 Pusat Notifikasi & Teror Duolingo</h3>
           <p class="hint">Mengelola notifikasi sistem, pop-up heads-up, dan pengingat tanpa suara.</p>
           <div class="form-group">
             <label>Mode Alarm Pengingat:</label>
@@ -230,7 +238,7 @@
     </main>
   </div>
 
-  <!-- POPUP TEROR KATA-KATANYA GURU DI LUAR APLIKASI (HEADS-UP BANNER) -->
+  <!-- POPUP TEROR DILUAR APLIKASI (HEADS-UP BANNER) -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
@@ -238,7 +246,7 @@
         <span class="slack-pill slack-danger">DARURAT</span>
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
-      <p id="popupTerrorText" class="alert-msg">Kalimat teror guru...</p>
+      <p id="popupTerrorText" class="alert-msg">Pesan teror gaya Duolingo...</p>
       <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:10px;">Tutup / Kerjakan Sekarang</button>
     </div>
   </div>
