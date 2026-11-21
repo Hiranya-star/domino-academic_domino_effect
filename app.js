@@ -361,14 +361,14 @@ const terrorMatrix = {
       "Pengingat penting!"
     ],
     cores: [
-      ""${t.customText}" — Terkait tugas '${t.title}' (${t.subject}).",
-      "${t.teacher} berpesan: "${t.customText}" untuk penyelesaian '${t.title}'.",
-      "Segera selesaikan '${t.title}'! Ingat: "${t.customText}".",
-      "Status '${t.title}' masih aktif. ${t.teacher} mengingatkan: "${t.customText}".",
-      "Jangan sampai '${t.title}' lewat batas waktu! "${t.customText}".",
-      "Mapel ${t.subject} menunggu progresmu: "${t.customText}".",
-      "Pesan tegas ${t.teacher} untuk '${t.title}': "${t.customText}".",
-      "Tuntaskan '${t.title}' sekarang juga! "${t.customText}"."
+      `"${t.customText}" — Terkait tugas '${t.title}' (${t.subject}).`,
+      `${t.teacher} berpesan: "${t.customText}" untuk penyelesaian '${t.title}'.`,
+      `Segera selesaikan '${t.title}'! Ingat: "${t.customText}".`,
+      `Status '${t.title}' masih aktif. ${t.teacher} mengingatkan: "${t.customText}".`,
+      `Jangan sampai '${t.title}' lewat batas waktu! "${t.customText}".`,
+      `Mapel ${t.subject} menunggu progresmu: "${t.customText}".`,
+      `Pesan tegas ${t.teacher} untuk '${t.title}': "${t.customText}".`,
+      `Tuntaskan '${t.title}' sekarang juga! "${t.customText}".`
     ],
     closers: [
       "Segera buka dan kerjakan sekarang!",
@@ -383,7 +383,6 @@ const terrorMatrix = {
   }
 };
 
-// Menghasilkan 8 x 8 x 8 = 512 kombinasi kalimat unik per karakter guru
 function generateTerrorMessage(task, slack) {
   const persona = task.persona || 'killer';
   const group = terrorMatrix[persona] || terrorMatrix.killer;
