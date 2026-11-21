@@ -1,1969 +1,478 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DOMINO — Academic Domino Effect Simulator</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            slate: {
-              850: '#151e32',
-              925: '#0b101d',
-              950: '#070a13',
-            }
-          }
-        }
-      }
-    };
-  </script>
-  <style>
-    /* Custom scrollbar & refined animations */
-    body {
-      background-color: #070a13;
-      color: #f1f5f9;
-      overflow-x: hidden;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0b101d;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #334155;
-    }
-
-    /* Domino Tile Animation */
-    .domino-tile {
-      transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.35s ease, background-color 0.35s ease, box-shadow 0.35s ease;
-      transform-origin: bottom right;
-    }
-    .domino-fallen {
-      transform: rotate(16deg) translateY(8px);
-      border-color: #ef4444 !important;
-      background-color: rgba(127, 29, 29, 0.32) !important;
-      box-shadow: 0 12px 30px -6px rgba(239, 68, 68, 0.45);
-    }
-    .domino-warning {
-      transform: rotate(6deg) translateY(3px);
-      border-color: #f59e0b !important;
-      background-color: rgba(120, 53, 15, 0.25) !important;
-    }
-
-    /* Pulse animation for critical SVG paths */
-    @keyframes pulseDash {
-      to {
-        stroke-dashoffset: -24;
-      }
-    }
-    .svg-critical-edge {
-      stroke-dasharray: 8 4;
-      animation: pulseDash 0.8s linear infinite;
-    }
-
-    /* Custom Range Slider */
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-      cursor: pointer;
-    }
-    input[type="range"]::-webkit-slider-runnable-track {
-      height: 10px;
-      border-radius: 9999px;
-      background: linear-gradient(90deg, #10b981 0%, #f59e0b 45%, #ef4444 100%);
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 24px;
-      width: 24px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 4px solid #0f172a;
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
-      margin-top: -7px;
-      transition: transform 0.15s ease;
-    }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DOMINO" />
+  <title>DOMINO — Academic Domino Effect & Teacher Terror Planner</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="font-sans antialiased selection:bg-indigo-500 selection:text-white">
-
-  <!-- Toast Notification Container (Replaces alert) -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
-
-  <!-- Mobile Header -->
-  <header class="lg:hidden sticky top-0 z-30 bg-slate-925/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <rect x="4" y="3" width="6" height="18" rx="1.5" />
-          <rect x="14" y="5" width="6" height="16" rx="1.5" transform="rotate(14 14 21)" />
-          <circle cx="7" cy="7" r="1" fill="currentColor" />
-          <circle cx="7" cy="17" r="1" fill="currentColor" />
+<body>
+  <!-- ONBOARDING PROFIL SISWA -->
+  <div id="onboardingModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-brand">
+        <svg class="brand-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <rect width="512" height="512" rx="112" fill="#0f172a"/>
+          <g transform="translate(115, 130) rotate(-18)">
+            <rect x="0" y="0" width="84" height="168" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="10"/>
+            <circle cx="42" cy="42" r="10" fill="#38bdf8"/>
+            <circle cx="42" cy="126" r="10" fill="#38bdf8"/>
+          </g>
+          <g transform="translate(260, 160) rotate(24)">
+            <rect x="0" y="0" width="84" height="168" rx="16" fill="#6366f1" stroke="#f472b6" stroke-width="10"/>
+            <circle cx="42" cy="42" r="10" fill="#fff"/>
+            <circle cx="42" cy="126" r="10" fill="#fff"/>
+          </g>
         </svg>
-      </div>
-      <div>
-        <h1 class="font-extrabold text-base tracking-tight text-white leading-none">DOMINO</h1>
-        <p class="text-[10px] text-slate-400 mt-0.5">Academic Simulator</p>
-      </div>
-    </div>
-    <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" class="p-2.5 rounded-xl bg-slate-800/80 text-slate-200 hover:bg-slate-700 transition">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-  </header>
-
-  <!-- Main Layout Wrapper -->
-  <div class="min-h-screen flex flex-col lg:flex-row">
-
-    <!-- Sidebar Backdrop (Mobile) -->
-    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 hidden lg:hidden"></div>
-
-    <!-- Navigation Sidebar -->
-    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-72 bg-slate-925 border-r border-slate-800/80 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
-      <div>
-        <!-- Brand Header -->
-        <div class="p-6 border-b border-slate-800/80">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-600 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
-              <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="3.5" y="3" width="6.5" height="18" rx="1.5" />
-                <rect x="13.5" y="4.5" width="6.5" height="16.5" rx="1.5" transform="rotate(15 13.5 21)" />
-                <circle cx="6.75" cy="7.5" r="1" fill="currentColor" />
-                <circle cx="6.75" cy="16.5" r="1" fill="currentColor" />
-              </svg>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-extrabold text-xl tracking-tight text-white">DOMINO</span>
-                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">v2.6</span>
-              </div>
-              <p class="text-[11px] text-slate-400 leading-snug mt-0.5">One Delayed Task, A Chain of Consequences.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Navigation Menu -->
-        <nav class="p-3.5 space-y-1 overflow-y-auto max-h-[calc(100vh-220px)]" id="nav-menu">
-          <!-- Populated dynamically via JS for active state & badges -->
-        </nav>
-      </div>
-
-      <!-- Bottom Quick Controls -->
-      <div class="p-4 border-t border-slate-800/80 space-y-2.5 bg-slate-950/40">
-        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
-          <span>Efek Suara Domino</span>
-          <button id="sound-toggle-btn" onclick="toggleSound()" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium text-[11px] hover:bg-emerald-500/25 transition">
-            🔊 Aktif
-          </button>
-        </div>
-        <button onclick="resetToDemoData()" class="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-xs font-semibold flex items-center justify-center gap-2 transition">
-          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Muat Skenario Demo SMA
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-      <!-- Top Context Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800/70">
         <div>
-          <h2 id="page-title" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Dashboard Akademik</h2>
-          <p id="page-subtitle" class="text-sm text-slate-400 mt-1">Pantau stabilitas jadwal dan potensi efek berantai tugas sekolahmu.</p>
-        </div>
-        <div class="flex items-center gap-2.5 flex-wrap">
-          <div class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-slate-400">Simulasi Waktu:</span>
-            <span id="current-clock-display" class="font-mono font-semibold text-slate-200">21 Nov 2026, 13:00</span>
-          </div>
-          <button onclick="switchTab('assignments'); openTaskModal();" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 flex items-center gap-1.5 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Tugas Baru
-          </button>
+          <h2>Selamat Datang di DOMINO!</h2>
+          <p class="hint">One Delayed Task, A Chain of Consequences.</p>
         </div>
       </div>
-
-      <!-- Dynamic View Container -->
-      <div id="app-view" class="space-y-6"></div>
-    </main>
-  </div>
-
-  <!-- Add / Edit Task Modal -->
-  <div id="task-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <h3 id="modal-title" class="text-lg font-bold text-white">Tambah Tugas Baru</h3>
-        <button onclick="closeTaskModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <form id="task-form" onsubmit="handleSaveTask(event)" class="space-y-4 mt-4">
-        <input type="hidden" id="task-id" />
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nama Tugas *</label>
-          <input type="text" id="task-title" required placeholder="Contoh: Membuat Laporan Penelitian Biologi" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      <form id="onboardingForm" class="stack-form">
+        <div class="form-group">
+          <label>Nama Siswa</label>
+          <input type="text" id="obName" placeholder="Contoh: Raka Pratama" required />
         </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Mata Pelajaran *</label>
-            <input type="text" id="task-subject" required placeholder="Contoh: Biologi" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Status Pengerjaan</label>
-            <select id="task-status" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
-              <option value="Belum Mulai">Belum Mulai</option>
-              <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-              <option value="Selesai">Selesai</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label>Kelas & Jurusan</label>
+          <input type="text" id="obClass" placeholder="Contoh: XI IPA 2" required />
         </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Nama Guru Pemberi Tugas *</label>
-            <input type="text" id="task-teacher" required placeholder="Contoh: Pak Yudha" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Karakter / Persona Guru</label>
-            <select id="task-persona" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
-              <option value="Tegas/Disiplin">Tegas / Disiplin</option>
-              <option value="Sarkas/Humoris">Sarkas / Humoris</option>
-              <option value="Santai Menghanyutkan">Santai Menghanyutkan</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Deadline (Tanggal & Jam) *</label>
-            <input type="datetime-local" id="task-deadline" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Estimasi Durasi (Jam) *</label>
-            <input type="number" id="task-duration" required min="0.5" max="72" step="0.5" value="2" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Bergantung Pada Tugas (Prasyarat / Dependency)</label>
-          <select id="task-parent" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
-            <option value="">-- Tidak ada (Tugas Mandiri / Awal Rantai) --</option>
+        <div class="form-group">
+          <label>Target Belajar Mandiri di Rumah (per hari)</label>
+          <select id="obStudyHours">
+            <option value="2">2 Jam / hari</option>
+            <option value="3" selected>3 Jam / hari (Standar SMA)</option>
+            <option value="4">4 Jam / hari (Intensif)</option>
           </select>
-          <p class="text-[11px] text-slate-400 mt-1">Jika tugas prasyarat terlambat, tugas ini otomatis terkena efek domino.</p>
         </div>
-
-        <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-800">
-          <button type="button" onclick="closeTaskModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">Batal</button>
-          <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition">Simpan Tugas</button>
+        <div class="form-group">
+          <label>Mulai dengan Data Awal:</label>
+          <select id="obStartMode">
+            <option value="empty">Kosong (Langsung catat tugasku sendiri)</option>
+            <option value="sample">Isi 4 tugas berantai contoh (Rantai Proyek Biologi)</option>
+          </select>
         </div>
+        <button type="submit" class="btn btn-primary btn-block">🚀 Mulai Gunakan DOMINO</button>
       </form>
     </div>
   </div>
 
-  <script>
-    /**
-     * =========================================================================
-     * DOMINO — Academic Domino Effect Simulator
-     * Core Engine: Dependency Graph, Slack Time Calculation, Cascade Simulator,
-     * Teacher Persona Alert Generator, and Automated Recovery Planner.
-     * =========================================================================
-     */
-
-    const STORAGE_KEY = 'domino_tasks_v1';
-
-    // Reference baseline time matching late November 2026 academic schedule
-    // Allows immediate realistic H-3, H-2, H-1, Hari H, and Terlambat triggers
-    const SIMULATED_NOW = new Date('2026-11-21T13:00:00');
-
-    // Global State
-    let state = {
-      currentTab: 'dashboard',
-      tasks: [],
-      soundEnabled: true,
-      simRootTaskId: 't1',
-      simDelayHours: 0,
-      alertFilter: 'ALL'
-    };
-
-    // Navigation Configuration (7 Core Views)
-    const NAV_ITEMS = [
-      {
-        id: 'dashboard',
-        label: 'Dashboard',
-        subtitle: 'Ringkasan stabilitas akademik dan deteksi risiko efek domino.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />`
-      },
-      {
-        id: 'assignments',
-        label: 'My Assignments',
-        subtitle: 'Kelola daftar tugas, durasi pengerjaan, guru, dan rantai ketergantungan.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />`
-      },
-      {
-        id: 'dependency',
-        label: 'Dependency Map',
-        subtitle: 'Peta visual SVG interaktif hubungan antartugas dan status waktu cadangan (Slack Time).',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />`
-      },
-      {
-        id: 'simulator',
-        label: 'Domino Simulator',
-        subtitle: 'Simulasi What-If: lihat efek berantai jika satu tugas mengalami keterlambatan.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />`
-      },
-      {
-        id: 'alerts',
-        label: 'Teacher Alerts',
-        subtitle: 'Simulasi notifikasi penagihan guru berdasarkan kedekatan deadline & efek domino.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />`
-      },
-      {
-        id: 'recovery',
-        label: 'Recovery Planner',
-        subtitle: 'Rekomendasi strategi penyusunan ulang jadwal otomatis untuk menghentikan efek domino.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />`
-      },
-      {
-        id: 'statistics',
-        label: 'Statistics',
-        subtitle: 'Analisis beban kerja akademik harian, distribusi mata pelajaran, dan titik kemacetan.',
-        icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />`
-      }
-    ];
-
-    /**
-     * Pre-populated Realistic SMA Exam Week & Biology Project Scenario
-     */
-    function getDefaultDemoTasks() {
-      return [
-        {
-          id: 't1',
-          title: 'Menyelesaikan Penelitian Ekosistem',
-          subject: 'Biologi',
-          teacher: 'Pak Yudha',
-          persona: 'Sarkas/Humoris',
-          deadline: '2026-11-22T15:00',
-          duration: 4,
-          status: 'Sedang Dikerjakan',
-          parentId: ''
-        },
-        {
-          id: 't2',
-          title: 'Membuat Laporan Penelitian',
-          subject: 'Biologi',
-          teacher: 'Pak Yudha',
-          persona: 'Sarkas/Humoris',
-          deadline: '2026-11-23T12:00',
-          duration: 5,
-          status: 'Belum Mulai',
-          parentId: 't1'
-        },
-        {
-          id: 't3',
-          title: 'Membuat Slide Presentasi',
-          subject: 'Bahasa Indonesia',
-          teacher: 'Bu Rina',
-          persona: 'Tegas/Disiplin',
-          deadline: '2026-11-23T20:00',
-          duration: 3,
-          status: 'Belum Mulai',
-          parentId: 't2'
-        },
-        {
-          id: 't4',
-          title: 'Latihan Presentasi Kelompok',
-          subject: 'Biologi',
-          teacher: 'Pak Yudha',
-          persona: 'Sarkas/Humoris',
-          deadline: '2026-11-24T08:00',
-          duration: 2,
-          status: 'Belum Mulai',
-          parentId: 't3'
-        },
-        {
-          id: 't5',
-          title: 'Latihan Soal Integral & Turunan',
-          subject: 'Matematika Peminatan',
-          teacher: 'Pak Hendra',
-          persona: 'Tegas/Disiplin',
-          deadline: '2026-11-25T14:00',
-          duration: 3,
-          status: 'Belum Mulai',
-          parentId: ''
-        },
-        {
-          id: 't6',
-          title: 'Rangkuman Sejarah Perang Dingin',
-          subject: 'Sejarah',
-          teacher: 'Bu Sari',
-          persona: 'Santai Menghanyutkan',
-          deadline: '2026-11-26T16:00',
-          duration: 2.5,
-          status: 'Belum Mulai',
-          parentId: ''
-        }
-      ];
-    }
-
-    /**
-     * Web Audio API Synthesizer for Domino Clack & Alert Sound
-     */
-    function playDominoSound(index = 0) {
-      if (!state.soundEnabled) return;
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const now = ctx.currentTime + index * 0.11;
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        // Pitch ascends slightly as dominoes fall faster
-        osc.frequency.setValueAtTime(320 + index * 45, now);
-        osc.frequency.exponentialRampToValueAtTime(95, now + 0.07);
-
-        gain.gain.setValueAtTime(0.22, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.085);
-      } catch (e) {
-        // Ignore audio block if user hasn't interacted yet
-      }
-    }
-
-    function toggleSound() {
-      state.soundEnabled = !state.soundEnabled;
-      const btn = document.getElementById('sound-toggle-btn');
-      if (state.soundEnabled) {
-        btn.className = 'px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium text-[11px] hover:bg-emerald-500/25 transition';
-        btn.textContent = '🔊 Aktif';
-        playDominoSound(1);
-      } else {
-        btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 font-medium text-[11px] hover:bg-slate-700 transition';
-        btn.textContent = '🔇 Senyap';
-      }
-    }
-
-    /**
-     * LocalStorage Persistence
-     */
-    function loadTasks() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            state.tasks = parsed;
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Failed reading localStorage:', err);
-      }
-      state.tasks = getDefaultDemoTasks();
-      saveTasks();
-    }
-
-    function saveTasks() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
-      } catch (err) {
-        console.error('Failed saving to localStorage:', err);
-      }
-    }
-
-    function resetToDemoData() {
-      state.tasks = getDefaultDemoTasks();
-      state.simRootTaskId = 't1';
-      state.simDelayHours = 0;
-      saveTasks();
-      renderApp();
-      showToast('Skenario Minggu Ujian & Proyek Biologi berhasil dimuat ulang!', 'info');
-    }
-
-    /**
-     * =========================================================================
-     * CORE ALGORITHM 1: Slack Time & Schedule Analysis
-     * Formula: Slack Time = (Deadline B - Duration B) - Deadline A
-     * =========================================================================
-     */
-    function analyzeSchedule(tasksList) {
-      const taskMap = new Map();
-      tasksList.forEach(t => {
-        const dl = new Date(t.deadline);
-        const startLatest = new Date(dl.getTime() - t.duration * 3600000);
-        const hoursUntilDeadline = (dl - SIMULATED_NOW) / 3600000;
-        taskMap.set(t.id, {
-          ...t,
-          deadlineDate: dl,
-          latestStartDate: startLatest,
-          hoursUntilDeadline,
-          slackHours: null, // Computed if parent exists
-          isCritical: false,
-          children: []
-        });
-      });
-
-      // Build tree & calculate Slack Time for every parent -> child edge
-      taskMap.forEach(node => {
-        if (node.parentId && taskMap.has(node.parentId)) {
-          const parent = taskMap.get(node.parentId);
-          parent.children.push(node.id);
-          // Available gap between parent deadline and child's latest start time
-          const slackMs = node.latestStartDate.getTime() - parent.deadlineDate.getTime();
-          node.slackHours = Math.round((slackMs / 3600000) * 10) / 10;
-          if (node.slackHours <= 2) {
-            node.isCritical = true;
-            parent.isCritical = true;
-          }
-        }
-      });
-
-      return taskMap;
-    }
-
-    /**
-     * =========================================================================
-     * CORE ALGORITHM 2: Domino Effect Cascade Simulation
-     * Propagates delay from rootTaskId through all downstream dependent tasks.
-     * =========================================================================
-     */
-    function simulateDominoCascade(rootTaskId, delayHours) {
-      const taskMap = analyzeSchedule(state.tasks);
-      const impacted = [];
-      if (!taskMap.has(rootTaskId)) return { root: null, impacted: [], totalTasksAffected: 0 };
-
-      const root = taskMap.get(rootTaskId);
-      const rootNewFinish = new Date(root.deadlineDate.getTime() + delayHours * 3600000);
-
-      // BFS traversal along dependency chain
-      const queue = [{ task: root, newFinishTime: rootNewFinish, depth: 0 }];
-
-      while (queue.length > 0) {
-        const current = queue.shift();
-        const parentNode = current.task;
-
-        parentNode.children.forEach(childId => {
-          const child = taskMap.get(childId);
-          if (!child) return;
-
-          // Earliest child can start is parent's new finish time
-          const earliestChildStart = current.newFinishTime;
-          const projectedChildFinish = new Date(earliestChildStart.getTime() + child.duration * 3600000);
-          const overflowMs = projectedChildFinish.getTime() - child.deadlineDate.getTime();
-          const overflowHours = Math.round((overflowMs / 3600000) * 10) / 10;
-
-          const status = overflowHours > 0
-            ? 'TERDAMPAK_TELAT'
-            : (overflowHours > -3 ? 'KRITIS_MEPET' : 'AMAN_TERSERAP_BUFFER');
-
-          impacted.push({
-            ...child,
-            depth: current.depth + 1,
-            parentTitle: parentNode.title,
-            earliestStart: earliestChildStart,
-            projectedFinish: projectedChildFinish,
-            overflowHours,
-            cascadeStatus: status
-          });
-
-          // Effective finish time pushed downstream is max(original deadline, projectedFinish)
-          const downstreamPushTime = projectedChildFinish > child.deadlineDate ? projectedChildFinish : child.deadlineDate;
-          queue.push({
-            task: child,
-            newFinishTime: downstreamPushTime,
-            depth: current.depth + 1
-          });
-        });
-      }
-
-      const brokenTasks = impacted.filter(i => i.overflowHours > 0);
-      return {
-        root: {
-          ...root,
-          newFinish: rootNewFinish,
-          delayHours
-        },
-        impacted,
-        brokenCount: brokenTasks.length
-      };
-    }
-
-    /**
-     * =========================================================================
-     * CORE ALGORITHM 3: Teacher Terror Notification Engine
-     * Generates contextual teacher messages based on urgency & persona.
-     * =========================================================================
-     */
-    function generateTeacherAlerts() {
-      const taskMap = analyzeSchedule(state.tasks);
-      const cascade = simulateDominoCascade(state.simRootTaskId, state.simDelayHours);
-      const impactedIds = new Set(cascade.impacted.filter(i => i.overflowHours > 0).map(i => i.id));
-
-      const alerts = [];
-
-      taskMap.forEach(task => {
-        if (task.status === 'Selesai') return;
-
-        const h = task.hoursUntilDeadline;
-        let stage = 'AMAN';
-        let badgeColor = 'slate';
-
-        if (h < 0) {
-          stage = 'Terlambat';
-          badgeColor = 'rose';
-        } else if (h <= 24) {
-          stage = 'Hari H';
-          badgeColor = 'red';
-        } else if (h <= 48) {
-          stage = 'H-1';
-          badgeColor = 'amber';
-        } else if (h <= 72) {
-          stage = 'H-2';
-          badgeColor = 'yellow';
-        } else if (h <= 96) {
-          stage = 'H-3';
-          badgeColor = 'indigo';
-        }
-
-        const isDominoTriggered = impactedIds.has(task.id);
-        if (stage === 'AMAN' && !isDominoTriggered) return;
-
-        const message = craftPersonaMessage(task, stage, isDominoTriggered);
-        alerts.push({
-          id: `alert-${task.id}`,
-          taskId: task.id,
-          teacher: task.teacher,
-          subject: task.subject,
-          persona: task.persona,
-          taskTitle: task.title,
-          stage: isDominoTriggered && stage === 'AMAN' ? 'Domino Risk' : stage,
-          badgeColor: isDominoTriggered ? 'rose' : badgeColor,
-          isDominoTriggered,
-          hoursLeft: Math.round(h),
-          message
-        });
-      });
-
-      // Sort by urgency
-      const priority = { 'Terlambat': 1, 'Hari H': 2, 'H-1': 3, 'Domino Risk': 4, 'H-2': 5, 'H-3': 6 };
-      return alerts.sort((a, b) => (priority[a.stage] || 9) - (priority[b.stage] || 9));
-    }
-
-    function craftPersonaMessage(task, stage, isDominoTriggered) {
-      if (isDominoTriggered) {
-        if (task.persona === 'Tegas/Disiplin') {
-          return `"Saya dapat laporan tugas prasyarat sebelumnya molor. Jangan jadikan itu alasan untuk '${task.title}' ikut terlambat di kelas ${task.subject}!"`;
-        } else if (task.persona === 'Sarkas/Humoris') {
-          return `"Wah, efek domino mulai jalan ya? Kalau tugas sebelumnya belum kelar, nasib '${task.title}' mau dikerjakan pakai mesin waktu?"`;
-        }
-        return `"Halo, sekadar mengingatkan kalau jadwal sebelum '${task.title}' bergeser, waktu pengerjaanmu untuk ${task.subject} bakal mepet banget lho."`;
-      }
-
-      const templates = {
-        'Tegas/Disiplin': {
-          'H-3': `"Perhatian, tugas '${task.title}' (${task.subject}) tersisa 3 hari. Segera cicil dari sekarang, tidak ada perpanjangan waktu."`,
-          'H-2': `"Sudah H-2 untuk '${task.title}'. Pastikan progres minimal 60% hari ini. Saya tidak menerima alasan teknis saat pengumpulan."`,
-          'H-1': `"Besok batas akhir '${task.title}'. Cek kembali format dan kelengkapan sebelum dikumpulkan."`,
-          'Hari H': `"HARI INI deadline '${task.title}' pukul ${formatTime(task.deadlineDate)}. Kumpulkan tepat waktu atau nilai dikurangi."`,
-          'Terlambat': `"Waktu pengumpulan '${task.title}' sudah LEWAT. Segera menghadap saya dan serahkan tugasmu sekarang!"`
-        },
-        'Sarkas/Humoris': {
-          'H-3': `"Halo pejuang ${task.subject}, '${task.title}' tinggal 3 hari lagi. Masih santai atau sudah mulai panik tipis-tipis?"`,
-          'H-2': `"Cuma mau tanya kabar '${task.title}'. Sudah diketik atau baru sampai tahap niat dan doa?"`,
-          'H-1': `"Anak-anak, besok '${task.title}' dikumpulkan. Sudah selesai atau masih dalam proses berpikir keras?"`,
-          'Hari H': `"Hari ini hari penghakiman untuk '${task.title}'. Semoga kuota dan laptop kalian tidak tiba-tiba drama ya!"`,
-          'Terlambat': `"Selamat, kamu baru saja memecahkan rekor keterlambatan untuk '${task.title}'. Mau dikumpulkan tahun depan?"`
-        },
-        'Santai Menghanyutkan': {
-          'H-3': `"Teman-teman, jangan lupa ya 3 hari lagi ada '${task.title}' untuk ${task.subject}. Santai tapi tetap dicicil ya."`,
-          'H-2': `"Sekadar menyapa, '${task.title}' tinggal 2 hari lagi lho. Kalau ada kendala langsung kabari Bapak/Ibu ya."`,
-          'H-1': `"Besok kita sudah masuk tenggat '${task.title}'. Jangan begadang terlalu larut ya, jaga kesehatan."`,
-          'Hari H': `"Hari ini terakhir pengumpulan '${task.title}'. Ditunggu sampai jam ${formatTime(task.deadlineDate)} ya, semangat!"`,
-          'Terlambat': `"Sepertinya kamu terlewat jadwal '${task.title}' nih. Yuk segera diselesaikan biar nilainya tidak kosong."`
-        }
-      };
-
-      return templates[task.persona]?.[stage] || `"Pengingat tugas '${task.title}' (${task.subject}) — Status: ${stage}."`;
-    }
-
-    /**
-     * =========================================================================
-     * CORE ALGORITHM 4: Academic Stability Index & Workload Metrics
-     * =========================================================================
-     */
-    function calculateMetrics() {
-      const taskMap = analyzeSchedule(state.tasks);
-      const activeTasks = Array.from(taskMap.values()).filter(t => t.status !== 'Selesai');
-      const overdueTasks = activeTasks.filter(t => t.hoursUntilDeadline < 0);
-      const criticalTasks = activeTasks.filter(t => t.isCritical);
-
-      // Nearest deadline
-      const sortedUpcoming = [...activeTasks].sort((a, b) => a.deadlineDate - b.deadlineDate);
-      const nearestTask = sortedUpcoming[0] || null;
-
-      // Workload per day
-      const dailyLoad = {};
-      activeTasks.forEach(t => {
-        const dayKey = t.deadline.split('T')[0];
-        dailyLoad[dayKey] = (dailyLoad[dayKey] || 0) + Number(t.duration);
-      });
-
-      let busiestDay = null;
-      let maxHours = 0;
-      Object.entries(dailyLoad).forEach(([day, hrs]) => {
-        if (hrs > maxHours) {
-          maxHours = hrs;
-          busiestDay = day;
-        }
-      });
-
-      // Academic Stability Index (0% - 100%)
-      let stability = 100;
-      stability -= overdueTasks.length * 22;
-      stability -= criticalTasks.length * 9;
-      if (maxHours > 8) stability -= (maxHours - 8) * 5;
-      if (state.simDelayHours > 0) {
-        const sim = simulateDominoCascade(state.simRootTaskId, state.simDelayHours);
-        stability -= sim.brokenCount * 12;
-      }
-      stability = Math.max(8, Math.min(100, Math.round(stability)));
-
-      return {
-        totalTasks: state.tasks.length,
-        activeCount: activeTasks.length,
-        completedCount: state.tasks.length - activeTasks.length,
-        overdueCount: overdueTasks.length,
-        criticalCount: criticalTasks.length,
-        nearestTask,
-        busiestDay,
-        maxHours,
-        dailyLoad,
-        stability
-      };
-    }
-
-    /**
-     * Formatting Helpers
-     */
-    function formatDateIndo(dateObj) {
-      if (!(dateObj instanceof Date) || isNaN(dateObj)) return '-';
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      const d = dateObj.getDate();
-      const m = months[dateObj.getMonth()];
-      const hh = String(dateObj.getHours()).padStart(2, '0');
-      const mm = String(dateObj.getMinutes()).padStart(2, '0');
-      return `${d} ${m} ${dateObj.getFullYear()}, ${hh}:${mm}`;
-    }
-
-    function formatShortDate(dateStr) {
-      const d = new Date(dateStr);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-      return `${d.getDate()} ${months[d.getMonth()]}`;
-    }
-
-    function formatTime(dateObj) {
-      const hh = String(dateObj.getHours()).padStart(2, '0');
-      const mm = String(dateObj.getMinutes()).padStart(2, '0');
-      return `${hh}:${mm}`;
-    }
-
-    function formatHoursHuman(hours) {
-      const absH = Math.abs(hours);
-      if (absH < 24) return `${hours} jam`;
-      const days = Math.floor(absH / 24);
-      const remH = Math.round((absH % 24) * 10) / 10;
-      const sign = hours < 0 ? '-' : '';
-      return remH > 0 ? `${sign}${days} hari ${remH} jam` : `${sign}${days} hari`;
-    }
-
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const colors = {
-        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
-        warning: 'bg-amber-950/95 border-amber-500/50 text-amber-200',
-        danger: 'bg-rose-950/95 border-rose-500/50 text-rose-200',
-        info: 'bg-indigo-950/95 border-indigo-500/50 text-indigo-200'
-      };
-      const toast = document.createElement('div');
-      toast.className = `pointer-events-auto p-3.5 rounded-xl border backdrop-blur-md shadow-xl text-xs font-medium flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
-      toast.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()" class="text-white/60 hover:text-white">✕</button>
-      `;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
-    }
-
-    /**
-     * Navigation & Responsive Sidebar
-     */
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const backdrop = document.getElementById('sidebar-backdrop');
-      sidebar.classList.toggle('-translate-x-full');
-      backdrop.classList.toggle('hidden');
-    }
-
-    function switchTab(tabId) {
-      state.currentTab = tabId;
-      const sidebar = document.getElementById('sidebar');
-      if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
-        toggleMobileSidebar();
-      }
-      renderApp();
-    }
-
-    function renderNavigation() {
-      const nav = document.getElementById('nav-menu');
-      const alerts = generateTeacherAlerts();
-      const metrics = calculateMetrics();
-
-      nav.innerHTML = NAV_ITEMS.map(item => {
-        const isActive = state.currentTab === item.id;
-        let badge = '';
-        if (item.id === 'alerts' && alerts.length > 0) {
-          badge = `<span class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">${alerts.length}</span>`;
-        } else if (item.id === 'assignments') {
-          badge = `<span class="ml-auto px-2 py-0.5 text-[10px] font-mono rounded-full bg-slate-800 text-slate-300">${metrics.activeCount}</span>`;
-        } else if (item.id === 'recovery' && (metrics.criticalCount > 0 || state.simDelayHours > 0)) {
-          badge = `<span class="ml-auto w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>`;
-        }
-
-        return `
-          <button onclick="switchTab('${item.id}')"
-            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-              isActive
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent'
-            }">
-            <svg class="w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              ${item.icon}
-            </svg>
-            <span class="truncate">${item.label}</span>
-            ${badge}
-          </button>
-        `;
-      }).join('');
-
-      const activeMeta = NAV_ITEMS.find(n => n.id === state.currentTab);
-      if (activeMeta) {
-        document.getElementById('page-title').textContent = activeMeta.label;
-        document.getElementById('page-subtitle').textContent = activeMeta.subtitle;
-      }
-    }
-
-    /**
-     * =========================================================================
-     * VIEW 1: DASHBOARD (Academic Command Center)
-     * =========================================================================
-     */
-    function renderDashboard() {
-      const metrics = calculateMetrics();
-      const taskMap = analyzeSchedule(state.tasks);
-      const alerts = generateTeacherAlerts();
-      const criticalChains = Array.from(taskMap.values()).filter(t => t.isCritical && t.status !== 'Selesai');
-
-      const stabilityColor = metrics.stability >= 75
-        ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
-        : metrics.stability >= 45
-          ? 'text-amber-400 border-amber-500/40 bg-amber-500/10'
-          : 'text-rose-400 border-rose-500/40 bg-rose-500/10';
-
-      const stabilityBarColor = metrics.stability >= 75
-        ? 'bg-emerald-500'
-        : metrics.stability >= 45
-          ? 'bg-amber-500'
-          : 'bg-rose-500';
-
-      const stabilityLabel = metrics.stability >= 75
-        ? 'Jadwal Stabil & Terkendali'
-        : metrics.stability >= 45
-          ? 'Waspada Jalur Kritis Mepet'
-          : 'Bahaya Efek Domino Tinggi!';
-
-      return `
-        <!-- Hero Academic Stability Index Banner -->
-        <div class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-slate-800 p-6 shadow-xl">
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div class="space-y-2 max-w-xl">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${stabilityColor}">
-                <span>Academic Stability Index</span>
-                <span>•</span>
-                <span>${stabilityLabel}</span>
-              </div>
-              <h3 class="text-xl sm:text-2xl font-bold text-white">
-                ${criticalChains.length > 0
-                  ? `Terdeteksi ${criticalChains.length} tugas berada di Jalur Kritis (Slack Time ≤ 2 jam).`
-                  : 'Semua rantai tugas memiliki waktu cadangan yang aman.'}
-              </h3>
-              <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Satu keterlambatan pada tugas awal dapat memicu reaksi berantai pada tugas berikutnya. Gunakan <strong>Domino Simulator</strong> untuk menguji ketahanan jadwalmu.
-              </p>
-            </div>
-
-            <div class="flex items-center gap-5 bg-slate-950/80 border border-slate-800/90 p-5 rounded-2xl shrink-0">
-              <div class="text-right">
-                <div class="text-xs text-slate-400 font-medium">Skor Stabilitas</div>
-                <div class="text-4xl font-extrabold font-mono text-white mt-0.5">${metrics.stability}<span class="text-xl text-slate-400">%</span></div>
-                <div class="w-36 h-2 bg-slate-800 rounded-full overflow-hidden mt-2">
-                  <div class="h-full ${stabilityBarColor} transition-all duration-500" style="width: ${metrics.stability}%"></div>
-                </div>
-              </div>
-              <button onclick="switchTab('simulator')" class="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition">
-                Uji Simulasi →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4 Summary KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-400">Tugas Aktif</span>
-              <span class="p-2 rounded-lg bg-indigo-500/15 text-indigo-400">📋</span>
-            </div>
-            <div class="text-3xl font-extrabold text-white mt-2 font-mono">${metrics.activeCount}</div>
-            <p class="text-[11px] text-slate-400 mt-1">${metrics.completedCount} tugas sudah selesai</p>
-          </div>
-
-          <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-400">Tugas Terlambat</span>
-              <span class="p-2 rounded-lg bg-rose-500/15 text-rose-400">🚨</span>
-            </div>
-            <div class="text-3xl font-extrabold ${metrics.overdueCount > 0 ? 'text-rose-400' : 'text-emerald-400'} mt-2 font-mono">${metrics.overdueCount}</div>
-            <p class="text-[11px] text-slate-400 mt-1">${metrics.overdueCount > 0 ? 'Segera buka Recovery Planner!' : 'Tidak ada tugas melewati tenggat'}</p>
-          </div>
-
-          <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-400">Deadline Terdekat</span>
-              <span class="p-2 rounded-lg bg-amber-500/15 text-amber-400">⏳</span>
-            </div>
-            <div class="text-sm font-bold text-white mt-2 truncate">${metrics.nearestTask ? metrics.nearestTask.title : 'Semua Selesai'}</div>
-            <p class="text-[11px] text-amber-400 font-mono mt-1">
-              ${metrics.nearestTask ? formatDateIndo(metrics.nearestTask.deadlineDate) : '-'}
-            </p>
-          </div>
-
-          <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-slate-400">Hari Beban Tertinggi</span>
-              <span class="p-2 rounded-lg bg-purple-500/15 text-purple-400">🔥</span>
-            </div>
-            <div class="text-xl font-extrabold text-white mt-2 font-mono">
-              ${metrics.busiestDay ? formatShortDate(metrics.busiestDay) : '-'}
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">Total estimasi ${metrics.maxHours} jam pengerjaan</p>
-          </div>
-        </div>
-
-        <!-- Bottom Grid: Domino Risk Chain & Teacher Terror Preview -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Domino Risk Chain -->
-          <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h4 class="text-base font-bold text-white">Rantai Tugas Berisiko Efek Domino</h4>
-                  <p class="text-xs text-slate-400">Urutan tugas yang saling terhubung dan rentan bergeser</p>
-                </div>
-                <button onclick="switchTab('dependency')" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300">Lihat Peta SVG →</button>
-              </div>
-
-              <div class="space-y-3">
-                ${Array.from(taskMap.values()).filter(t => t.parentId || t.children.length > 0).map((t, idx) => {
-                  const slackText = t.slackHours === null
-                    ? 'Akar Rantai (Root)'
-                    : t.slackHours < 0
-                      ? `Defisit ${Math.abs(t.slackHours)} jam (Bentrok!)`
-                      : `Waktu Cadangan: ${t.slackHours} jam`;
-                  const badgeStyle = t.slackHours === null
-                    ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
-                    : t.slackHours <= 2
-                      ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
-
-                  return `
-                    <div class="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">#${idx + 1}</span>
-                          <span class="text-xs font-bold text-white truncate">${t.title}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-400 mt-1">
-                          ${t.subject} • ${t.teacher} • Deadline: ${formatDateIndo(t.deadlineDate)}
-                        </div>
-                      </div>
-                      <span class="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badgeStyle}">
-                        ${slackText}
-                      </span>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          </div>
-
-          <!-- Teacher Terror Alerts Preview -->
-          <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h4 class="text-base font-bold text-white">Notifikasi Teror Guru Terbaru</h4>
-                  <p class="text-xs text-slate-400">Simulasi pesan pengingat otomatis dari guru mapel</p>
-                </div>
-                <button onclick="switchTab('alerts')" class="text-xs font-semibold text-rose-400 hover:text-rose-300">Semua Alerts (${alerts.length}) →</button>
-              </div>
-
-              <div class="space-y-3">
-                ${alerts.slice(0, 3).map(al => `
-                  <div class="p-3.5 rounded-xl bg-slate-950/90 border border-rose-500/25 space-y-1.5">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <span class="text-xs font-bold text-white">${al.teacher} — ${al.subject}</span>
-                      </div>
-                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                        ${al.stage}
-                      </span>
-                    </div>
-                    <p class="text-xs text-slate-300 italic leading-relaxed">${al.message}</p>
-                  </div>
-                `).join('') || `<p class="text-xs text-slate-400 py-6 text-center">Belum ada peringatan mendesak dari guru.</p>`}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    /**
-     * =========================================================================
-     * VIEW 2: MY ASSIGNMENTS (Task & Dependency CRUD)
-     * =========================================================================
-     */
-    function renderAssignments() {
-      const taskMap = analyzeSchedule(state.tasks);
-      const tasksArr = Array.from(taskMap.values()).sort((a, b) => a.deadlineDate - b.deadlineDate);
-
-      return `
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-          <div class="text-xs text-slate-300">
-            Menampilkan <strong class="text-white">${tasksArr.length} tugas</strong> tersimpan di perangkatmu. Hubungkan tugas prasyarat untuk memetakan efek domino.
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="resetToDemoData()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
-              Reset Demo
-            </button>
-            <button onclick="openTaskModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition">
-              + Tambah Tugas
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          ${tasksArr.map(t => {
-            const parentObj = t.parentId ? taskMap.get(t.parentId) : null;
-            const statusBadge = t.status === 'Selesai'
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-              : t.status === 'Sedang Dikerjakan'
-                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                : 'bg-slate-800 text-slate-300 border-slate-700';
-
-            return `
-              <div class="p-5 rounded-2xl bg-slate-900/95 border ${t.isCritical && t.status !== 'Selesai' ? 'border-rose-500/40' : 'border-slate-800'} flex flex-col justify-between gap-4 hover:border-slate-700 transition">
-                <div>
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <span class="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 mb-1.5">
-                        ${t.subject}
-                      </span>
-                      <h4 class="text-base font-bold text-white leading-snug">${t.title}</h4>
-                    </div>
-                    <button onclick="toggleTaskComplete('${t.id}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${statusBadge}">
-                      ${t.status === 'Selesai' ? '✓ Selesai' : t.status}
-                    </button>
-                  </div>
-
-                  <div class="mt-3 space-y-1.5 text-xs text-slate-400">
-                    <div class="flex items-center gap-2">
-                      <span>👨‍🏫 Guru:</span>
-                      <strong class="text-slate-200">${t.teacher}</strong>
-                      <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">${t.persona}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span>⏰ Deadline:</span>
-                      <strong class="font-mono text-slate-200">${formatDateIndo(t.deadlineDate)}</strong>
-                      <span class="text-slate-500">•</span>
-                      <span>Durasi: <strong class="text-slate-200">${t.duration} jam</strong></span>
-                    </div>
-                    ${parentObj ? `
-                      <div class="mt-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800/90 flex items-center justify-between gap-2">
-                        <span class="text-[11px] text-slate-400 truncate">🔗 Bergantung pada: <strong class="text-indigo-300">${parentObj.title}</strong></span>
-                        <span class="text-[10px] font-mono font-bold ${t.slackHours <= 2 ? 'text-rose-400' : 'text-emerald-400'} shrink-0">
-                          Slack: ${t.slackHours}j
-                        </span>
-                      </div>
-                    ` : `
-                      <div class="mt-2 text-[11px] text-slate-500">🟢 Tugas Mandiri / Titik Awal Rantai</div>
-                    `}
-                  </div>
-                </div>
-
-                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <button onclick="jumpToSimulateTask('${t.id}')" class="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1">
-                    ⚡ Simulasikan Telat
-                  </button>
-                  <div class="flex items-center gap-2">
-                    <button onclick="openTaskModal('${t.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition">
-                      Edit
-                    </button>
-                    <button onclick="deleteTask('${t.id}')" class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium transition">
-                      Hapus
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-    }
-
-    /**
-     * =========================================================================
-     * VIEW 3: DEPENDENCY MAP (Interactive SVG Node & Bezier Edge Graph)
-     * =========================================================================
-     */
-    function renderDependencyMap() {
-      const taskMap = analyzeSchedule(state.tasks);
-      const nodes = Array.from(taskMap.values());
-
-      // Compute topological depth levels (Columns)
-      const levels = {};
-      function getDepth(taskId, visited = new Set()) {
-        if (visited.has(taskId)) return 0;
-        visited.add(taskId);
-        const t = taskMap.get(taskId);
-        if (!t || !t.parentId || !taskMap.has(t.parentId)) return 0;
-        return 1 + getDepth(t.parentId, visited);
-      }
-
-      nodes.forEach(n => {
-        const d = getDepth(n.id);
-        if (!levels[d]) levels[d] = [];
-        levels[d].push(n);
-      });
-
-      const colKeys = Object.keys(levels).map(Number).sort((a, b) => a - b);
-      const colWidth = 280;
-      const rowHeight = 145;
-      const maxRows = Math.max(...colKeys.map(k => levels[k].length), 1);
-
-      const svgWidth = Math.max(820, colKeys.length * colWidth + 100);
-      const svgHeight = Math.max(420, maxRows * rowHeight + 90);
-
-      // Assign coordinates
-      const positions = new Map();
-      colKeys.forEach((colIdx) => {
-        const list = levels[colIdx];
-        list.forEach((node, rowIdx) => {
-          const x = 50 + colIdx * colWidth;
-          const y = 45 + rowIdx * rowHeight;
-          positions.set(node.id, { x, y, width: 220, height: 96 });
-        });
-      });
-
-      // Build Bezier Curves
-      let edgesSvg = '';
-      nodes.forEach(node => {
-        if (node.parentId && positions.has(node.parentId) && positions.has(node.id)) {
-          const pPos = positions.get(node.parentId);
-          const cPos = positions.get(node.id);
-
-          const startX = pPos.x + pPos.width;
-          const startY = pPos.y + pPos.height / 2;
-          const endX = cPos.x;
-          const endY = cPos.y + cPos.height / 2;
-          const cpOffset = (endX - startX) * 0.5;
-
-          const isDanger = node.slackHours <= 0;
-          const isWarn = node.slackHours > 0 && node.slackHours <= 4;
-          const strokeColor = isDanger ? '#ef4444' : isWarn ? '#f59e0b' : '#10b981';
-          const edgeClass = isDanger ? 'svg-critical-edge' : '';
-
-          const midX = (startX + endX) / 2;
-          const midY = (startY + endY) / 2 - 10;
-
-          edgesSvg += `
-            <path d="M ${startX} ${startY} C ${startX + cpOffset} ${startY}, ${endX - cpOffset} ${endY}, ${endX} ${endY}"
-              fill="none" stroke="${strokeColor}" stroke-width="3" class="${edgeClass}" />
-            <circle cx="${endX}" cy="${endY}" r="4.5" fill="${strokeColor}" />
-            <rect x="${midX - 42}" y="${midY - 11}" width="84" height="20" rx="6" fill="#0f172a" stroke="${strokeColor}" stroke-width="1.2" />
-            <text x="${midX}" y="${midY + 3}" text-anchor="middle" fill="${strokeColor}" font-size="10" font-family="JetBrains Mono" font-weight="bold">
-              Slack: ${node.slackHours}j
-            </text>
-          `;
-        }
-      });
-
-      // Build Node Cards inside SVG
-      let nodesSvg = '';
-      nodes.forEach(node => {
-        const pos = positions.get(node.id);
-        const borderCol = node.status === 'Selesai'
-          ? '#10b981'
-          : node.isCritical
-            ? '#ef4444'
-            : '#6366f1';
-
-        const safeTitle = node.title.length > 25 ? node.title.slice(0, 24) + '…' : node.title;
-        nodesSvg += `
-          <g transform="translate(${pos.x}, ${pos.y})" class="cursor-pointer" onclick="jumpToSimulateTask('${node.id}')">
-            <rect width="${pos.width}" height="${pos.height}" rx="14" fill="#0f172a" stroke="${borderCol}" stroke-width="2" />
-            <text x="14" y="24" fill="#818cf8" font-size="10" font-weight="bold" font-family="Inter">${node.subject.toUpperCase()} • ${node.duration} JAM</text>
-            <text x="14" y="46" fill="#ffffff" font-size="12.5" font-weight="bold" font-family="Inter">${safeTitle}</text>
-            <text x="14" y="66" fill="#94a3b8" font-size="10.5" font-family="Inter">Guru: ${node.teacher}</text>
-            <text x="14" y="83" fill="#cbd5e1" font-size="10" font-family="JetBrains Mono">DL: ${formatDateIndo(node.deadlineDate)}</text>
-          </g>
-        `;
-      });
-
-      return `
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-4 text-xs">
-              <span class="flex items-center gap-1.5 text-emerald-400"><span class="w-3 h-1 bg-emerald-400 rounded"></span> Aman (Slack > 4 jam)</span>
-              <span class="flex items-center gap-1.5 text-amber-400"><span class="w-3 h-1 bg-amber-400 rounded"></span> Rawan (Slack ≤ 4 jam)</span>
-              <span class="flex items-center gap-1.5 text-rose-400"><span class="w-3 h-1 bg-rose-500 rounded"></span> Jalur Kritis / Bentrok</span>
-            </div>
-            <span class="text-[11px] text-slate-400">Klik kotak tugas untuk menguji simulasi keterlambatannya</span>
-          </div>
-
-          <div class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800/90 p-2">
-            <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" class="min-w-full">
-              <defs>
-                <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                  <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#1e293b" stroke-width="0.6" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-              ${edgesSvg}
-              ${nodesSvg}
-            </svg>
-          </div>
-        </div>
-      `;
-    }
-
-    /**
-     * =========================================================================
-     * VIEW 4: DOMINO SIMULATOR (Interactive What-If Cascade Engine)
-     * =========================================================================
-     */
-    function renderSimulator() {
-      const taskMap = analyzeSchedule(state.tasks);
-      const tasksArr = Array.from(taskMap.values());
-      if (!taskMap.has(state.simRootTaskId) && tasksArr.length > 0) {
-        state.simRootTaskId = tasksArr[0].id;
-      }
-
-      const simResult = simulateDominoCascade(state.simRootTaskId, state.simDelayHours);
-
-      return `
-        <!-- Interactive Control Panel -->
-        <div class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/20 border border-slate-800 p-6 shadow-xl space-y-6">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            <!-- Root Task Selector -->
-            <div class="lg:col-span-5 space-y-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-indigo-400">1. Pilih Tugas Pemicu Keterlambatan</label>
-              <select onchange="updateSimRoot(this.value)" class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-indigo-500">
-                ${tasksArr.map(t => `
-                  <option value="${t.id}" ${t.id === state.simRootTaskId ? 'selected' : ''}>
-                    [${t.subject}] ${t.title} (${t.teacher})
-                  </option>
-                `).join('')}
-              </select>
-              <p class="text-[11px] text-slate-400">
-                Deadline Asli: <strong class="font-mono text-slate-200">${simResult.root ? formatDateIndo(simResult.root.deadlineDate) : '-'}</strong>
-              </p>
-            </div>
-
-            <!-- Delay Slider -->
-            <div class="lg:col-span-7 space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="text-xs font-bold uppercase tracking-wider text-amber-400">2. Geser Simulasi Keterlambatan (What-If)</label>
-                <span class="px-3 py-1 rounded-lg font-mono text-sm font-extrabold ${state.simDelayHours > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-emerald-500/15 text-emerald-300'}">
-                  +${formatHoursHuman(state.simDelayHours)}
-                </span>
-              </div>
-              <input type="range" min="0" max="72" step="1" value="${state.simDelayHours}"
-                oninput="updateSimDelay(this.value)" class="w-full" />
-              <div class="flex justify-between text-[10px] font-mono text-slate-400">
-                <span>0 Jam (Tepat Waktu)</span>
-                <span>+12 Jam</span>
-                <span>+24 Jam (1 Hari)</span>
-                <span>+48 Jam (2 Hari)</span>
-                <span>+72 Jam (3 Hari)</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Preset Delay Buttons -->
-          <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80">
-            <span class="text-xs text-slate-400 mr-1">Uji Cepat:</span>
-            ${[0, 3, 6, 12, 24, 48].map(h => `
-              <button onclick="updateSimDelay(${h})" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition ${
-                Number(state.simDelayHours) === h
-                  ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-600'
-              }">
-                +${h} jam
-              </button>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Visual Domino Chain Reaction Stage -->
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-6 space-y-5">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 class="text-lg font-bold text-white">Visualisasi Reaksi Berantai Domino</h4>
-              <p class="text-xs text-slate-400">Kartu tugas akan miring & jatuh apabila waktu cadangan (Slack Time) habis tertabrak keterlambatan.</p>
-            </div>
-            ${simResult.brokenCount > 0 ? `
-              <button onclick="switchTab('recovery')" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30 animate-pulse transition">
-                🛠️ Perbaiki ${simResult.brokenCount} Tugas Terdampak →
-              </button>
-            ` : ''}
-          </div>
-
-          <!-- Domino Cards Horizontal Flow -->
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 pt-2 pb-4">
-            <!-- Root Domino Card -->
-            ${simResult.root ? `
-              <div class="domino-tile ${state.simDelayHours > 0 ? 'domino-fallen' : ''} p-5 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 flex flex-col justify-between relative">
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">PEMICU UTAMA</span>
-                    <span class="text-xs font-mono font-bold ${state.simDelayHours > 0 ? 'text-rose-400' : 'text-emerald-400'}">
-                      ${state.simDelayHours > 0 ? `Telat +${state.simDelayHours}j` : 'Tepat Waktu'}
-                    </span>
-                  </div>
-                  <h5 class="text-sm font-bold text-white">${simResult.root.title}</h5>
-                  <p class="text-xs text-slate-400 mt-1">${simResult.root.subject} • ${simResult.root.teacher}</p>
-                </div>
-
-                <div class="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px] font-mono">
-                  <div class="flex justify-between text-slate-400">
-                    <span>Selesai Asli:</span>
-                    <span>${formatDateIndo(simResult.root.deadlineDate)}</span>
-                  </div>
-                  <div class="flex justify-between ${state.simDelayHours > 0 ? 'text-rose-300 font-bold' : 'text-emerald-400'}">
-                    <span>Selesai Baru:</span>
-                    <span>${formatDateIndo(simResult.root.newFinish)}</span>
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-
-            <!-- Downstream Domino Cards -->
-            ${simResult.impacted.map((item, i) => {
-              const tileClass = item.cascadeStatus === 'TERDAMPAK_TELAT'
-                ? 'domino-fallen'
-                : item.cascadeStatus === 'KRITIS_MEPET'
-                  ? 'domino-warning'
-                  : '';
-
-              const badge = item.cascadeStatus === 'TERDAMPAK_TELAT'
-                ? `<span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-500/25 text-rose-300">JATUH (+${item.overflowHours}j)</span>`
-                : item.cascadeStatus === 'KRITIS_MEPET'
-                  ? `<span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/25 text-amber-300">MEPET (Sisa ${Math.abs(item.overflowHours)}j)</span>`
-                  : `<span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">AMAN (Buffer Cukup)</span>`;
-
-              return `
-                <div class="domino-tile ${tileClass} p-5 rounded-2xl bg-slate-950 border-2 border-slate-800 flex flex-col justify-between">
-                  <div>
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-[10px] font-mono text-slate-400">DOMINO #${i + 1}</span>
-                      ${badge}
-                    </div>
-                    <h5 class="text-sm font-bold text-white">${item.title}</h5>
-                    <p class="text-xs text-slate-400 mt-1">${item.subject} • ${item.teacher}</p>
-                    <p class="text-[11px] text-slate-500 mt-2">Waktu cadangan awal: <strong class="text-slate-300">${item.slackHours} jam</strong></p>
-                  </div>
-
-                  <div class="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px] font-mono">
-                    <div class="flex justify-between text-slate-400">
-                      <span>Deadline Asli:</span>
-                      <span>${formatDateIndo(item.deadlineDate)}</span>
-                    </div>
-                    <div class="flex justify-between ${item.overflowHours > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
-                      <span>Estimasi Selesai:</span>
-                      <span>${formatDateIndo(item.projectedFinish)}</span>
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          ${simResult.impacted.length === 0 ? `
-            <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400 text-center">
-              Tugas ini adalah tugas mandiri (tidak memiliki tugas lanjutan yang bergantung padanya). Coba pilih <strong>"Menyelesaikan Penelitian Ekosistem"</strong> untuk melihat efek berantai 4 tahap!
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
-
-    /**
-     * =========================================================================
-     * VIEW 5: TEACHER ALERTS (Persona-Based Notifications & Browser API)
-     * =========================================================================
-     */
-    function renderAlerts() {
-      const allAlerts = generateTeacherAlerts();
-      const stages = ['ALL', 'Terlambat', 'Hari H', 'H-1', 'H-2', 'H-3', 'Domino Risk'];
-      const filtered = state.alertFilter === 'ALL'
-        ? allAlerts
-        : allAlerts.filter(a => a.stage === state.alertFilter);
-
-      return `
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <!-- PUSH NOTIFICATION TOAST BANNER (TEROR GURU TANPA SIRINE) -->
+  <div id="terrorToast" class="terror-toast hidden" role="status" aria-live="polite">
+    <div class="toast-header">
+      <div class="toast-app">
+        <span>🁢 DOMINO • <strong id="toastStageBadge">TEROR GURU</strong></span>
+      </div>
+      <button id="btnCloseToast" class="toast-close" aria-label="Tutup">✕</button>
+    </div>
+    <div class="toast-body">
+      <strong id="toastTeacher">Pak Yudha — Biologi</strong>
+      <div class="toast-task" id="toastTaskTitle">Judul Tugas</div>
+      <p class="toast-quote" id="toastQuote">Pesan teror guru...</p>
+      <div class="toast-chain" id="toastChainInfo"></div>
+    </div>
+    <div class="toast-actions">
+      <button id="btnToastFocus" class="btn btn-primary btn-sm">⏱️ Kerjakan</button>
+      <button id="btnToastDomino" class="btn btn-secondary btn-sm">🁢 Lihat Efek Domino</button>
+      <button id="btnToastSnooze" class="btn btn-outline btn-sm">💤 Tunda 5m</button>
+    </div>
+  </div>
+
+  <!-- INSTALL PWA BANNER -->
+  <div id="installBanner" class="install-banner hidden">
+    <div class="install-info">
+      <div>
+        <strong>📲 Download / Install Aplikasi DOMINO</strong>
+        <small>Pasang di HP agar push notification teror guru & efek domino aktif</small>
+      </div>
+    </div>
+    <div class="install-btns">
+      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install App</button>
+      <button id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div>
+        <div class="brand">
+          <svg class="brand-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <rect width="512" height="512" rx="112" fill="#0f172a"/>
+            <g transform="translate(115, 130) rotate(-18)">
+              <rect x="0" y="0" width="84" height="168" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="10"/>
+              <circle cx="42" cy="42" r="10" fill="#38bdf8"/>
+              <circle cx="42" cy="126" r="10" fill="#38bdf8"/>
+            </g>
+            <g transform="translate(260, 160) rotate(24)">
+              <rect x="0" y="0" width="84" height="168" rx="16" fill="#6366f1" stroke="#f472b6" stroke-width="10"/>
+              <circle cx="42" cy="42" r="10" fill="#fff"/>
+              <circle cx="42" cy="126" r="10" fill="#fff"/>
+            </g>
+          </svg>
           <div>
-            <h4 class="text-base font-bold text-white">Simulasi Notifikasi Perangkat (Browser Notification API)</h4>
-            <p class="text-xs text-slate-400 mt-0.5">Kirim notifikasi teror guru langsung ke layar perangkatmu sebagai uji coba.</p>
+            <h1>DOMINO</h1>
+            <span id="sidebarStudentTag">Planner Siswa SMA</span>
           </div>
-          <button onclick="triggerBrowserNotification()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 shrink-0 transition">
-            🔔 Kirim Tes Notifikasi Guru
-          </button>
         </div>
 
-        <!-- Stage Filter Pills -->
-        <div class="flex flex-wrap gap-2">
-          ${stages.map(st => `
-            <button onclick="setAlertFilter('${st}')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition ${
-              state.alertFilter === st
-                ? 'bg-indigo-600 text-white border-indigo-500'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
-            }">
-              ${st === 'ALL' ? `Semua Peringatan (${allAlerts.length})` : st}
-            </button>
-          `).join('')}
+        <nav class="nav-menu">
+          <button class="nav-item active" data-page="dashboard">📊 <span>Dashboard</span></button>
+          <button class="nav-item" data-page="assignments">📝 <span>My Assignments</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+          <button class="nav-item" data-page="map">🕸️ <span>Dependency Map</span></button>
+          <button class="nav-item" data-page="simulator">🁢 <span>Domino Simulator</span></button>
+          <button class="nav-item" data-page="alerts">🔔 <span>Teacher Terror</span> <span class="badge" id="alertCountBadge">0</span></button>
+          <button class="nav-item" data-page="recovery">🛠️ <span>Recovery Planner</span></button>
+          <button class="nav-item" data-page="focus">⏱️ <span>Mode Fokus</span></button>
+          <button class="nav-item" data-page="classshare">🤝 <span>Bagikan Kelas</span></button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="btnSidebarInstall" class="btn btn-primary btn-block">📲 Install di HP / Laptop</button>
+        <button id="btnSidebarTestTerror" class="btn btn-warning btn-block">📲 Tes Push Teror Guru</button>
+        <button id="btnEnableNotif" class="btn btn-outline btn-block">🔔 Izin Push Notification</button>
+        <button id="btnEditProfile" class="btn btn-secondary btn-block">👤 Profil Siswa</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="btnMenuToggle" class="btn-icon mobile-only" aria-label="Menu">☰</button>
+          <div>
+            <h2 id="pageTitle">Dashboard Akademik</h2>
+            <p class="tagline" id="welcomeGreeting">One Delayed Task, A Chain of Consequences.</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas Baru</button>
+          <button id="btnTopTestTerror" class="btn btn-warning btn-sm">📲 Tes Push Teror</button>
+          <button id="btnTopInstall" class="btn btn-outline btn-sm">📲 Install App</button>
+        </div>
+      </header>
+
+      <!-- PAGE 1: DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <div class="stability-banner" id="stabilityBanner">
+          <div class="stability-info">
+            <span class="label">ACADEMIC STABILITY INDEX</span>
+            <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
+            <p id="stabilityDesc">Belum ada rantai tugas yang terancam efek domino.</p>
+          </div>
+          <div class="stability-meter">
+            <div class="meter-track"><div class="meter-fill" id="stabilityFill" style="width: 100%;"></div></div>
+          </div>
         </div>
 
-        <!-- Alert Feed -->
-        <div class="space-y-4">
-          ${filtered.map(al => `
-            <div class="p-5 rounded-2xl bg-slate-900/95 border ${al.isDominoTriggered ? 'border-rose-500/50 shadow-lg shadow-rose-950/20' : 'border-slate-800'} flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    ${al.stage}
-                  </span>
-                  <span class="text-sm font-bold text-white">${al.teacher} — ${al.subject}</span>
-                  <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">Gaya: ${al.persona}</span>
-                  ${al.isDominoTriggered ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">⚡ Peringatan Efek Domino</span>` : ''}
-                </div>
-                <p class="text-sm text-slate-200 italic bg-slate-950/90 p-3.5 rounded-xl border border-slate-800/80">
-                  ${al.message}
-                </p>
-                <div class="text-[11px] text-slate-400">
-                  Tugas terkait: <strong class="text-slate-300">${al.taskTitle}</strong>
-                </div>
-              </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-title">Tugas Aktif</span>
+            <strong class="kpi-value" id="kpiActive">0</strong>
+            <small id="kpiDoneSummary">0 selesai</small>
+          </div>
+          <div class="kpi-card danger">
+            <span class="kpi-title">Terlambat / Jalur Kritis</span>
+            <strong class="kpi-value" id="kpiCritical">0</strong>
+            <small>Slack time ≤ 0 jam (Pemicu Domino)</small>
+          </div>
+          <div class="kpi-card warning">
+            <span class="kpi-title">Deadline Terdekat</span>
+            <strong class="kpi-value" id="kpiNearest">-</strong>
+            <small id="kpiNearestTask">Tidak ada tugas</small>
+          </div>
+          <div class="kpi-card info">
+            <span class="kpi-title">Rantai Efek Domino</span>
+            <strong class="kpi-value" id="kpiChainCount">0 Tugas</strong>
+            <small>Saling bergantung</small>
+          </div>
+        </div>
 
-              <button onclick="jumpToSimulateTask('${al.taskId}')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 shrink-0 transition">
-                Cek Dampak →
-              </button>
+        <div class="dashboard-split">
+          <div class="card">
+            <div class="card-header">
+              <h3>🔔 Teror Guru Terbaru</h3>
+              <button class="btn btn-sm btn-outline" onclick="navigateTo('alerts')">Lihat Semua</button>
             </div>
-          `).join('') || `
-            <div class="p-10 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
-              <div class="text-3xl">🎉</div>
-              <h5 class="text-sm font-bold text-white">Tidak Ada Notifikasi Teror di Kategori Ini</h5>
-              <p class="text-xs text-slate-400">Coba geser keterlambatan di Domino Simulator untuk melihat reaksi guru secara berantai.</p>
+            <div id="dashboardAlertsList" class="alert-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>⛓️ Urutan Prioritas & Risiko Domino</h3>
+              <button class="btn btn-sm btn-primary" onclick="navigateTo('simulator')">Simulasi Domino</button>
             </div>
-          `}
+            <div id="todayActionList" class="chain-preview-list"></div>
+          </div>
         </div>
-      `;
-    }
+      </section>
 
-    /**
-     * =========================================================================
-     * VIEW 6: RECOVERY PLANNER (1-Click Schedule Restructuring)
-     * =========================================================================
-     */
-    function renderRecoveryPlanner() {
-      const delay = Math.max(state.simDelayHours, 6); // Default analyze 6h stress test if 0
-      const sim = simulateDominoCascade(state.simRootTaskId, delay);
-      const metrics = calculateMetrics();
+      <!-- PAGE 2: MY ASSIGNMENTS -->
+      <section id="page-assignments" class="page">
+        <div class="card form-card">
+          <div class="card-header">
+            <h3 id="formModeTitle">➕ Tambah Tugas Sekolah</h3>
+            <button type="button" id="btnCancelEdit" class="btn btn-sm btn-outline hidden">Batal Edit</button>
+          </div>
+          <form id="taskForm" class="task-form">
+            <input type="hidden" id="editTaskId" value="" />
+            <div class="form-group">
+              <label>Nama Tugas *</label>
+              <input type="text" id="tTitle" placeholder="Contoh: Membuat Laporan Penelitian" required />
+            </div>
+            <div class="form-group">
+              <label>Mata Pelajaran *</label>
+              <input type="text" id="tSubject" list="subjectPresets" placeholder="Pilih atau ketik mapel..." required />
+              <datalist id="subjectPresets">
+                <option value="Matematika Wajib" />
+                <option value="Matematika Peminatan" />
+                <option value="Biologi" />
+                <option value="Fisika" />
+                <option value="Kimia" />
+                <option value="Bahasa Indonesia" />
+                <option value="Bahasa Inggris" />
+                <option value="Sejarah" />
+                <option value="Ekonomi" />
+                <option value="Geografi" />
+                <option value="Sosiologi" />
+                <option value="Informatika" />
+                <option value="PKN" />
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label>Nama Guru Pemberi Tugas *</label>
+              <input type="text" id="tTeacher" placeholder="Contoh: Pak Yudha" required />
+            </div>
+            <div class="form-group">
+              <label>Karakter Teror Guru</label>
+              <select id="tPersona">
+                <option value="sarkas">Sarkas / Humoris Pedas</option>
+                <option value="tegas">Tegas & Disiplin Tinggi</option>
+                <option value="santai">Santai tapi Menghanyutkan</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Deadline (Tanggal & Jam) *</label>
+              <input type="datetime-local" id="tDeadline" required />
+            </div>
+            <div class="form-group">
+              <label>Estimasi Durasi Pengerjaan (Jam) *</label>
+              <input type="number" id="tDuration" min="0.5" max="48" step="0.5" value="2" required />
+            </div>
+            <div class="form-group">
+              <label>Bergantung Pada Tugas (Rantai Domino)</label>
+              <select id="tDependsOn">
+                <option value="">-- Tidak Ada (Tugas Awal / Mandiri) --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Push Notification Teror HP</label>
+              <select id="tNotifEnabled">
+                <option value="true">Aktif (Push Notification + Getar Sebentar)</option>
+                <option value="false">Nonaktif</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Langkah Pengerjaan / Sub-tugas (Pisahkan dengan koma, opsional)</label>
+              <input type="text" id="tNotes" placeholder="Contoh: Kumpulkan data, Analisis hasil, Cetak laporan" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btnSubmitTask">💾 Simpan Tugas</button>
+            </div>
+          </form>
+        </div>
 
-      return `
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-6 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="card">
+          <div class="card-header">
+            <h3>📋 Daftar Tugas (<span id="totalTasksLabel">0</span>)</h3>
+            <select id="filterStatus" style="width: auto;">
+              <option value="active">Tugas Aktif</option>
+              <option value="all">Semua Tugas</option>
+              <option value="done">Selesai</option>
+            </select>
+          </div>
+          <div id="assignmentsList" class="assignments-grid"></div>
+        </div>
+      </section>
+
+      <!-- PAGE 3: DEPENDENCY MAP -->
+      <section id="page-map" class="page">
+        <div class="card">
+          <div class="card-header">
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Automated Schedule Recovery Engine</span>
-              <h4 class="text-xl font-bold text-white mt-0.5">
-                Analisis Pemulihan untuk: "${sim.root ? sim.root.title : '-'}" (+${delay} jam)
-              </h4>
+              <h3>🕸️ Peta Hubungan Antartugas (SVG)</h3>
+              <p class="hint">Hijau: aman | Kuning: mepet (&lt;6 jam) | Merah berkedip: jalur kritis efek domino</p>
             </div>
-            <span class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold ${sim.brokenCount > 0 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300'}">
-              ${sim.brokenCount} Tugas Terancam Molor
-            </span>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            DOMINO menganalisis durasi pengerjaan, waktu cadangan (*slack time*), dan prioritas deadline untuk menyusun opsi penyelamatan jadwal yang bisa langsung diterapkan dalam 1 klik.
-          </p>
-        </div>
-
-        <!-- 3 Actionable Recovery Strategies -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Strategy 1: Parallel / Compress Buffer -->
-          <div class="p-6 rounded-2xl bg-slate-900/95 border border-indigo-500/40 flex flex-col justify-between gap-5">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300">OPSI 1 • DIREKOMENDASIKAN</span>
-                <span class="text-lg">⚡</span>
-              </div>
-              <h5 class="text-base font-bold text-white">Kompresi Durasi & Kerja Paralel</h5>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Memangkas estimasi durasi tugas-tugas terdampak sebesar <strong>25%</strong> dengan metode fokus intensif (Pomodoro) dan mengerjakan kerangka slide lebih awal sambil menunggu data selesai.
-              </p>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-                <div>• Menyerap keterlambatan hingga <strong>+${Math.round(delay * 0.8)} jam</strong></div>
-                <div>• Menjaga seluruh deadline guru tetap utuh</div>
-              </div>
-            </div>
-            <button onclick="applyRecoveryStrategy('compress')" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 transition">
-              ✓ Terapkan Kompresi Jadwal
-            </button>
-          </div>
-
-          <!-- Strategy 2: Defer Independent Tasks -->
-          <div class="p-6 rounded-2xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between gap-5">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300">OPSI 2 • REALOKASI WAKTU</span>
-                <span class="text-lg">🔀</span>
-              </div>
-              <h5 class="text-base font-bold text-white">Geser Tugas Mandiri yang Longgar</h5>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Menunda sementara pengerjaan tugas mandiri yang tidak memiliki ketergantungan (seperti Matematika/Sejarah) selama <strong>24 jam</strong> untuk mengalihkan slot waktu ke rantai proyek Biologi.
-              </p>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-                <div>• Membebaskan slot waktu <strong>+5.5 jam</strong> hari ini</div>
-                <div>• Nol risiko terhadap tugas lain</div>
-              </div>
-            </div>
-            <button onclick="applyRecoveryStrategy('defer_independent')" class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-bold transition">
-              ✓ Realokasi Slot Tugas Mandiri
-            </button>
-          </div>
-
-          <!-- Strategy 3: Night Sprint / Critical Path First -->
-          <div class="p-6 rounded-2xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between gap-5">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-500/20 text-rose-300">OPSI 3 • MODE DARURAT</span>
-                <span class="text-lg">🔥</span>
-              </div>
-              <h5 class="text-base font-bold text-white">Prioritas Jalur Kritis (SKS Terukur)</h5>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Menandai tugas pemicu selesai sekarang dan mereset simulasi keterlambatan ke 0 dengan alokasi sesi malam (19.00 – 22.30 WIB) khusus untuk menyelesaikan rantai kritis.
-              </p>
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-                <div>• Menghentikan seluruh efek domino seketika</div>
-                <div>• Academic Stability Index naik ke <strong>${Math.min(100, metrics.stability + 25)}%</strong></div>
-              </div>
-            </div>
-            <button onclick="applyRecoveryStrategy('resolve_root')" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition">
-              ✓ Selesaikan Pemicu & Pulihkan
-            </button>
+          <div class="svg-wrapper">
+            <svg id="dependencySvg" width="900" height="440" viewBox="0 0 900 440"></svg>
           </div>
         </div>
-      `;
-    }
+      </section>
 
-    /**
-     * =========================================================================
-     * VIEW 7: STATISTICS (Academic Workload Analyzer)
-     * =========================================================================
-     */
-    function renderStatistics() {
-      const metrics = calculateMetrics();
-      const taskMap = analyzeSchedule(state.tasks);
-      const tasksArr = Array.from(taskMap.values());
+      <!-- PAGE 4: DOMINO EFFECT SIMULATOR -->
+      <section id="page-simulator" class="page">
+        <div class="card simulator-controls">
+          <h3>🁢 Domino Effect Simulator</h3>
+          <p class="hint">Pilih tugas lalu geser keterlambatan untuk melihat kartu domino yang jatuh, jadwal baru, dan teror berantai dari guru-guru tugas berikutnya.</p>
 
-      // Group workload by subject
-      const subjectHours = {};
-      tasksArr.forEach(t => {
-        subjectHours[t.subject] = (subjectHours[t.subject] || 0) + Number(t.duration);
-      });
+          <div class="sim-inputs">
+            <div class="form-group">
+              <label>Jika Tugas Ini Terlambat:</label>
+              <select id="simTaskSelect"></select>
+            </div>
+            <div class="form-group">
+              <label>Simulasi Keterlambatan: <strong id="simDelayLabel" class="highlight-text">+0 Jam (0 Hari)</strong></label>
+              <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
+              <div class="slider-ticks">
+                <span>0 Jam</span>
+                <span>+12 Jam</span>
+                <span>+1 Hari</span>
+                <span>+2 Hari</span>
+                <span>+3 Hari</span>
+              </div>
+            </div>
+          </div>
 
-      const daysSorted = Object.keys(metrics.dailyLoad).sort();
-      const maxDayVal = Math.max(...Object.values(metrics.dailyLoad), 1);
+          <div class="sim-metrics">
+            <div class="sim-box">
+              <span>Keterlambatan</span>
+              <strong id="simMetricDelay">0 Hari</strong>
+            </div>
+            <div class="sim-box">
+              <span>Waktu Cadangan (Slack)</span>
+              <strong id="simMetricSlack">0 Jam</strong>
+            </div>
+            <div class="sim-box">
+              <span>Tugas Ikut Terdampak</span>
+              <strong id="simMetricAffected">0 Tugas</strong>
+            </div>
+          </div>
+        </div>
 
-      return `
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Daily Workload Bar Chart -->
-          <div class="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+        <div class="card">
+          <h3>Visualisasi Rantai Efek Domino</h3>
+          <div id="dominoVisualStage" class="domino-stage"></div>
+          <div id="simConclusionBox" class="sim-conclusion"></div>
+        </div>
+      </section>
+
+      <!-- PAGE 5: TEACHER TERROR ALERTS -->
+      <section id="page-alerts" class="page">
+        <div class="card">
+          <div class="card-header">
             <div>
-              <h4 class="text-base font-bold text-white">Distribusi Beban Kerja Harian (Jam)</h4>
-              <p class="text-xs text-slate-400">Identifikasi hari dengan kepadatan tugas tertinggi</p>
+              <h3>🔔 Teacher Terror Push Notification Center</h3>
+              <p class="hint">Notifikasi teror guru berdasarkan H-3, H-2, H-1, Hari H, Terlambat, serta efek domino berantai antar-guru (tanpa suara sirine, hanya getar sebentar + push notification).</p>
             </div>
+            <button id="btnTriggerChainTerror" class="btn btn-danger btn-sm">📲 Kirim Push Teror Berantai</button>
+          </div>
+          <div id="fullAlertsList" class="alert-list"></div>
+        </div>
+      </section>
 
-            <div class="space-y-3 pt-2">
-              ${daysSorted.map(day => {
-                const hrs = metrics.dailyLoad[day];
-                const pct = Math.round((hrs / maxDayVal) * 100);
-                const isHeavy = hrs >= 6;
-                return `
-                  <div class="space-y-1.5">
-                    <div class="flex justify-between text-xs">
-                      <span class="font-semibold text-slate-200">${formatShortDate(day)} (${day})</span>
-                      <span class="font-mono font-bold ${isHeavy ? 'text-rose-400' : 'text-indigo-300'}">${hrs} jam ${isHeavy ? '🔥 Padat' : ''}</span>
-                    </div>
-                    <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                      <div class="h-full rounded-full transition-all duration-500 ${isHeavy ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-indigo-500'}" style="width: ${pct}%"></div>
-                    </div>
-                  </div>
-                `;
-              }).join('') || `<p class="text-xs text-slate-400">Belum ada data tugas aktif.</p>`}
+      <!-- PAGE 6: RECOVERY PLANNER -->
+      <section id="page-recovery" class="page">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>🛠️ Recovery Planner</h3>
+              <p class="hint">Menyusun ulang jadwal ketika terdeteksi efek domino agar semua tugas kembali terkendali.</p>
             </div>
+            <button id="btnPanicMode" class="btn btn-danger btn-sm">🔥 Panic Mode (SKS 24 Jam)</button>
+          </div>
+          <div id="recoveryOptions" class="recovery-grid"></div>
+        </div>
+      </section>
+
+      <!-- PAGE 7: FOCUS TIMER -->
+      <section id="page-focus" class="page">
+        <div class="card focus-card">
+          <span class="subject-pill">⏱️ LIVE FOCUS TIMER</span>
+          <h3>Mode Fokus Pengerjaan Tugas</h3>
+          <p class="hint">Waktu fokusmu langsung mengurangi sisa estimasi jam pengerjaan tugas agar terhindar dari efek domino.</p>
+
+          <div class="form-group" style="max-width: 440px; margin: 16px auto;">
+            <label>Pilih Tugas yang Dikerjakan:</label>
+            <select id="focusTaskSelect"></select>
           </div>
 
-          <!-- Subject Breakdown & Bottleneck Summary -->
-          <div class="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-5">
-            <div>
-              <h4 class="text-base font-bold text-white">Beban Waktu per Mata Pelajaran</h4>
-              <p class="text-xs text-slate-400">Akumulasi jam pengerjaan seluruh tugas</p>
-            </div>
+          <div class="timer-display" id="timerDisplay">25:00</div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              ${Object.entries(subjectHours).map(([subj, hrs]) => `
-                <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div class="text-xs font-bold text-white">${subj}</div>
-                    <div class="text-[11px] text-slate-400 mt-0.5">Total Estimasi</div>
-                  </div>
-                  <span class="text-lg font-extrabold font-mono text-indigo-400">${hrs}j</span>
-                </div>
-              `).join('')}
-            </div>
+          <div class="timer-presets">
+            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(25)">25 Menit</button>
+            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(45)">45 Menit</button>
+            <button class="btn btn-sm btn-outline" onclick="setFocusMinutes(15)">15 Menit</button>
+          </div>
 
-            <div class="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/30 space-y-1.5">
-              <div class="text-xs font-bold text-indigo-300">💡 Insight Analisis Akademik</div>
-              <p class="text-xs text-slate-300 leading-relaxed">
-                Mata pelajaran <strong>Biologi</strong> memiliki rantai ketergantungan terpanjang (4 tugas berurutan). Menyelesaikan tahap penelitian tepat waktu akan mengamankan <strong>75%</strong> stabilitas jadwal minggu ini.
-              </p>
+          <div class="timer-controls">
+            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai Fokus</button>
+            <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+            <button id="btnFinishSession" class="btn btn-warning">✅ Catat Progres</button>
+          </div>
+          <p id="focusStatusText" class="hint" style="margin-top: 12px;">Siap belajar!</p>
+        </div>
+      </section>
+
+      <!-- PAGE 8: CLASS SHARE -->
+      <section id="page-classshare" class="page">
+        <div class="dashboard-split">
+          <div class="card">
+            <h3>🤝 Bagikan Rantai Tugas ke Teman Sekelas</h3>
+            <p class="hint" style="margin-bottom: 12px;">
+              Bagikan daftar tugas beserta ketergantungannya ke grup WhatsApp kelas agar temanmu tinggal Import tanpa mengetik ulang.
+            </p>
+            <div class="form-actions" style="justify-content: flex-start; gap: 8px; margin-bottom: 12px;">
+              <button id="btnGenerateShareCode" class="btn btn-primary btn-sm">📋 Salin Kode Tugas Kelas</button>
+              <button id="btnShareWhatsApp" class="btn btn-secondary btn-sm">💬 Kirim ke WhatsApp</button>
+            </div>
+            <textarea id="shareCodeBox" rows="4" placeholder="Kode tugas kelas akan muncul di sini..."></textarea>
+          </div>
+
+          <div class="card">
+            <h3>📥 Import Tugas dari Teman / Backup</h3>
+            <p class="hint" style="margin-bottom: 12px;">
+              Tempel kode tugas DOMINO dari teman sekelas atau kelompokmu untuk langsung ditambahkan ke jadwalmu.
+            </p>
+            <textarea id="importCodeBox" rows="4" placeholder="Tempel kode tugas dari teman di sini..."></textarea>
+            <div class="form-actions" style="justify-content: flex-start; gap: 8px; margin-top: 12px;">
+              <button id="btnImportShareCode" class="btn btn-primary btn-sm">📥 Import Tugas</button>
+              <button id="btnExportJsonFile" class="btn btn-outline btn-sm">💾 Backup JSON</button>
             </div>
           </div>
         </div>
-      `;
-    }
+      </section>
+    </main>
+  </div>
 
-    /**
-     * =========================================================================
-     * INTERACTIVE ACTIONS & EVENT HANDLERS
-     * =========================================================================
-     */
-    function updateSimRoot(taskId) {
-      state.simRootTaskId = taskId;
-      playDominoSound(0);
-      renderApp();
-    }
+  <!-- BOTTOM NAV MOBILE -->
+  <nav class="mobile-bottom-nav">
+    <button class="m-nav active" data-page="dashboard">📊<span>Home</span></button>
+    <button class="m-nav" data-page="assignments">📝<span>Tugas</span></button>
+    <button class="m-nav" data-page="simulator">🁢<span>Domino</span></button>
+    <button class="m-nav" data-page="alerts">🔔<span>Teror</span></button>
+    <button class="m-nav" data-page="recovery">🛠️<span>Pulihkan</span></button>
+  </nav>
 
-    function updateSimDelay(hours) {
-      const prev = Number(state.simDelayHours);
-      const next = Number(hours);
-      state.simDelayHours = next;
+  <!-- INSTALL HELP DIALOG -->
+  <dialog id="installHelpDialog" class="custom-dialog">
+    <h3>📲 Cara Download / Install DOMINO di HP</h3>
+    <p>Aplikasi ini menggunakan teknologi <strong>Progressive Web App (PWA)</strong> sehingga bisa dipasang di HP tanpa Play Store:</p>
+    <ol>
+      <li><strong>Android (Chrome):</strong> Ketuk ikon titik tiga (⋮) di pojok kanan atas ➔ pilih <strong>"Tambahkan ke Layar Utama" / "Install App"</strong>.</li>
+      <li><strong>iPhone / iPad (Safari):</strong> Ketuk ikon <strong>Bagikan (Share)</strong> ➔ pilih <strong>"Add to Home Screen"</strong>.</li>
+      <li><strong>Laptop / PC:</strong> Klik ikon Install di bilah alamat URL kanan atas.</li>
+    </ol>
+    <button id="btnCloseHelpDialog" class="btn btn-primary btn-block">Mengerti</button>
+  </dialog>
 
-      // Play cascading domino clacks if delay increases
-      if (next > prev) {
-        const sim = simulateDominoCascade(state.simRootTaskId, next);
-        playDominoSound(0);
-        for (let i = 1; i <= sim.brokenCount; i++) {
-          playDominoSound(i);
-        }
-      }
-      renderApp();
-    }
-
-    function jumpToSimulateTask(taskId) {
-      state.simRootTaskId = taskId;
-      if (state.simDelayHours === 0) state.simDelayHours = 12;
-      switchTab('simulator');
-      playDominoSound(1);
-    }
-
-    function setAlertFilter(stage) {
-      state.alertFilter = stage;
-      renderApp();
-    }
-
-    function triggerBrowserNotification() {
-      const alerts = generateTeacherAlerts();
-      const topAlert = alerts[0] || {
-        teacher: 'Pak Yudha',
-        subject: 'Biologi',
-        stage: 'H-1',
-        message: 'Anak-anak, besok laporan dikumpulkan. Sudah selesai atau masih dalam proses berpikir?'
-      };
-
-      playDominoSound(2);
-
-      if ('Notification' in window) {
-        if (Notification.permission === 'granted') {
-          new Notification(`DOMINO • ${topAlert.teacher} (${topAlert.subject}) [${topAlert.stage}]`, {
-            body: topAlert.message
-          });
-          showToast(`Notifikasi browser terkirim dari ${topAlert.teacher}!`, 'info');
-        } else if (Notification.permission !== 'denied') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              new Notification(`DOMINO • ${topAlert.teacher} (${topAlert.subject})`, {
-                body: topAlert.message
-              });
-            }
-            showToast(`${topAlert.teacher}: ${topAlert.message}`, 'warning');
-          });
-        } else {
-          showToast(`${topAlert.teacher}: ${topAlert.message}`, 'warning');
-        }
-      } else {
-        showToast(`${topAlert.teacher}: ${topAlert.message}`, 'warning');
-      }
-    }
-
-    function applyRecoveryStrategy(strategy) {
-      const delay = Math.max(state.simDelayHours, 6);
-      const sim = simulateDominoCascade(state.simRootTaskId, delay);
-
-      if (strategy === 'compress') {
-        const impactedIds = new Set(sim.impacted.map(i => i.id));
-        state.tasks = state.tasks.map(t => {
-          if (impactedIds.has(t.id)) {
-            return { ...t, duration: Math.max(1, Math.round(t.duration * 0.75 * 10) / 10) };
-          }
-          return t;
-        });
-        state.simDelayHours = 0;
-        saveTasks();
-        playDominoSound(1);
-        showToast('Strategi Kompresi diterapkan! Durasi tugas hilir dipadatkan & efek domino diredam.', 'success');
-        switchTab('dashboard');
-      } else if (strategy === 'defer_independent') {
-        state.tasks = state.tasks.map(t => {
-          if (!t.parentId && t.id !== state.simRootTaskId && t.status !== 'Selesai') {
-            const dl = new Date(t.deadline);
-            dl.setHours(dl.getHours() + 24);
-            const iso = new Date(dl.getTime() - dl.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-            return { ...t, deadline: iso };
-          }
-          return t;
-        });
-        state.simDelayHours = 0;
-        saveTasks();
-        playDominoSound(1);
-        showToast('Tugas mandiri digeser +24 jam untuk memberi ruang pada proyek utama!', 'success');
-        switchTab('dashboard');
-      } else if (strategy === 'resolve_root') {
-        state.tasks = state.tasks.map(t => {
-          if (t.id === state.simRootTaskId) {
-            return { ...t, status: 'Selesai' };
-          }
-          return t;
-        });
-        state.simDelayHours = 0;
-        saveTasks();
-        playDominoSound(2);
-        showToast('Tugas pemicu ditandai Selesai! Rantai efek domino berhasil dihentikan.', 'success');
-        switchTab('dashboard');
-      }
-    }
-
-    /**
-     * Task Modal Management (Add & Edit)
-     */
-    function openTaskModal(editId = null) {
-      const modal = document.getElementById('task-modal');
-      const form = document.getElementById('task-form');
-      const parentSelect = document.getElementById('task-parent');
-
-      // Populate parent task options
-      parentSelect.innerHTML = `<option value="">-- Tidak ada (Tugas Mandiri / Awal Rantai) --</option>` +
-        state.tasks
-          .filter(t => t.id !== editId)
-          .map(t => `<option value="${t.id}">[${t.subject}] ${t.title}</option>`)
-          .join('');
-
-      if (editId) {
-        const existing = state.tasks.find(t => t.id === editId);
-        if (!existing) return;
-        document.getElementById('modal-title').textContent = 'Edit Tugas';
-        document.getElementById('task-id').value = existing.id;
-        document.getElementById('task-title').value = existing.title;
-        document.getElementById('task-subject').value = existing.subject;
-        document.getElementById('task-status').value = existing.status;
-        document.getElementById('task-teacher').value = existing.teacher;
-        document.getElementById('task-persona').value = existing.persona;
-        document.getElementById('task-deadline').value = existing.deadline;
-        document.getElementById('task-duration').value = existing.duration;
-        document.getElementById('task-parent').value = existing.parentId || '';
-      } else {
-        form.reset();
-        document.getElementById('modal-title').textContent = 'Tambah Tugas Baru';
-        document.getElementById('task-id').value = '';
-        document.getElementById('task-deadline').value = '2026-11-24T15:00';
-        document.getElementById('task-duration').value = 2;
-      }
-
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeTaskModal() {
-      const modal = document.getElementById('task-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function handleSaveTask(event) {
-      event.preventDefault();
-      const id = document.getElementById('task-id').value;
-      const newTask = {
-        id: id || 't-' + Date.now(),
-        title: document.getElementById('task-title').value.trim(),
-        subject: document.getElementById('task-subject').value.trim(),
-        status: document.getElementById('task-status').value,
-        teacher: document.getElementById('task-teacher').value.trim(),
-        persona: document.getElementById('task-persona').value,
-        deadline: document.getElementById('task-deadline').value,
-        duration: Number(document.getElementById('task-duration').value),
-        parentId: document.getElementById('task-parent').value
-      };
-
-      if (id) {
-        state.tasks = state.tasks.map(t => t.id === id ? newTask : t);
-        showToast('Perubahan tugas berhasil disimpan!', 'success');
-      } else {
-        state.tasks.push(newTask);
-        showToast('Tugas baru ditambahkan ke rantai jadwal!', 'success');
-      }
-
-      saveTasks();
-      closeTaskModal();
-      renderApp();
-    }
-
-    function toggleTaskComplete(id) {
-      state.tasks = state.tasks.map(t => {
-        if (t.id === id) {
-          const nextStatus = t.status === 'Selesai' ? 'Sedang Dikerjakan' : 'Selesai';
-          return { ...t, status: nextStatus };
-        }
-        return t;
-      });
-      saveTasks();
-      playDominoSound(0);
-      renderApp();
-    }
-
-    function deleteTask(id) {
-      // Remove task and clear parent references pointing to it
-      state.tasks = state.tasks
-        .filter(t => t.id !== id)
-        .map(t => t.parentId === id ? { ...t, parentId: '' } : t);
-      saveTasks();
-      showToast('Tugas dihapus dari daftar.', 'warning');
-      renderApp();
-    }
-
-    /**
-     * Master Render Controller
-     */
-    function renderApp() {
-      renderNavigation();
-      const viewContainer = document.getElementById('app-view');
-
-      switch (state.currentTab) {
-        case 'dashboard':
-          viewContainer.innerHTML = renderDashboard();
-          break;
-        case 'assignments':
-          viewContainer.innerHTML = renderAssignments();
-          break;
-        case 'dependency':
-          viewContainer.innerHTML = renderDependencyMap();
-          break;
-        case 'simulator':
-          viewContainer.innerHTML = renderSimulator();
-          break;
-        case 'alerts':
-          viewContainer.innerHTML = renderAlerts();
-          break;
-        case 'recovery':
-          viewContainer.innerHTML = renderRecoveryPlanner();
-          break;
-        case 'statistics':
-          viewContainer.innerHTML = renderStatistics();
-          break;
-        default:
-          viewContainer.innerHTML = renderDashboard();
-      }
-    }
-
-    // Bootstrap Application
-    window.addEventListener('DOMContentLoaded', () => {
-      loadTasks();
-      renderApp();
-    });
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
