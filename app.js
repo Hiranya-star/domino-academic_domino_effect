@@ -1,22 +1,18 @@
 // ==========================================================
 // DOMINO — Academic Domino Effect & Teacher Terror Planner
-// v2: System OS Push Notification (Native HP), Light/Dark Mode, Full PWA Install
+// v3: Screen Popup Heads-Up Notifications & Universal PWA Install
 // ==========================================================
 
-const TASKS_KEY = 'domino_student_tasks_v2';
-const PROFILE_KEY = 'domino_student_profile_v2';
-const THEME_KEY = 'domino_theme_mode_v2';
+const TASKS_KEY = 'domino_student_tasks_v3';
+const PROFILE_KEY = 'domino_student_profile_v3';
+const THEME_KEY = 'domino_theme_mode_v3';
 
 let tasks = [];
 let studentProfile = null;
 let deferredInstallPrompt = null;
 let swRegistration = null;
 
-// Notification state
-let snoozedUntil = {};
 let notifiedTaskIds = new Set();
-
-// Focus Timer state
 let focusSecondsRemaining = 25 * 60;
 let focusInitialSeconds = 25 * 60;
 let focusTimerInterval = null;
@@ -34,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================================
-// 1. SERVICE WORKER REGISTRATION (AGAR BISA DI-DOWNLOAD NORMAL & KIRIM NOTIF SISTEM HP)
+// 1. SERVICE WORKER REGISTRATION
 // ==========================================================
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -47,7 +43,7 @@ async function registerServiceWorker() {
 }
 
 // ==========================================================
-// 2. MODE TERANG & GELAP (LIGHT / DARK THEME)
+// 2. THEME MANAGEMENT
 // ==========================================================
 function initTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
@@ -187,7 +183,7 @@ function applyProfileToUI() {
 }
 
 // ==========================================================
-// 4. DOWNLOAD / INSTALL PWA NORMAL
+// 4. UNIVERSAL PWA INSTALL (SEMUA BROWSER / HP / LAPTOP)
 // ==========================================================
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -295,7 +291,7 @@ function simulateDominoCascade(rootTaskId, extraDelayHours) {
 }
 
 // ==========================================================
-// 6. NOTIFIKASI SISTEM HP LANGSUNG (OS STATUS BAR / LOCKSCREEN)
+// 6. POPUP MELAYAR DI LAYAR HP & NOTIFIKASI SISTEM
 // ==========================================================
 function generateTeacherTerrorMessage(task, hoursLeft) {
   const stage =
@@ -336,65 +332,68 @@ function generateTeacherTerrorMessage(task, hoursLeft) {
 
 function triggerShortVibration() {
   if ('vibrate' in navigator) {
-    navigator.vibrate([200, 100, 200]);
+    navigator.vibrate([250, 100, 250]);
   }
 }
 
-async function sendNativePhoneNotification(task) {
-  if (!('Notification' in window)) {
-    alert('Browser HP ini tidak mendukung notifikasi sistem.');
-    return;
-  }
-
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
-
-  if (Notification.permission !== 'granted') {
-    alert('⚠️ Izin notifikasi HP masih diblokir. Silakan izinkan notifikasi browser agar teror guru muncul di bar notifikasi HP.');
-    return;
-  }
-
-  const hoursLeft = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
+// Menampilkan Popup Banner Melayang Langsung di Layar HP/PC
+function showScreenPopupNotification(task, hoursLeft) {
   const msg = generateTeacherTerrorMessage(task, hoursLeft);
-  const downstream = getDownstreamTasks(task.id);
+  
+  document.getElementById('popupTeacherTag').textContent = `${task.teacher} • ${task.subject}`;
+  document.getElementById('popupStageTag').textContent = `${msg.stage} TEROR`;
+  document.getElementById('popupTaskTitle').textContent = task.title;
+  document.getElementById('popupTerrorText').textContent = msg.text;
 
-  // Getar singkat di perangkat
+  const banner = document.getElementById('popupTerrorBanner');
+  banner.classList.remove('hidden');
   triggerShortVibration();
 
-  const title = `🔔 ${task.teacher} (${task.subject}) • ${msg.stage}`;
-  const body = downstream.length > 0
-    ? `${task.title}: ${msg.text}\n⛓️ Efek Domino: Menahan ${downstream.length} tugas berikutnya (${downstream.map(d => d.title).join(' ➔ ')})`
-    : `${task.title}: ${msg.text}`;
+  // Otomatis tutup setelah 8 detik jika tidak diklik
+  setTimeout(() => {
+    banner.classList.add('hidden');
+  }, 8000);
+}
 
-  const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E";
+document.getElementById('btnClosePopup').addEventListener('click', () => {
+  document.getElementById('popupTerrorBanner').classList.add('hidden');
+});
 
-  const options = {
-    body,
-    icon: iconSvg,
-    badge: iconSvg,
-    vibrate: [200, 100, 200],
-    tag: `domino-terror-${task.id}`,
-    renotify: true,
-    requireInteraction: true,
-    data: { taskId: task.id }
-  };
+async function triggerPhoneAndScreenNotification(task) {
+  // 1. Tampilkan Popup Melayang di Layar
+  const hoursLeft = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
+  showScreenPopupNotification(task, hoursLeft);
 
-  // Kirim via Service Worker agar muncul sebagai Native Android/OS Heads-Up Notification
-  try {
-    const reg = swRegistration || (await navigator.serviceWorker?.getRegistration());
-    if (reg && reg.showNotification) {
-      await reg.showNotification(title, options);
-      return;
+  // 2. Kirim juga ke Status Bar Sistem HP jika diizinkan
+  if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
     }
-  } catch (e) {}
+    if (Notification.permission === 'granted') {
+      const msg = generateTeacherTerrorMessage(task, hoursLeft);
+      const downstream = getDownstreamTasks(task.id);
+      const title = `🔔 ${task.teacher} (${task.subject}) • ${msg.stage}`;
+      const body = downstream.length > 0
+        ? `${task.title}: ${msg.text}\n⛓️ Efek Domino: Menahan ${downstream.length} tugas berikutnya!`
+        : `${task.title}: ${msg.text}`;
 
-  // Fallback jika SW belum aktif
-  const notif = new Notification(title, options);
-  notif.onclick = () => {
-    window.focus();
-    notif.close();
-  };
+      const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230f172a'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%231e293b' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23f472b6' stroke-width='12'/%3E%3C/svg%3E";
+
+      try {
+        const reg = swRegistration || (await navigator.serviceWorker?.getRegistration());
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, {
+            body,
+            icon: iconSvg,
+            vibrate: [200, 100, 200],
+            tag: `domino-${task.id}`,
+            requireInteraction: true
+          });
+          return;
+        }
+      } catch (e) {}
+    }
+  }
 }
 
 function startNotificationWatchdog() {
@@ -402,12 +401,10 @@ function startNotificationWatchdog() {
     const now = Date.now();
     for (const task of tasks) {
       if (task.status === 'done' || !task.notifEnabled) continue;
-      if (snoozedUntil[task.id] && now < snoozedUntil[task.id]) continue;
-
       const hoursLeft = (new Date(task.deadline).getTime() - now) / 3600000;
       if (hoursLeft <= 24 && !notifiedTaskIds.has(task.id)) {
         notifiedTaskIds.add(task.id);
-        sendNativePhoneNotification(task);
+        triggerPhoneAndScreenNotification(task);
         break;
       }
     }
@@ -450,11 +447,9 @@ function setupNavigation() {
 }
 
 function setupEventListeners() {
-  // Theme Toggle
   document.getElementById('btnTopTheme').addEventListener('click', toggleTheme);
   document.getElementById('btnSidebarTheme').addEventListener('click', toggleTheme);
 
-  // Onboarding
   document.getElementById('onboardingForm').addEventListener('submit', (e) => {
     e.preventDefault();
     studentProfile = {
@@ -484,7 +479,6 @@ function setupEventListeners() {
     document.getElementById('onboardingModal').classList.remove('hidden');
   });
 
-  // Task Form
   document.getElementById('taskForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const editId = document.getElementById('editTaskId').value;
@@ -534,26 +528,22 @@ function setupEventListeners() {
   document.getElementById('btnCancelEdit').addEventListener('click', resetTaskFormMode);
   document.getElementById('filterStatus').addEventListener('change', renderAssignments);
 
-  // Simulator
   document.getElementById('simTaskSelect').addEventListener('change', renderSimulator);
   document.getElementById('simDelaySlider').addEventListener('input', renderSimulator);
 
-  // Focus Timer
   document.getElementById('btnStartTimer').addEventListener('click', startFocusTimer);
   document.getElementById('btnPauseTimer').addEventListener('click', pauseFocusTimer);
   document.getElementById('btnFinishSession').addEventListener('click', finishFocusSession);
 
-  // Test Native Phone Notification
-  const testNativeNotifHandler = async () => {
+  const testPopupHandler = async () => {
     const active = tasks.filter((t) => t.status !== 'done');
     const target = active[0] || createStarterSampleTasks()[0];
-    await sendNativePhoneNotification(target);
+    await triggerPhoneAndScreenNotification(target);
   };
-  document.getElementById('btnTopTestTerror').addEventListener('click', testNativeNotifHandler);
-  document.getElementById('btnSidebarTestTerror').addEventListener('click', testNativeNotifHandler);
-  document.getElementById('btnTriggerChainTerror').addEventListener('click', testNativeNotifHandler);
+  document.getElementById('btnTopTestTerror').addEventListener('click', testPopupHandler);
+  document.getElementById('btnSidebarTestTerror').addEventListener('click', testPopupHandler);
+  document.getElementById('btnTriggerChainTerror').addEventListener('click', testPopupHandler);
 
-  // Enable System Notification Permission
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if (!('Notification' in window)) {
       alert('Browser ini tidak mendukung Notifikasi Sistem.');
@@ -561,14 +551,12 @@ function setupEventListeners() {
     }
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
-      const sampleTask = tasks.find((t) => t.status !== 'done') || createStarterSampleTasks()[0];
-      await sendNativePhoneNotification(sampleTask);
+      alert('✅ Izin notifikasi berhasil diaktifkan! Popup dan notifikasi bar HP siap.');
     } else {
-      alert('⚠️ Izin notifikasi ditolak di pengaturan HP/Browser.');
+      alert('⚠️ Izin notifikasi ditolak.');
     }
   });
 
-  // Panic Mode
   document.getElementById('btnPanicMode').addEventListener('click', () => {
     const active = tasks.filter((t) => t.status !== 'done');
     if (active.length === 0) return;
@@ -582,10 +570,9 @@ function setupEventListeners() {
     });
     saveTasks();
     renderAll();
-    alert('🔥 Panic Mode diterapkan! Seluruh tugas diurutkan ulang berantai mulai dari sekarang.');
+    alert('🔥 Panic Mode diterapkan!');
   });
 
-  // Class Share & Backup
   document.getElementById('btnGenerateShareCode').addEventListener('click', () => {
     const active = tasks.filter((t) => t.status !== 'done');
     if (active.length === 0) return alert('Belum ada tugas aktif.');
@@ -594,7 +581,7 @@ function setupEventListeners() {
     box.value = payload;
     box.select();
     navigator.clipboard?.writeText(payload).catch(() => {});
-    alert('📋 Kode tugas kelas disalin! Bagikan ke grup WhatsApp kelas.');
+    alert('📋 Kode tugas kelas disalin!');
   });
 
   document.getElementById('btnShareWhatsApp').addEventListener('click', () => {
@@ -626,7 +613,7 @@ function setupEventListeners() {
       saveTasks();
       document.getElementById('importCodeBox').value = '';
       renderAll();
-      alert(`✅ ${decoded.length} tugas dari teman sekelas berhasil ditambahkan!`);
+      alert(`✅ ${decoded.length} tugas berhasil diimport!`);
     } catch (e) {
       alert('❌ Kode tidak valid.');
     }
@@ -701,7 +688,7 @@ function finishFocusSession() {
     task.duration = Math.max(0.5, Math.round((task.duration - elapsedHours) * 10) / 10);
     saveTasks();
     renderAll();
-    alert(`🎉 Mantap! Sisa estimasi pengerjaan "${task.title}" berkurang menjadi ${task.duration} jam!`);
+    alert(`🎉 Mantap! Sisa durasi "${task.title}" berkurang menjadi ${task.duration} jam!`);
   }
   setFocusMinutes(25);
 }
@@ -757,10 +744,10 @@ function renderDashboard() {
     `${stability}% — ${stability >= 75 ? 'Jadwal Stabil' : stability >= 45 ? 'Waspada Jalur Kritis' : 'Bahaya Efek Domino!'}`;
   document.getElementById('stabilityDesc').textContent =
     active.length === 0
-      ? 'Belum ada tugas aktif. Tambahkan tugasmu di menu My Assignments.'
+      ? 'Belum ada tugas aktif.'
       : critical.length > 0
-      ? `Terdeteksi ${critical.length} tugas di jalur kritis yang berisiko memicu efek domino.`
-      : 'Semua rantai tugas memiliki waktu cadangan aman.';
+      ? `Terdeteksi ${critical.length} tugas di jalur kritis.`
+      : 'Semua rantai tugas aman.';
   document.getElementById('stabilityFill').style.width = `${stability}%`;
   document.getElementById('stabilityBanner').classList.toggle('danger-mode', stability < 50);
 
@@ -792,7 +779,7 @@ function renderDashboard() {
           <span class="slack-pill ${hrs <= 24 ? 'slack-danger' : 'slack-warn'}">${msg.stage}</span>
         </div>
         <p class="alert-msg">${msg.text}</p>
-        ${downstream.length > 0 ? `<div class="chain-terror-tag">⛓️ Teror Berantai: Menahan ${downstream.length} tugas berikutnya!</div>` : ''}
+        ${downstream.length > 0 ? `<div class="chain-terror-tag">⛓️ Menahan ${downstream.length} tugas berikutnya!</div>` : ''}
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada teror guru aktif.</p>';
@@ -917,9 +904,6 @@ window.deleteTask = (id) => {
   renderAll();
 };
 
-// ==========================================================
-// 10. SVG DEPENDENCY MAP (ADAPTIF TERANG / GELAP)
-// ==========================================================
 function renderDependencySvg() {
   const svg = document.getElementById('dependencySvg');
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -997,9 +981,6 @@ function renderDependencySvg() {
   svg.innerHTML = edgesSvg + nodesSvg;
 }
 
-// ==========================================================
-// 11. DOMINO SIMULATOR
-// ==========================================================
 function renderSimulator() {
   const rootId = document.getElementById('simTaskSelect').value;
   const delayHours = parseInt(document.getElementById('simDelaySlider').value, 10) || 0;
@@ -1044,21 +1025,18 @@ function renderSimulator() {
   }).join('');
 
   if (delayHours === 0) {
-    conclusion.innerHTML = `<strong>Hasil Simulasi (0 Jam):</strong> Jadwal tugas berikutnya masih dapat dipertahankan berdasarkan waktu cadangan (${firstChildSlack} jam).`;
+    conclusion.innerHTML = `<strong>Hasil Simulasi (0 Jam):</strong> Jadwal tugas berikutnya masih aman.`;
   } else if (affectedItems.length === 0) {
-    conclusion.innerHTML = `<strong>Aman Terkendali:</strong> Keterlambatan +${delayHours} jam masih diserap oleh waktu cadangan (${firstChildSlack} jam).`;
+    conclusion.innerHTML = `<strong>Aman Terkendali:</strong> Keterlambatan terserap oleh waktu cadangan (${firstChildSlack} jam).`;
   } else {
     const affectedTeachers = [...new Set(affectedItems.map((x) => `${x.task.teacher} (${x.task.subject})`))].join(', ');
     conclusion.innerHTML = `
-      <strong>🚨 EFEK DOMINO TERJADI!</strong> Keterlambatan +${delayHours} jam melampaui waktu cadangan dan menjatuhkan <strong>${affectedItems.length} tugas berikutnya</strong>.<br/>
-      <span style="color:var(--danger); font-weight:600;">🔔 Teror Berantai Aktif: ${affectedTeachers} akan mengirim notifikasi ke bar HP!</span>
+      <strong>🚨 EFEK DOMINO TERJADI!</strong> Menjatuhkan <strong>${affectedItems.length} tugas berikutnya</strong>.<br/>
+      <span style="color:var(--danger); font-weight:600;">🔔 Teror Berantai Aktif: ${affectedTeachers} akan mengirim popup melayang di layar!</span>
     `;
   }
 }
 
-// ==========================================================
-// 12. TEACHER TERROR ALERTS LIST
-// ==========================================================
 function renderAlerts() {
   const active = tasks.filter((t) => t.status !== 'done');
   document.getElementById('alertCountBadge').textContent = active.length;
@@ -1074,29 +1052,26 @@ function renderAlerts() {
           <strong>${t.teacher} — ${t.subject} (${t.title})</strong>
           <div>
             <span class="slack-pill ${hrs <= 24 ? 'slack-danger' : 'slack-warn'}">${msg.stage}</span>
-            <button class="btn btn-sm btn-danger" style="margin-left:6px;" onclick="triggerNativeNotifForId('${t.id}')">🔔 Kirim ke Bar HP</button>
+            <button class="btn btn-sm btn-danger" style="margin-left:6px;" onclick="triggerPopupForId('${t.id}')">🔔 Tes Popup Layar</button>
           </div>
         </div>
         <p class="alert-msg">${msg.text}</p>
-        ${downstream.length > 0 ? `<div class="chain-terror-tag">⛓️ Jika tugas ini terlambat, ${downstream.length} tugas lanjutan (${downstream.map(d => d.title).join(' ➔ ')}) akan memicu teror guru berikutnya!</div>` : ''}
+        ${downstream.length > 0 ? `<div class="chain-terror-tag">⛓️ Menahan ${downstream.length} tugas lanjutan!</div>` : ''}
       </div>
     `;
   }).join('') || '<p class="hint">Tidak ada notifikasi teror aktif.</p>';
 }
 
-window.triggerNativeNotifForId = async (id) => {
+window.triggerPopupForId = async (id) => {
   const t = tasks.find((x) => x.id === id);
-  if (t) await sendNativePhoneNotification(t);
+  if (t) await triggerPhoneAndScreenNotification(t);
 };
 
-// ==========================================================
-// 13. RECOVERY PLANNER
-// ==========================================================
 function renderRecoveryPlanner() {
   const container = document.getElementById('recoveryOptions');
   const active = tasks.filter((t) => t.status !== 'done');
   if (active.length === 0) {
-    container.innerHTML = '<p class="hint">Semua tugas sudah selesai, jadwal aman!</p>';
+    container.innerHTML = '<p class="hint">Semua tugas sudah selesai!</p>';
     return;
   }
 
@@ -1104,8 +1079,8 @@ function renderRecoveryPlanner() {
     <div class="recovery-card">
       <div>
         <span class="subject-pill">Strategi 1 • Buffer Expansion</span>
-        <h4 style="margin:8px 0;">Majukan Target Pribadi Prasyarat (-4 Jam)</h4>
-        <p class="hint">Memajukan target selesai tugas awal sebesar 4 jam agar waktu cadangan tugas berikutnya kembali aman.</p>
+        <h4 style="margin:8px 0;">Majukan Target Prasyarat (-4 Jam)</h4>
+        <p class="hint">Memajukan target selesai tugas awal sebesar 4 jam.</p>
       </div>
       <button class="btn btn-primary" onclick="applyEarlyTarget(4)">⚡ Terapkan Jadwal Ini</button>
     </div>
@@ -1113,8 +1088,8 @@ function renderRecoveryPlanner() {
     <div class="recovery-card">
       <div>
         <span class="subject-pill">Strategi 2 • Fokus Pomodoro</span>
-        <h4 style="margin:8px 0;">Padatkan Durasi Pengerjaan (-25%)</h4>
-        <p class="hint">Menggunakan teknik fokus 25 menit sehingga durasi tiap tugas berkurang 25% tanpa mengubah deadline guru.</p>
+        <h4 style="margin:8px 0;">Padatkan Durasi (-25%)</h4>
+        <p class="hint">Mengurangi durasi tiap tugas sebesar 25%.</p>
       </div>
       <button class="btn btn-primary" onclick="applyDurationCompress()">⚡ Terapkan Kompresi</button>
     </div>
@@ -1123,7 +1098,7 @@ function renderRecoveryPlanner() {
       <div>
         <span class="subject-pill">Strategi 3 • Prioritas Rantai</span>
         <h4 style="margin:8px 0;">Geser Tugas Mandiri (+24 Jam)</h4>
-        <p class="hint">Memundurkan tugas tanpa ketergantungan +24 jam untuk menyelamatkan rantai proyek utama.</p>
+        <p class="hint">Memundurkan tugas tanpa ketergantungan.</p>
       </div>
       <button class="btn btn-primary" onclick="applyDeferIndependent()">⚡ Amankan Rantai Utama</button>
     </div>
@@ -1152,7 +1127,7 @@ window.applyDurationCompress = () => {
   });
   saveTasks();
   renderAll();
-  alert('✅ Estimasi durasi tugas dipadatkan 25%!');
+  alert('✅ Estimasi durasi dipadatkan 25%!');
 };
 
 window.applyDeferIndependent = () => {
@@ -1166,5 +1141,5 @@ window.applyDeferIndependent = () => {
   });
   saveTasks();
   renderAll();
-  alert('✅ Tugas mandiri berhasil digeser +24 jam!');
+  alert('✅ Tugas mandiri digeser +24 jam!');
 };
