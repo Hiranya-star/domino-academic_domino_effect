@@ -65,16 +65,16 @@
     </div>
   </div>
 
-  <!-- INSTALL PWA BANNER NORMAL -->
+  <!-- INSTALL PWA BANNER UNIVERSAL -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <div>
         <strong>📲 Download / Install Aplikasi DOMINO</strong>
-        <small>Pasang langsung ke HP agar notifikasi teror guru muncul di bar notifikasi HP</small>
+        <small>Pasang ke HP/Laptop (Mendukung Chrome, Safari, Edge, Firefox, dll)</small>
       </div>
     </div>
     <div class="install-btns">
-      <button id="btnInstallApp" class="btn btn-primary btn-sm">Download / Install</button>
+      <button id="btnInstallApp" class="btn btn-primary btn-sm">Install / Panduan</button>
       <button id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
     </div>
   </div>
@@ -118,8 +118,8 @@
       <div class="sidebar-footer">
         <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
         <button id="btnSidebarInstall" class="btn btn-primary btn-block">📲 Download / Install App</button>
-        <button id="btnSidebarTestTerror" class="btn btn-warning btn-block">🔔 Tes Notif ke Bar HP</button>
-        <button id="btnEnableNotif" class="btn btn-outline btn-block">⚙️ Aktifkan Notif Sistem HP</button>
+        <button id="btnSidebarTestTerror" class="btn btn-warning btn-block">🔔 Tes Popup & Notif HP</button>
+        <button id="btnEnableNotif" class="btn btn-outline btn-block">⚙️ Aktifkan Notif Layar</button>
         <button id="btnEditProfile" class="btn btn-outline btn-block">👤 Profil Siswa</button>
       </div>
     </aside>
@@ -137,7 +137,7 @@
         <div class="topbar-right">
           <button id="btnTopTheme" class="btn btn-secondary btn-sm" title="Ganti Tema Terang / Gelap">☀️ Terang</button>
           <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas Baru</button>
-          <button id="btnTopTestTerror" class="btn btn-warning btn-sm">🔔 Tes Notif HP</button>
+          <button id="btnTopTestTerror" class="btn btn-warning btn-sm">🔔 Tes Popup HP</button>
           <button id="btnTopInstall" class="btn btn-outline btn-sm">📲 Install App</button>
         </div>
       </header>
@@ -214,8 +214,9 @@
               <label>Mata Pelajaran *</label>
               <input type="text" id="tSubject" list="subjectPresets" placeholder="Pilih atau ketik mapel..." required />
               <datalist id="subjectPresets">
-                <option value="Matematika" />
-                <option value="Biologi" /
+                <option value="Matematika Wajib" />
+                <option value="Matematika Peminatan" />
+                <option value="Biologi" />
                 <option value="Fisika" />
                 <option value="Kimia" />
                 <option value="Bahasa Indonesia" />
@@ -226,11 +227,6 @@
                 <option value="Sosiologi" />
                 <option value="Informatika" />
                 <option value="PKN" />
-                <option value="PAI" />
-                <option va;ue="Bahasa Jawa" />
-                <option value="PJOK" />
-                <option value="KKA" />
-                <optiom value="Seni Rupa"/>
               </datalist>
             </div>
             <div class="form-group">
@@ -260,9 +256,9 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Notifikasi Sistem HP</label>
+              <label>Notifikasi Layar HP</label>
               <select id="tNotifEnabled">
-                <option value="true">Aktif (Kirim Langsung ke Bar Notifikasi HP)</option>
+                <option value="true">Aktif (Kirim Popup & Notif Bar HP)</option>
                 <option value="false">Nonaktif</option>
               </select>
             </div>
@@ -356,10 +352,10 @@
         <div class="card">
           <div class="card-header">
             <div>
-              <h3>🔔 Teacher Terror System Notification Center</h3>
-              <p class="hint">Mengirim push notification langsung ke <strong>panel notifikasi sistem HP / Lockscreen</strong> (bukan sekadar popup di dalam aplikasi) disertai getar singkat.</p>
+              <h3>🔔 Teacher Terror Popup & Notification Center</h3>
+              <p class="hint">Memunculkan <strong>Popup Banner Melayang di Layar HP/PC</strong> seketika, sekaligus mengirim notifikasi ke bar sistem HP.</p>
             </div>
-            <button id="btnTriggerChainTerror" class="btn btn-danger btn-sm">🔔 Kirim Notif ke Bar HP Sekarang</button>
+            <button id="btnTriggerChainTerror" class="btn btn-danger btn-sm">🔔 Tes Popup ke Layar Sekarang</button>
           </div>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
@@ -448,14 +444,29 @@
     <button class="m-nav" data-page="recovery">🛠️<span>Pulihkan</span></button>
   </nav>
 
-  <!-- INSTALL HELP DIALOG -->
+  <!-- POPUP NOTIFICATION MELAYAR (HEADS-UP BANNER) -->
+  <div id="popupTerrorBanner" class="popup-terror-container hidden">
+    <div class="popup-terror-card">
+      <div class="popup-terror-header">
+        <span id="popupTeacherTag" class="subject-pill">Pak Yudha • Biologi</span>
+        <span id="popupStageTag" class="slack-pill slack-danger">H-1 TEROR</span>
+      </div>
+      <h4 id="popupTaskTitle">Membuat Laporan Penelitian</h4>
+      <p id="popupTerrorText" class="alert-msg">"Sudah H-1, apakah tugasnya sudah ada isinya atau baru buat folder doang?"</p>
+      <div class="popup-actions">
+        <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block">Tutup / Kerjakan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTALL HELP DIALOG UNIVERSAL (CHROME, SAFARI, EDGE, FIREFOX, DLL) -->
   <dialog id="installHelpDialog" class="custom-dialog">
-    <h3>📲 Cara Download / Install DOMINO di HP</h3>
-    <p>Pastikan aplikasi dibuka lewat alamat <strong>HTTPS</strong> atau <strong>localhost</strong> (bukan <code>file://</code>) agar tombol Install otomatis Chrome muncul:</p>
+    <h3>📲 Cara Install Aplikasi DOMINO</h3>
+    <p>Aplikasi ini dapat diinstal di semua browser dan perangkat (HP / Laptop):</p>
     <ol>
-      <li><strong>Android (Chrome):</strong> Ketuk menu titik tiga (⋮) di pojok kanan atas ➔ pilih <strong>"Install app" / "Tambahkan ke Layar Utama"</strong>.</li>
-      <li><strong>iPhone / iPad (Safari):</strong> Ketuk ikon <strong>Bagikan (Share)</strong> ➔ pilih <strong>"Add to Home Screen"</strong>.</li>
-      <li><strong>Laptop / PC (Chrome/Edge):</strong> Klik ikon <strong>Install (⊕)</strong> di ujung kanan address bar.</li>
+      <li><strong>Google Chrome / Edge (Android / PC):</strong> Ketuk menu titik tiga (⋮) atau ikon Install (⊕) di address bar, lalu pilih <strong>"Install app"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+      <li><strong>Safari (iPhone / iPad / Mac):</strong> Ketuk ikon <strong>Bagikan (Share)</strong> di bagian bawah Safari, lalu pilih <strong>"Add to Home Screen" (Tambahkan ke Layar Utama)</strong>.</li>
+      <li><strong>Mozilla Firefox / Samsung Internet:</strong> Ketuk menu opsi browser➔ pilih <strong>"Install"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
     </ol>
     <button id="btnCloseHelpDialog" class="btn btn-primary btn-block">Mengerti</button>
   </dialog>
