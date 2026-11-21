@@ -1,6 +1,6 @@
-const TASKS_KEY = 'domino_tasks_v9';
-const PROFILE_KEY = 'domino_profile_v9';
-const ALARM_MODE_KEY = 'domino_alarm_mode_v9';
+const TASKS_KEY = 'domifect_tasks_v1';
+const PROFILE_KEY = 'domifect_profile_v1';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v1';
 
 let tasks = [];
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
@@ -32,7 +32,7 @@ async function registerServiceWorker() {
 }
 
 function initTheme() {
-  const saved = localStorage.getItem('domino_theme') || 'dark';
+  const saved = localStorage.getItem('domifect_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   updateThemeButtonText(saved);
 }
@@ -41,13 +41,15 @@ function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('domino_theme', next);
+  localStorage.setItem('domifect_theme', next);
   updateThemeButtonText(next);
 }
 
 function updateThemeButtonText(theme) {
   const btn = document.getElementById('btnSidebarTheme');
+  const mobileBtn = document.getElementById('btnMobileTheme');
   if (btn) btn.textContent = theme === 'dark' ? '☀️ Mode Terang' : '🌙 Mode Gelap';
+  if (mobileBtn) mobileBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
 function loadProfile() {
@@ -59,11 +61,19 @@ function loadProfile() {
       document.getElementById('pClass').value = userProfile.className || '';
       document.getElementById('pSchool').value = userProfile.school || '';
       document.getElementById('pTargetHours').value = userProfile.targetHours || 3;
-      if (userProfile.name) {
-        document.getElementById('sidebarStudentTag').textContent = `${userProfile.name}${userProfile.className ? ' • ' + userProfile.className : ''}`;
-      }
+      updateStudentTags();
     }
   } catch (e) { console.log('Profile load error:', e); }
+}
+
+function updateStudentTags() {
+  const tagText = userProfile.name
+    ? `${userProfile.name}${userProfile.className ? ' • ' + userProfile.className : ''}`
+    : 'Planner SMA & SMK';
+  const sideTag = document.getElementById('sidebarStudentTag');
+  const mobTag = document.getElementById('mobileStudentTag');
+  if (sideTag) sideTag.textContent = tagText;
+  if (mobTag) mobTag.textContent = userProfile.name ? tagText : 'SMA & SMK';
 }
 
 function saveProfile(e) {
@@ -75,9 +85,7 @@ function saveProfile(e) {
     targetHours: parseFloat(document.getElementById('pTargetHours').value) || 3
   };
   localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-  if (userProfile.name) {
-    document.getElementById('sidebarStudentTag').textContent = `${userProfile.name}${userProfile.className ? ' • ' + userProfile.className : ''}`;
-  }
+  updateStudentTags();
   alert('✅ Profil siswa berhasil disimpan!');
   renderAll();
 }
@@ -86,7 +94,7 @@ function loadTasks() {
   try {
     const raw = localStorage.getItem(TASKS_KEY);
     tasks = raw ? JSON.parse(raw) : [];
-  } catch(e) { tasks = []; }
+  } catch (e) { tasks = []; }
 }
 
 function saveTasks() {
@@ -113,70 +121,288 @@ function setupPWAInstall() {
   });
 }
 
-// BANK KALIMAT TEROR KATA-KATA GURU (VARIATIF & DINAMIS)
-const teacherTerrorPools = {
-  killer: [
-    "Kamu benar-benar mau menguji kesabaran ${t.teacher}? Tugas '${t.title}' belum disentuh sama sekali!",
-    "Nilai rapor ${t.subject}-mu sedang terancam karena mengabaikan tugas ini. Buka DOMINO sekarang!",
-    "${t.teacher} tidak suka menunggu. Selesaikan tugasnya atau tanggung konsekuensinya besok pagi!",
-    "Hati-hati, ${t.teacher} sudah menyiapkan nilai kosong spesial buat kamu di buku rekap!",
-    "Tugas '${t.title}' ini wajib tuntas, atau siap-siap berurusan langsung dengan ${t.teacher}."
-  ],
-  sarcastic: [
-    "Wah, hebat ya.. Main HP terus, tapi tugas '${t.title}' dari ${t.teacher} dibiarkan terbengkalai begitu saja.",
-    "Tenang saja, ${t.teacher} sudah menyiapkan format remidi khusus buat kamu kok. Lanjut santai aja yuk?",
-    "Kamu menunda tugas '${t.title}' ini terlalu lama. Ayo segera dikerjakan!",
-    "Hebat sekali prestasimu menunda-nunda. ${t.teacher} pasti menunggu hasil kerjamu.",
-    "Asyik ya rebahan? Jangan kaget kalau nanti ${t.teacher} menagih langsung di depan kelas."
-  ],
-  disciplined: [
-    "Waktu berjalan terus, ${t.teacher} menghitung setiap detik keterlambatan tugas '${t.title}'.",
-    "Kedisiplinan adalah nomor satu. Jika '${t.title}' tidak dikerjakan sesuai jadwal, habislah poin kedisiplinanmu.",
-    "Jangan ubah jadwal sesuka hati! ${t.teacher} sangat tegas pada ketepatan waktu.",
-    "Detik-detik menuju deadline '${t.title}' semakin menipis. Cepat buka buku atau laptopmu!"
-  ],
-  friendly: [
-    "Ayo semangat! ${t.teacher} menunggu hasil '${t.title}' kamu. Jangan biarkan beliau kecewa ya...",
-    "Halo! ${t.teacher} berpesan agar tugas '${t.subject}' segera dikumpul supaya hasilnya maksimal.",
-    "Kamu pasti bisa menyelesaikan '${t.title}' dengan baik. Yuk dicicil sekarang!",
-    "Sayang sekali kalau nilai ${t.subject} turun cuma karena menunda waktu. Yuk bangkit!"
-  ],
-  vocational: [
-    "Mesin dan laporan praktek tidak bisa dibohongi. Kalau '${t.title}' lewat deadline, ${t.teacher} mencatat namamu!",
-    "Alat lab dan bengkel sudah siap, tapi laporan ${t.subject} kamu malah kosong. Mau tertinggal dari temanmu?",
-    "Project PKL dan laporan kejuruan bukan untuk ditunda-tunda. Bergerak sekarang sebelum ${t.teacher} menegur!",
-    "Standar Operasional Prosedur (SOP) kejuruan itu mutlak! Selesaikan '${t.title}' sekarang juga!"
-  ],
-  silentkiller: [
-    "Sst.. ${t.teacher} tidak banyak bicara di kelas, tapi namanya sudah mencatat tugasmu yang kosong.",
-    "Tanpa peringatan panjang, nilai '${t.title}' langsung diberi catatan merah oleh ${t.teacher}.",
-    "Kamu mengira ${t.teacher} lupa? Beliau sedang mengamati kelalaianmu dalam diam."
-  ],
-  motivator: [
-    "Mau jadi apa masa depanmu kalau tugas '${t.title}' saja disepelakan? Ingat tanggung jawabmu!",
-    "Orang sukses tidak pernah menunda pekerjaan. ${t.teacher} mendidikmu jadi orang hebat!",
-    "Setiap detik penundaan tugas '${t.subject}' adalah langkah mundur dari target suksesmu."
-  ],
-  custom: [
-    (t) => t.customText ? `"${t.customText}" — Peringatan tegas dari ${t.teacher}!` : `Ayo segera selesaikan tugas ${t.subject} dari ${t.teacher}!`
-  ]
+// =========================================================================
+// MESIN BANK KALIMAT TEROR GURU (500+ VARIASI KOMBINASI DINAMIS PER KARAKTER)
+// =========================================================================
+const terrorMatrix = {
+  killer: {
+    openers: [
+      "Perhatian penuh untukmu!",
+      "Peringatan keras dari ${t.teacher}!",
+      "Jangan berani main-main hari ini!",
+      "Kesabaran ${t.teacher} sudah di batas akhir!",
+      "Buku rekap nilai sudah terbuka lebar!",
+      "Awas, nama kamu sedang disorot tajam!",
+      "Jangan pura-pura lupa kewajibanmu!",
+      "Detik ini juga, perhatikan peringatan ini!"
+    ],
+    cores: [
+      "Tugas '${t.title}' mapel ${t.subject} masih kosong melompong tanpa progres.",
+      "${t.teacher} tidak menerima alasan klasik apa pun untuk keterlambatan '${t.title}'.",
+      "Nilai rapor ${t.subject}-mu berada di ujung tanduk karena mengabaikan '${t.title}'.",
+      "Semua temanmu sudah bergerak, tapi tugas '${t.title}' milikmu masih terbengkalai.",
+      "Mengulur waktu pada tugas '${t.title}' sama saja menantang ketegasan ${t.teacher}.",
+      "Laporan '${t.title}' wajib mendarat tepat waktu di meja ${t.teacher}.",
+      "Tidak ada toleransi perpanjangan waktu untuk tugas ${t.subject} kali ini.",
+      "Kelalaianmu pada '${t.title}' langsung dicatat dalam daftar hitam ${t.teacher}."
+    ],
+    closers: [
+      "Kerjakan sekarang atau terima nilai nol bulat!",
+      "Siapkan mentalmu besok pagi jika masih kosong!",
+      "Buka buku dan laptopmu detik ini juga!",
+      "Jangan menyesal saat daftar nilai dibagikan!",
+      "Selesaikan tuntas sebelum semuanya terlambat!",
+      "Tutup gangguan di HP-mu dan mulai bekerja sekarang!",
+      "Tidak ada remidi gratis untuk yang malas bergerak!",
+      "Buktikan kamu bertanggung jawab sebelum deadline!"
+    ]
+  },
+  sarcastic: {
+    openers: [
+      "Wah, luar biasa sekali santainya...",
+      "Selamat menikmati waktu rebahanmu ya...",
+      "Hebat banget manajemen waktumu...",
+      "Lanjutkan terus scroll media sosialnya...",
+      "Tenang saja, tidak usah buru-buru kok...",
+      "Kagum sekali melihat ketenanganmu...",
+      "Asyik ya menunda pekerjaan terus...",
+      "Sepertinya kamu sangat percaya diri..."
+    ],
+    cores: [
+      "Tugas '${t.title}' dari ${t.teacher} pasti bisa selesai sendiri lewat kekuatan pikiran.",
+      "${t.teacher} sudah menyiapkan formulir remidi edisi spesial khusus untuk nilai ${t.subject}-mu.",
+      "Kamu menelantarkan '${t.title}' seolah-olah nilai ${t.subject} tidak berpengaruh pada kelulusan.",
+      "Pasti seru ya menjelaskan ke ${t.teacher} kenapa '${t.title}' belum dikerjakan sama sekali.",
+      "Deadline '${t.title}' semakin dekat, tapi kamu masih sibuk mencari alasan baru.",
+      "${t.teacher} pasti terharu melihat betapa setianya kamu menunda tugas ${t.subject}.",
+      "Jangan kaget kalau namamu dipanggil paling pertama oleh ${t.teacher} di depan kelas.",
+      "Hebat, tugas '${t.title}' berhasil kamu jadikan pajangan jadwal semata."
+    ],
+    closers: [
+      "Mau lanjut santai atau mulai kerja sekarang?",
+      "Siap-siap jadi bahan sindiran satu kelas besok!",
+      "Ayo bangun dari zona nyamanmu sebelum panik!",
+      "Jangan nangis kalau nilai akhirnya bikin kaget!",
+      "Mulai cicil sekarang sebelum waktu habis!",
+      "Coba buka tugasnya sekarang, tidak menggigit kok!",
+      "Kurangi drama, perbanyak aksi nyata sekarang!",
+      "Tunjukkan kalau kamu masih peduli sama nilaimu!"
+    ]
+  },
+  disciplined: {
+    openers: [
+      "Alarm kedisiplinan berbunyi!",
+      "Waktu berjalan presisi tanpa kompromi!",
+      "Evaluasi jadwal harianmu sekarang!",
+      "Ketepatan waktu adalah harga mati!",
+      "Periksa kembali time-blocking milikmu!",
+      "Jangan merusak jadwal yang sudah disusun!",
+      "Setiap menit sangat berharga!",
+      "Peringatan standar ketepatan waktu!"
+    ],
+    cores: [
+      "${t.teacher} menghitung setiap detik keterlambatan pada pengerjaan '${t.title}'.",
+      "Jadwal pengerjaan '${t.title}' (${t.subject}) sudah memasuki zona rawan geser.",
+      "Menunda '${t.title}' akan memicu efek domino ke seluruh target belajarmu hari ini.",
+      "${t.teacher} menilai kedisiplinanmu dari ketepatan pengumpulan '${t.title}'.",
+      "Struktur jadwalmu akan berantakan jika '${t.title}' tidak segera dieksekusi.",
+      "Cadangan waktu aman (slack time) untuk tugas ${t.subject} semakin menipis.",
+      "Keterlambatan 10 menit saja bisa merusak kualitas hasil '${t.title}'.",
+      "Komitmenmu pada jadwal '${t.title}' sedang diuji sekarang."
+    ],
+    closers: [
+      "Eksekusi sesuai jadwal detik ini juga!",
+      "Patuhi rencana kerjamu tanpa penundaan!",
+      "Jaga stabilitas jadwalmu tetap 100%!",
+      "Fokus penuh hingga '${t.title}' selesai!",
+      "Jangan biarkan efek domino menjatuhkan tugas lain!",
+      "Segera mulai sesi fokusmu sekarang!",
+      "Disiplin hari ini menyelamatkanmu dari begadang!",
+      "Tuntaskan tepat waktu untuk ${t.teacher}!"
+    ]
+  },
+  friendly: {
+    openers: [
+      "Halo, semangat ya hari ini!",
+      "Sedikit pengingat hangat untukmu...",
+      "Jangan lupa jaga performa belajarmu ya...",
+      "Yuk luangkan waktu sebentar...",
+      "Kamu pasti bisa menyelesaikan ini...",
+      "Titip pesan baik dari ${t.teacher}...",
+      "Ayo cicil pelan-pelan dari sekarang...",
+      "Sayang sekali kalau nilaimu turun..."
+    ],
+    cores: [
+      "${t.teacher} menantikan hasil terbaikmu pada tugas '${t.title}' (${t.subject}).",
+      "Jangan sampai tugas '${t.title}' menumpuk dan membuatmu stres di akhir waktu.",
+      "${t.teacher} percaya kamu mampu menuntaskan '${t.title}' dengan sangat rapi.",
+      "Mengerjakan '${t.title}' lebih awal bikin istirahat malammu jauh lebih tenang.",
+      "Sedikit demi sedikit, tugas ${t.subject} dari ${t.teacher} pasti segera rampung.",
+      "Jangan biarkan rasa malas sesaat mengalahkan potensi hebatmu di ${t.subject}.",
+      "${t.teacher} akan sangat senang melihat kamu mengumpulkan '${t.title}' tepat waktu.",
+      "Ayo beri progres nyata pada '${t.title}' hari ini juga."
+    ],
+    closers: [
+      "Yuk mulai kerjakan sekarang, kamu pasti bisa!",
+      "Buka catatannya sebentar saja dulu ya!",
+      "Semangat, selesaikan satu langkah demi satu langkah!",
+      "Buat ${t.teacher} bangga dengan hasil kerjamu!",
+      "Jangan menunda lagi ya, ayo bergerak!",
+      "Waktumu cukup kalau dimulai detik ini!",
+      "Fokus sebentar saja, setelah itu kamu bebas!",
+      "Ayo tuntaskan dengan senyum puas!"
+    ]
+  },
+  vocational: {
+    openers: [
+      "Perhatian standar bengkel & lab!",
+      "Peringatan SOP praktik kejuruan!",
+      "Instruktur ${t.teacher} memantau progresmu!",
+      "Jangan main-main dengan kompetensi kejuruan!",
+      "Kesiapan kerja dimulai dari kedisiplinan!",
+      "Cek kembali kelengkapan laporan praktikmu!",
+      "Alarm produktif kejuruan aktif!",
+      "Jangan tertinggal dari rekan satu tim!"
+    ],
+    cores: [
+      "Laporan dan project '${t.title}' pada kompetensi ${t.subject} belum tuntas.",
+      "Di dunia industri dan bengkel, keterlambatan '${t.title}' berarti gagal memenuhi SOP.",
+      "${t.teacher} mewajibkan seluruh data dan hasil '${t.title}' siap sebelum evaluasi.",
+      "Jangan sampai nilai uji kompetensi dan praktik ${t.subject}-mu tertahan karena '${t.title}'.",
+      "Alat dan materi sudah tersedia, tapi progres '${t.title}' milikmu masih jalan di tempat.",
+      "Project PKL dan laporan kejuruan '${t.title}' tidak bisa dikerjakan sistem kebut semalam.",
+      "${t.teacher} akan mengecek langsung ketuntasan '${t.title}' sesuai standar industri.",
+      "Kualitas hasil kerja ${t.subject}-mu dipertaruhkan jika '${t.title}' dikerjakan terburu-buru."
+    ],
+    closers: [
+      "Eksekusi sesuai prosedur sekarang juga!",
+      "Tuntaskan laporan dan projectmu sebelum jam praktik berakhir!",
+      "Buktikan kompetensi kejuruanmu di depan ${t.teacher}!",
+      "Jangan sampai namamu dicoret dari daftar siap uji!",
+      "Segera selesaikan dengan teliti dan rapi!",
+      "Terapkan budaya kerja profesional mulai detik ini!",
+      "Pastikan tidak ada langkah kerja yang terlewat!",
+      "Selesaikan '${t.title}' sampai tuntas 100%!"
+    ]
+  },
+  silentkiller: {
+    openers: [
+      "Hening bukan berarti aman...",
+      "Tanpa banyak bicara, catatan terus berjalan...",
+      "Waspadai ketenangan ${t.teacher}...",
+      "Jangan tertipu suasana kelas yang tenang...",
+      "Pengamatan diam-diam sedang berlangsung...",
+      "Tidak ada teriakan, langsung eksekusi nilai...",
+      "Sinyal bahaya tingkat tinggi...",
+      "Perhatikan tanda bahaya yang sunyi ini..."
+    ],
+    cores: [
+      "${t.teacher} jarang menegur di depan umum, tapi status '${t.title}' milikmu sudah ditandai.",
+      "Tanpa peringatan ulang, nilai ${t.subject} untuk '${t.title}' bisa langsung dikosongkan.",
+      "Kamu mengira ${t.teacher} lupa dengan '${t.title}'? Semua tenggat waktu tercatat rapi.",
+      "Saat temanmu sibuk menyetor '${t.title}', diam-diam posisimu semakin tertinggal.",
+      "${t.teacher} menilai keseriusan siswa dalam diam melalui ketuntasan '${t.title}'.",
+      "Tidak akan ada pengumuman panjang jika '${t.title}' lewat dari batas waktu ${t.subject}.",
+      "Daftar rekap ${t.teacher} tidak pernah berbohong soal siapa yang belum mengumpulkan '${t.title}'.",
+      "Ketenangan ${t.teacher} justru tanda bahwa tidak ada kompromi untuk '${t.title}'."
+    ],
+    closers: [
+      "Segera amankan posisimu sebelum terlambat!",
+      "Kumpulkan '${t.title}' sebelum namamu dicoret!",
+      "Jangan tunggu teguran karena tidak akan datang!",
+      "Bergerak dalam diam dan tuntaskan sekarang!",
+      "Pastikan tugasmu sudah masuk sebelum tenggat!",
+      "Selamatkan nilai ${t.subject}-mu detik ini juga!",
+      "Jangan beri celah sedikit pun untuk nilai kosong!",
+      "Selesaikan sekarang sebelum rekap nilai dikunci!"
+    ]
+  },
+  motivator: {
+    openers: [
+      "Bangkit dan tatap masa depanmu!",
+      "Ingat tujuan besarmu melangkah sejauh ini!",
+      "Jangan kalah oleh rasa malasmu sendiri!",
+      "Mental juara ditempa dari hal-hal kecil!",
+      "Kesuksesan tidak datang pada yang suka menunda!",
+      "Dengarkan pesan moral dari ${t.teacher}!",
+      "Setiap usaha hari ini menentukan hari esok!",
+      "Jadilah pribadi yang tangguh dan bertanggung jawab!"
+    ],
+    cores: [
+      "Menyelesaikan '${t.title}' (${t.subject}) adalah latihan nyata menghadapi tantangan hidup.",
+      "${t.teacher} memberimu tugas '${t.title}' bukan untuk membebani, tapi melatih mental juaramu.",
+      "Bagaimana kamu bisa meraih mimpi besar jika tugas '${t.title}' saja masih kamu tunda?",
+      "Orang-orang sukses selalu menuntaskan tanggung jawab seperti '${t.title}' lebih awal.",
+      "Jangan sia-siakan pengorbanan orang tuamu hanya karena malas mengerjakan '${t.title}'.",
+      "Setiap halaman dan baris pada '${t.title}' adalah investasi kecerdasanmu di ${t.subject}.",
+      "${t.teacher} ingin melihatmu tumbuh menjadi lulusan yang berintegritas dan siap bersaing.",
+      "Rasa lelah mengerjakan '${t.title}' hanya sementara, tapi kebanggaan hasilnya bertahan lama."
+    ],
+    closers: [
+      "Ambil kendali atas waktumu dan mulai sekarang!",
+      "Buktikan kamu adalah pemenang, bukan penunda!",
+      "Tuntaskan '${t.title}' dengan kualitas terbaikmu!",
+      "Mulai langkah pertamamu detik ini juga!",
+      "Jangan berhenti sebelum tugas ini selesai tuntas!",
+      "Jadikan hari ini bukti kedewasaan belajarmu!",
+      "Fokus, kerjakan, dan raih hasil maksimal!",
+      "Masa depan cerah dimulai dari meja belajarmu!"
+    ]
+  },
+  custom: {
+    openers: [
+      "Peringatan khusus dari ${t.teacher}!",
+      "Pesan langsung untukmu!",
+      "Ingat kata-kata ${t.teacher}!",
+      "Alarm tugas ${t.subject} berbunyi!",
+      "Jangan abaikan pesan ini!",
+      "Perhatian segera!",
+      "Waktunya bergerak!",
+      "Pengingat penting!"
+    ],
+    cores: [
+      ""${t.customText}" — Terkait tugas '${t.title}' (${t.subject}).",
+      "${t.teacher} berpesan: "${t.customText}" untuk penyelesaian '${t.title}'.",
+      "Segera selesaikan '${t.title}'! Ingat: "${t.customText}".",
+      "Status '${t.title}' masih aktif. ${t.teacher} mengingatkan: "${t.customText}".",
+      "Jangan sampai '${t.title}' lewat batas waktu! "${t.customText}".",
+      "Mapel ${t.subject} menunggu progresmu: "${t.customText}".",
+      "Pesan tegas ${t.teacher} untuk '${t.title}': "${t.customText}".",
+      "Tuntaskan '${t.title}' sekarang juga! "${t.customText}"."
+    ],
+    closers: [
+      "Segera buka dan kerjakan sekarang!",
+      "Jangan menunda lagi!",
+      "Tuntaskan sebelum deadline tiba!",
+      "Ayo fokus selesaikan!",
+      "Pastikan selesai tepat waktu!",
+      "Buktikan kamu bisa tuntas!",
+      "Jangan sampai kena efek domino!",
+      "Mulai kerjakan detik ini!"
+    ]
+  }
 };
 
+// Menghasilkan 8 x 8 x 8 = 512 kombinasi kalimat unik per karakter guru
 function generateTerrorMessage(task, slack) {
   const persona = task.persona || 'killer';
-  const pool = teacherTerrorPools[persona] || teacherTerrorPools.killer;
-  
-  if (persona === 'custom' && typeof pool[0] === 'function') {
-    return pool[0](task);
-  }
+  const group = terrorMatrix[persona] || terrorMatrix.killer;
 
-  const randomIndex = Math.floor(Math.random() * pool.length);
-  let template = pool[randomIndex] || pool[0];
+  const opener = group.openers[Math.floor(Math.random() * group.openers.length)];
+  const core = group.cores[Math.floor(Math.random() * group.cores.length)];
+  const closer = group.closers[Math.floor(Math.random() * group.closers.length)];
 
-  return template
+  const customVal = task.customText && task.customText.trim() !== ''
+    ? task.customText.trim()
+    : `Ayo segera selesaikan tugas ${task.subject} tepat waktu!`;
+
+  const combined = `${opener} ${core} ${closer}`;
+
+  return combined
     .replace(/\$\{t\.teacher\}/g, task.teacher)
     .replace(/\$\{t\.title\}/g, task.title)
-    .replace(/\$\{t\.subject\}/g, task.subject);
+    .replace(/\$\{t\.subject\}/g, task.subject)
+    .replace(/\$\{t\.customText\}/g, customVal);
 }
 
 function calculateSlack(task) {
@@ -236,14 +462,15 @@ async function triggerNotifications(task) {
 
   if ('Notification' in window && Notification.permission === 'granted') {
     if (swRegistration && swRegistration.showNotification) {
-      swRegistration.showNotification(`🚨 TEROR GURU: ${task.teacher.toUpperCase()} (${task.subject})`, {
+      swRegistration.showNotification(`🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
+        icon: './icon-192.png',
         vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
         silent: mode === 'silent',
         requireInteraction: true
       });
     } else {
-      new Notification(`🚨 TEROR GURU: ${task.teacher.toUpperCase()} (${task.subject})`, {
+      new Notification(`🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
         silent: mode === 'silent'
       });
@@ -311,17 +538,14 @@ function navigateTo(pageId) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById(`page-${pageId}`).classList.add('active');
   document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
-  document.getElementById('pageTitle').textContent = pageTitles[pageId] || 'DOMINO';
-  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('pageTitle').textContent = pageTitles[pageId] || 'DOMIFECT';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   renderAll();
 }
 
 function setupNavigation() {
   document.querySelectorAll('[data-page]').forEach(btn => {
     btn.addEventListener('click', () => navigateTo(btn.dataset.page));
-  });
-  document.getElementById('btnMenuToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
   });
 }
 
@@ -349,7 +573,7 @@ function setupFocusTimerUI() {
           const mode = document.getElementById('alarmModeSelect')?.value || 'sound';
           if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
           if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
-            swRegistration.showNotification('⏱️ Sesi Fokus Selesai!', {
+            swRegistration.showNotification('⏱️ Sesi Fokus DOMIFECT Selesai!', {
               body: 'Waktu fokusmu sudah habis. Silakan istirahat sejenak sebelum lanjut tugas berikutnya.',
               silent: mode === 'silent'
             });
@@ -381,8 +605,22 @@ function updateTimerDisplay() {
     `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+async function requestNotificationPermission() {
+  if ('Notification' in window) {
+    const p = await Notification.requestPermission();
+    alert(p === 'granted' ? '✅ Notifikasi sistem & teror guru berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
+  } else {
+    alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
+  }
+}
+
 function setupEventListeners() {
-  document.getElementById('btnSidebarTheme').addEventListener('click', toggleTheme);
+  document.getElementById('btnSidebarTheme')?.addEventListener('click', toggleTheme);
+  document.getElementById('btnMobileTheme')?.addEventListener('click', toggleTheme);
+  document.getElementById('btnEnableNotif')?.addEventListener('click', requestNotificationPermission);
+  document.getElementById('btnMobileNotif')?.addEventListener('click', requestNotificationPermission);
+  document.getElementById('btnEnableNotifMobile')?.addEventListener('click', requestNotificationPermission);
+
   document.getElementById('profileForm').addEventListener('submit', saveProfile);
   document.getElementById('btnPanic').addEventListener('click', triggerPanicMode);
 
@@ -408,15 +646,6 @@ function setupEventListeners() {
       localStorage.setItem(ALARM_MODE_KEY, e.target.value);
     });
   }
-
-  document.getElementById('btnEnableNotif').addEventListener('click', async () => {
-    if ('Notification' in window) {
-      const p = await Notification.requestPermission();
-      alert(p === 'granted' ? '✅ Notifikasi sistem & teror guru berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
-    } else {
-      alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
-    }
-  });
 
   document.getElementById('taskForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -460,7 +689,7 @@ function renderDropdowns() {
   const active = tasks.filter(t => t.status === 'active');
   const dep = document.getElementById('tDependsOn');
   const sim = document.getElementById('simTaskSelect');
-  dep.innerHTML = '<option value="">-- Tidak Ada (Tugas Mandiri) --</option>';
+  dep.innerHTML = '<option value="">-- Tugas Mandiri --</option>';
   sim.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
   active.forEach(t => {
     dep.innerHTML += `<option value="${t.id}">${t.title} (${t.subject})</option>`;
@@ -483,13 +712,13 @@ function renderDashboard() {
 
   if (active.length === 0) {
     scoreEl.textContent = '100% — Jadwal Stabil | Beban Mental: 0%';
-    descEl.textContent = `${greeting}Belum ada tugas yang ditambahkan. Klik "+ Tugas Baru" untuk mulai mengatur jadwal teori maupun kejuruan.`;
+    descEl.textContent = `${greeting}Belum ada tugas terdaftar. Tekan "+ Tugas" untuk mulai mengatur jadwal teori maupun kejuruan.`;
   } else if (critical.length > 0) {
     scoreEl.textContent = `⚠️ Jalur Kritis (${critical.length} Tugas) | Beban Mental: ${mentalLoadPercent}%`;
-    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button jika waktu pengerjaan sudah sangat mepet.`;
+    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button jika waktu pengerjaan sudah mepet.`;
   } else {
     scoreEl.textContent = `✅ Jadwal Aman | Beban Mental: ${mentalLoadPercent}%`;
-    descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Tetap patuhi time-blocking agar tidak menumpuk.`;
+    descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Patuhi time-blocking agar tidak menumpuk.`;
   }
 
   const list = document.getElementById('dashboardAlertsList');
@@ -534,8 +763,8 @@ function renderAssignments() {
         <small class="hint">Mulai Kerja: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'}</small>
         <small class="hint">Deadline: ${t.deadline.replace('T', ' ')}</small>
         ${parent ? `<small class="hint">⛓️ Bergantung pada: ${parent.title}</small>` : ''}
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <button class="btn btn-sm btn-primary" onclick="completeTask('${t.id}')">✓ Selesai</button>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-sm btn-primary" style="flex:1;" onclick="completeTask('${t.id}')">✓ Selesai</button>
           <button class="btn btn-sm btn-secondary" onclick="deleteTask('${t.id}')">Hapus</button>
         </div>
       </div>
@@ -591,7 +820,7 @@ function renderAlerts() {
       <div class="alert-card">
         <strong>🚨 ${t.teacher} (${t.subject}) — ${t.title}</strong>
         <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
-        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up Teror Guru</button>
+        <button class="btn btn-sm btn-warning btn-block" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:10px;">🔔 Tes Pop-up Teror Guru</button>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
