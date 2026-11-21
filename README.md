@@ -1,5 +1,5 @@
 # domino-academic_domino_effect
-judul aplikasi : Domino
+judul aplikasi : Domifect
 
 Deskripsi : Website simulator akademik untuk mengingat jadwal pelajaran, tugas atau PR, dan leaderboard untuk siswa  
 teknologi yang digunakan : HTML, CSS, JavaScript
