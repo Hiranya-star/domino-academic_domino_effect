@@ -1,11 +1,10 @@
 {
-  "name": "DOMINO — Academic Domino Effect & Teacher Terror Planner",
+  "name": "DOMINO — Academic Domino Effect Planner",
   "short_name": "DOMINO",
-  "description": "One Delayed Task, A Chain of Consequences. Planner siswa SMA dengan simulasi efek domino dan notifikasi teror guru langsung ke sistem HP.",
+  "description": "One Delayed Task, A Chain of Consequences. Planner tugas sekolah dengan simulasi efek domino dan teror guru.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
   "background_color": "#0b1120",
   "theme_color": "#6366f1",
   "icons": [
