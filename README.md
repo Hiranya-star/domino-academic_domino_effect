@@ -10,4 +10,5 @@ Panduan penggunaan : - siswa menambahkan jadwal tugas baru
                      - siswa melihat leaderboard pengerjaan PR
                      - siswa melihat notifikasi dari guru 
                      - siswa dapat notifikasi pengingat tugas 
+                     
 Identitas pengembang : Hiranya Jasmine Ramadhani
