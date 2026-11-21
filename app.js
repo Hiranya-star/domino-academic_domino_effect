@@ -1,4 +1,4 @@
-const TASKS_KEY = 'domino_tasks_v3';
+const TASKS_KEY = 'domino_tasks_v4';
 let tasks = [];
 let swRegistration = null;
 
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   startWatchdog();
 });
 
-// Registrasi Service Worker untuk Offline Mode
+// Registrasi Service Worker agar bisa Offline
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
@@ -27,6 +27,7 @@ function initTheme() {
   const saved = localStorage.getItem('domino_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
 }
+
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = cur === 'dark' ? 'light' : 'dark';
@@ -34,18 +35,19 @@ function toggleTheme() {
   localStorage.setItem('domino_theme', next);
 }
 
-// Penyimpanan Data Lokal (LocalStorage HP)
+// Ambil & Simpan Data Tugas ke Memori Lokal HP
 function loadTasks() {
   try {
     const raw = localStorage.getItem(TASKS_KEY);
     tasks = raw ? JSON.parse(raw) : getStarterTasks();
   } catch(e) { tasks = []; }
 }
+
 function saveTasks() {
   localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
 }
 
-// Data Contoh Awal untuk Siswa SMA
+// Data Contoh Tugas Awal untuk Siswa SMA
 function getStarterTasks() {
   const now = Date.now();
   const hr = 3600000;
@@ -56,7 +58,7 @@ function getStarterTasks() {
   ];
 }
 
-// Logika Instalasi PWA Mandiri via Chrome
+// Logika Install PWA Mandiri (Standalone)
 let deferredPrompt = null;
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -77,7 +79,7 @@ function setupPWAInstall() {
   });
 }
 
-// Kalkulator Waktu Cadangan (Slack Time & Efek Domino)
+// Rumus Kalkulator Waktu Cadangan (Slack Time)
 function calculateSlack(task) {
   if (!task.dependsOn) {
     const h = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
@@ -90,7 +92,7 @@ function calculateSlack(task) {
   return Math.round(((deadlineSelf - task.duration*3600000 - slackParent) / 3600000) * 10) / 10;
 }
 
-// Pemicu Notifikasi Pop-up (Heads-up & Bar Notif)
+// Memunculkan Pop-up Melayang (Heads-up Notification) di Layar HP
 function showScreenPopup(task) {
   document.getElementById('popupTeacherTag').textContent = `${task.teacher} • ${task.subject}`;
   document.getElementById('popupTaskTitle').textContent = task.title;
@@ -103,20 +105,21 @@ document.getElementById('btnClosePopup').addEventListener('click', () => {
   document.getElementById('popupTerrorBanner').classList.add('hidden');
 });
 
+// Pemicu Notifikasi Bar Sistem & Pop-up
 async function triggerNotifications(task) {
   showScreenPopup(task);
   if ('Notification' in window && Notification.permission === 'granted') {
-    if (swRegistration) {
+    if (swRegistration && swRegistration.showNotification) {
       swRegistration.showNotification(`🚨 Teror Guru: ${task.teacher}`, {
         body: `Tugas ${task.title} (${task.subject}) sudah mepet deadline!`,
-        vibrate: [200, 100, 200],
+        vibrate: [300, 100, 300],
         requireInteraction: true
       });
     }
   }
 }
 
-// Pengecekan Deadline Otomatis di Background
+// Pengecekan Otomatis Deadline di Background
 function startWatchdog() {
   setInterval(() => {
     const now = Date.now();
@@ -150,13 +153,13 @@ function setupNavigation() {
   });
 }
 
-// Event Listeners Tombol & Form
+// Event Listeners Tombol, Form, & Interaksi
 function setupEventListeners() {
   document.getElementById('btnSidebarTheme').addEventListener('click', toggleTheme);
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if ('Notification' in window) {
       const p = await Notification.requestPermission();
-      alert(p === 'granted' ? '✅ Notifikasi pop-up diaktifkan!' : '⚠️ Izin ditolak.');
+      alert(p === 'granted' ? '✅ Notifikasi pop-up bar & heads-up aktif!' : '⚠️ Izin ditolak.');
     }
   });
 
@@ -186,7 +189,7 @@ function setupEventListeners() {
   document.getElementById('simDelaySlider').addEventListener('input', renderSimulator);
 }
 
-// Render Tampilan ke HTML
+// Fungsi Render Semua Komponen Tampilan
 function renderAll() {
   renderDropdowns();
   renderDashboard();
@@ -259,6 +262,7 @@ function renderSimulator() {
 
 function renderAlerts() {
   const active = tasks.filter(t => t.status === 'active');
+  document.getElementById('alertCountBadge').textContent = active.length;
   document.getElementById('fullAlertsList').innerHTML = active.map(t => `
     <div class="alert-card">
       <strong>${t.teacher} (${t.subject})</strong>
