@@ -1,12 +1,11 @@
-const TASKS_KEY = 'domino_tasks_v7';
-const PROFILE_KEY = 'domino_profile_v7';
-const ALARM_MODE_KEY = 'domino_alarm_mode_v7';
+const TASKS_KEY = 'domino_tasks_v8';
+const PROFILE_KEY = 'domino_profile_v8';
+const ALARM_MODE_KEY = 'domino_alarm_mode_v8';
 
 let tasks = [];
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
 let swRegistration = null;
 
-// Variabel Timer Fokus Kustom
 let focusTimerInterval = null;
 let focusSecondsRemaining = 25 * 60;
 let isFocusRunning = false;
@@ -51,7 +50,6 @@ function updateThemeButtonText(theme) {
   if (btn) btn.textContent = theme === 'dark' ? '☀️ Mode Terang' : '🌙 Mode Gelap';
 }
 
-// Manajemen Profil Siswa (SMA / SMK)
 function loadProfile() {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
@@ -84,7 +82,6 @@ function saveProfile(e) {
   renderAll();
 }
 
-// Manajemen Tugas (Bersih di awal tanpa contoh guru bawaan)
 function loadTasks() {
   try {
     const raw = localStorage.getItem(TASKS_KEY);
@@ -96,7 +93,6 @@ function saveTasks() {
   localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
 }
 
-// Instalasi PWA Mandiri (Standalone WebAPK)
 let deferredPrompt = null;
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -117,30 +113,73 @@ function setupPWAInstall() {
   });
 }
 
-// Generator Kalimat Teror Berdasarkan Tipe Kepribadian Guru
+// BANK KALIMAT TEROR GAYA DUOLINGO (SUPER BANYAK & ACAK)
+const duolingoTerrorPools = {
+  killer: [
+    "Kamu benar-benar mau menguji kesabaran ${t.teacher}? Tugas '${t.title}' belum disentuh sama sekali!",
+    "Nilai rapor ${t.subject}-mu sedang menangis melihat kamu mengabaikan tugas ini. Buka DOMINO sekarang!",
+    "${t.teacher} tidak suka menunggu. Selesaikan tugasnya atau siapkan mentalmu besok pagi!",
+    "Hati-hati, ${t.teacher} sudah menyiapkan nilai kosong spesial buat kamu di buku rekap!",
+    "Tugas '${t.title}' ini gampang kok, tapi kalau kamu biarkan lewat deadline, tamatlah riwayat nilai ${t.subject}-mu."
+  ],
+  sarcastic: [
+    "Wah, hebat ya.. Main HP terus, tapi tugas '${t.title}' dari ${t.teacher} dibiarkan terbengkalai begitu saja.",
+    "Tenang saja, ${t.teacher} sudah menyiapkan format remidi khusus buat kamu kok. Lanjut santai aja yuk?",
+    "Kamu nge-ghosting tugas '${t.title}' lebih parah daripada nge-ghosting doi. Ayo kerjakan!",
+    "Hebat sekali prestasimu menunda-nunda. ${t.teacher} pasti bangga melihat kemalasan ini.",
+    "Asyik ya rebahan? Jangan kaget kalau nanti ${t.teacher} menyindir namamu di depan satu kelas."
+  ],
+  disciplined: [
+    "Waktu berjalan terus, ${t.teacher} menghitung setiap detik keterlambatan tugas '${t.title}'.",
+    "Kedisiplinan adalah nomor satu. Jika '${t.title}' tidak dikerjakan sesuai jadwal, habislah poin kedisiplinanmu.",
+    "Jangan ubah jadwal sesuka hati! ${t.teacher} sangat benci keterlambatan sekecil apapun.",
+    "Detik-detik menuju deadline '${t.title}' semakin menipis. Cepat buka buku atau laptopmu!"
+  ],
+  friendly: [
+    "Ayo semangat! ${t.teacher} sudah nungguin hasil '${t.title}' kamu. Jangan bikin beliau kecewa ya...",
+    "Halo! ${t.teacher} nitip senyum nih, tapi kalau tugas '${t.subject}' gak dikumpul, senyumnya berubah jadi tangisan lho.",
+    "Aku tahu kamu bisa kok ngerjain '${t.title}'. Yuk cicil sekarang biar nanti malam bisa tidur nyenyak!",
+    "Sayang banget kalau nilai ${t.subject} kamu turun cuma karena malas sebentar. Yuk bangkit!"
+  ],
+  vocational: [
+    "Mesin dan laporan praktek tidak bisa dibohongi. Kalau '${t.title}' lewat deadline, ${t.teacher} coret namamu dari daftar praktikum!",
+    "Alat lab sudah siap, tapi laporan ${t.subject} kamu malah kosong. Mau mangkir dari instruktur bengkel?",
+    "Project PKL dan laporan kejuruan bukan untuk ditunda-tunda. Bergerak sekarang sebelum ${t.teacher} turun tangan!",
+    "Standar Operasional Prosedur (SOP) bengkel itu mutlak! Selesaikan '${t.title}' sekarang juga!"
+  ],
+  silentkiller: [
+    "Sst.. ${t.teacher} tidak banyak bicara di kelas, tapi namanya sudah mencoret tugasmu dari daftar aman.",
+    "Silent killer beraksi. Tanpa peringatan panjang, nilai '${t.title}' langsung dikosongkan.",
+    "Kamu mengira ${t.teacher} lupa? Oh tentu tidak. Beliau sedang mengamati kelalaianmu dalam diam."
+  ],
+  motivator: [
+    "Mau jadi apa masa depanmu kalau tugas '${t.title}' saja disepelakan? Ingat perjuangan orang tua!",
+    "Orang sukses tidak pernah menunda pekerjaan. ${t.teacher} mendidikmu jadi orang hebat, bukan pemalas!",
+    "Setiap detik penundaan tugas '${t.subject}' adalah langkah mundur menuju mimpimu."
+  ],
+  custom: [
+    (t) => t.customText ? `"${t.customText}" — Peringatan tegas dari ${t.teacher}!` : `Ayo segera selesaikan tugas ${t.subject} dari ${t.teacher}!`
+  ]
+};
+
 function generateTerrorMessage(task, slack) {
   const persona = task.persona || 'killer';
-  const isUrgent = slack <= 2;
+  const pool = duolingoTerrorPools[persona] || duolingoTerrorPools.killer;
+  
+  if (persona === 'custom' && typeof pool[0] === 'function') {
+    return pool[0](task);
+  }
 
-  const scripts = {
-    killer: isUrgent
-      ? `"${task.title}" (${task.subject}) belum selesai?! Jangan harap ada dispensasi nilai dari ${task.teacher}. Kumpulkan sekarang atau tanggung akibatnya!`
-      : `Ingat, ${task.teacher} tidak pernah menerima alasan lupa. Segera selesaikan "${task.title}" sebelum batas waktu habis!`,
-    sarcastic: isUrgent
-      ? `Santai banget ngerjain "${task.title}"? ${task.teacher} sudah siap kasih nilai kosong yang estetik buat rapor ${task.subject} kamu.`
-      : `Tenang saja, deadline "${task.title}" masih ada sisa waktu. Tapi jangan sampai ${task.teacher} nyindir namamu di depan kelas.`,
-    disciplined: isUrgent
-      ? `PERINGATAN WAKTU: Toleransi keterlambatan dari ${task.teacher} adalah 0 detik. Tugas "${task.title}" wajib tuntas secepatnya!`
-      : `Sesuai standar kedisiplinan ${task.teacher}, "${task.title}" (${task.subject}) harus mulai dicicil sesuai jadwal.`,
-    friendly: isUrgent
-      ? `Ayo semangat! ${task.teacher} sudah nungguin hasil "${task.title}" kamu. Jangan bikin beliau kecewa karena telat ya!`
-      : `Halo, ${task.teacher} menitip pesan agar "${task.title}" (${task.subject}) dikerjakan tepat waktu supaya hasilnya maksimal.`
-  };
+  // Pilih kalimat secara acak dari pool
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  let template = pool[randomIndex] || pool[0];
 
-  return scripts[persona] || scripts.killer;
+  return template
+    .replace(/\$\{t\.teacher\}/g, task.teacher)
+    .replace(/\$\{t\.title\}/g, task.title)
+    .replace(/\$\{t\.subject\}/g, task.subject);
 }
 
-// Kalkulasi Slack Time & Rantai Domino
 function calculateSlack(task) {
   if (!task.dependsOn) {
     const h = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
@@ -167,7 +206,6 @@ function getDownstreamTasks(taskId) {
   return affected;
 }
 
-// Notifikasi Pop-up Layar & Bar Sistem di Luar Aplikasi
 function showScreenPopup(task) {
   const slack = calculateSlack(task);
   const terrorMsg = generateTerrorMessage(task, slack);
@@ -199,14 +237,14 @@ async function triggerNotifications(task) {
 
   if ('Notification' in window && Notification.permission === 'granted') {
     if (swRegistration && swRegistration.showNotification) {
-      swRegistration.showNotification(`🚨 TEROR ${task.teacher.toUpperCase()} (${task.subject})`, {
+      swRegistration.showNotification(`🦉 TEROR DUOLINGO: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
         vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
         silent: mode === 'silent',
         requireInteraction: true
       });
     } else {
-      new Notification(`🚨 TEROR ${task.teacher.toUpperCase()} (${task.subject})`, {
+      new Notification(`🦉 TEROR DUOLINGO: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
         silent: mode === 'silent'
       });
@@ -261,12 +299,11 @@ function triggerPanicMode() {
   panicContent.innerHTML = planHtml;
 }
 
-// Navigasi Halaman
 const pageTitles = {
   dashboard: 'Dashboard Akademik & Kejuruan',
-  assignments: 'Daftar Tugas & Teror Guru',
+  assignments: 'Daftar Tugas & Teror Duolingo',
   simulator: 'Simulasi Efek Domino',
-  alerts: 'Pusat Notifikasi & Alarm Senyap',
+  alerts: 'Pusat Notifikasi & Teror',
   focus: 'Mode Fokus Kustom',
   profile: 'Profil Siswa (SMA / SMK)'
 };
@@ -290,7 +327,6 @@ function setupNavigation() {
   });
 }
 
-// Timer Fokus Kustom
 function setupFocusTimerUI() {
   const input = document.getElementById('customTimerInput');
   input.addEventListener('change', () => {
@@ -352,6 +388,20 @@ function setupEventListeners() {
   document.getElementById('profileForm').addEventListener('submit', saveProfile);
   document.getElementById('btnPanic').addEventListener('click', triggerPanicMode);
 
+  const personaSelect = document.getElementById('tPersona');
+  const customGroup = document.getElementById('customPersonaGroup');
+  if (personaSelect) {
+    personaSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customGroup.classList.remove('hidden');
+        document.getElementById('tCustomText').required = true;
+      } else {
+        customGroup.classList.add('hidden');
+        document.getElementById('tCustomText').required = false;
+      }
+    });
+  }
+
   const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   const alarmSelect = document.getElementById('alarmModeSelect');
   if (alarmSelect) {
@@ -364,7 +414,7 @@ function setupEventListeners() {
   document.getElementById('btnEnableNotif').addEventListener('click', async () => {
     if ('Notification' in window) {
       const p = await Notification.requestPermission();
-      alert(p === 'granted' ? '✅ Notifikasi sistem & teror pop-up berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
+      alert(p === 'granted' ? '✅ Notifikasi sistem & teror Duolingo berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
     } else {
       alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
     }
@@ -379,6 +429,7 @@ function setupEventListeners() {
       subject: document.getElementById('tSubject').value.trim(),
       teacher: document.getElementById('tTeacher').value.trim(),
       persona: document.getElementById('tPersona').value,
+      customText: document.getElementById('tCustomText').value.trim(),
       deadline: document.getElementById('tDeadline').value,
       workSchedule: document.getElementById('tWorkSchedule').value,
       duration: parseFloat(document.getElementById('tDuration').value),
@@ -390,6 +441,7 @@ function setupEventListeners() {
     saveTasks();
     e.target.reset();
     document.getElementById('editTaskId').value = '';
+    customGroup.classList.add('hidden');
     renderAll();
     navigateTo('assignments');
   });
@@ -423,7 +475,6 @@ function renderDashboard() {
   document.getElementById('navTaskCount').textContent = active.length;
   const critical = active.filter(t => calculateSlack(t) <= 0);
 
-  // Kalkulasi Skor Beban Mental (Mental Load Meter)
   const totalWorkHours = active.reduce((sum, t) => sum + (t.duration || 0), 0);
   const targetDaily = userProfile.targetHours || 3;
   const mentalLoadPercent = Math.min(100, Math.round((totalWorkHours / (targetDaily * 2)) * 100));
@@ -448,11 +499,11 @@ function renderDashboard() {
     const slack = calculateSlack(t);
     return `
       <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-        <strong>${t.teacher} — ${t.subject}</strong>
+        <strong>🦉 ${t.teacher} — ${t.subject}</strong>
         <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
       </div>
     `;
-  }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
+  }).join('') || '<p class="hint">Belum ada teror Duolingo aktif.</p>';
 
   const priorityList = document.getElementById('todayActionList');
   const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
@@ -540,9 +591,9 @@ function renderAlerts() {
     const slack = calculateSlack(t);
     return `
       <div class="alert-card">
-        <strong>${t.teacher} (${t.subject}) — ${t.title}</strong>
+        <strong>🦉 ${t.teacher} (${t.subject}) — ${t.title}</strong>
         <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
-        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up & Notifikasi Luar</button>
+        <button class="btn btn-sm btn-warning" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:8px;">🔔 Tes Pop-up Teror Duolingo</button>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
