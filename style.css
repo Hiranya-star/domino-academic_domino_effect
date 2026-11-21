@@ -1,3 +1,41 @@
+/* POPUP TERROR MELAYAR (HEADS-UP BANNER) */
+.popup-terror-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  max-width: 380px;
+  width: 90%;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.popup-terror-card {
+  background: var(--bg-card);
+  border: 2px solid var(--danger);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.popup-terror-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popup-terror-card h4 {
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
 :root {
   --bg-dark: #0b1120;
   --bg-card: #131c31;
