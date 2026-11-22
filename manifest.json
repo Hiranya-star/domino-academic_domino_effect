@@ -1,8 +1,8 @@
 {
-  "id": "/domifect-academic-vocational-planner",
+  "id": "/domifect-academic-vocational-planner-v2",
   "name": "DOMIFECT — Academic & Vocational Domino Effect Planner",
   "short_name": "DOMIFECT",
-  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat karakter guru.",
+  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat karakter guru (Full 15 Features).",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
