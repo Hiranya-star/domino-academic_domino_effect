@@ -233,13 +233,13 @@
         </div>
       </section>
 
-      <!-- HALAMAN 4: JADWAL PELAJARAN & CHECKLIST PERLENGKAPAN BESOK -->
+      <!-- HALAMAN 4: JADWAL PELAJARAN TETAP PER HARI & CHECKLIST PERLENGKAPAN -->
       <section id="page-schedule" class="page">
         <div class="dashboard-split">
-          <!-- JADWAL MAPEL -->
+          <!-- JADWAL MAPEL TETAP TERKELOMPOK PER HARI -->
           <div class="card">
-            <h3>📅 Jadwal Pelajaran Mingguan</h3>
-            <p class="hint">Simpan jadwal mapel & nama guru agar input tugas baru otomatis terisi.</p>
+            <h3>📅 Jadwal Pelajaran Mingguan (Tetap Per Hari)</h3>
+            <p class="hint">Jadwal otomatis dikelompokkan dan diurutkan tetap dari Senin sampai Sabtu.</p>
             <form id="scheduleForm" style="margin-top:12px;">
               <div class="form-row-mobile">
                 <div class="form-group">
@@ -262,7 +262,7 @@
                 <label>Nama Guru / Instruktur *</label>
                 <input type="text" id="sTeacher" placeholder="Contoh: Pak Hendra" required />
               </div>
-              <button type="submit" class="btn btn-primary btn-block">➕ Tambah ke Jadwal</button>
+              <button type="submit" class="btn btn-primary btn-block">➕ Simpan Permanen ke Jadwal</button>
             </form>
             <div id="scheduleList" class="alert-list" style="margin-top:14px;"></div>
           </div>
@@ -284,7 +284,7 @@
       <section id="page-alerts" class="page">
         <div class="card">
           <h3>💬 Generator Template Chat Izin / Negosiasi Guru</h3>
-          <p class="hint">Kondisi darurat? Susun draf pesan WhatsApp yang sopan sesuai karakter gurumu.</p>
+          <p class="hint">Kondisi darurat? Susun draf pesan WhatsApp yang sopan sesuai situasi daruratmu.</p>
           <div class="form-row-mobile" style="margin-top:12px;">
             <div class="form-group">
               <label>Pilih Tugas Terkait:</label>
@@ -297,12 +297,17 @@
                 <option value="sakit">Kondisi kesehatan kurang fit / Izin sakit</option>
                 <option value="bertumpuk">Bentrok dengan jadwal uji kompetensi / tugas lain</option>
                 <option value="revisi">Meminta waktu tambahan untuk penyempurnaan revisi</option>
+                <option value="listrik">Pemadaman listrik / Gangguan jaringan internet di rumah</option>
+                <option value="keluarga">Urusan keluarga mendesak / Anggota keluarga sakit</option>
+                <option value="dispen">Dispensasi kegiatan sekolah / Lomba / OSIS / Ekstrakurikuler</option>
+                <option value="pkl">Kendala lokasi PKL / Prakerin atau lembur di industri</option>
+                <option value="kelompok">Menunggu bagian data dari anggota kelompok lain</option>
               </select>
             </div>
           </div>
           <button type="button" id="btnGenerateChat" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
           <div id="negoResultBox" class="hidden" style="margin-top:12px;">
-            <textarea id="negoChatOutput" rows="5" readonly></textarea>
+            <textarea id="negoChatOutput" rows="6" readonly></textarea>
             <button type="button" id="btnCopyChat" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
           </div>
         </div>
