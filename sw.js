@@ -1,9 +1,10 @@
-const CACHE_NAME = 'domifect-v10';
+const CACHE_NAME = 'domifect-cache';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=10',
-  './app.js?v=10'
+  './style.css',
+  './app.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
