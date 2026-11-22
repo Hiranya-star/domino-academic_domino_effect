@@ -1,14 +1,14 @@
 /* ==========================================================================
-   DOMIFECT v2 — Academic & Vocational Domino Effect Planner
+   DOMIFECT v3 — Academic & Vocational Domino Effect Planner
    Full 15-Feature Logic Engine (500+ Dynamic Teacher Terror Matrix)
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v2';
-const PROFILE_KEY = 'domifect_profile_v2';
-const SCHEDULE_KEY = 'domifect_schedule_v2';
-const GEAR_KEY = 'domifect_gear_v2';
-const STATS_KEY = 'domifect_stats_v2';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v2';
+const TASKS_KEY = 'domifect_tasks_v3';
+const PROFILE_KEY = 'domifect_profile_v3';
+const SCHEDULE_KEY = 'domifect_schedule_v3';
+const GEAR_KEY = 'domifect_gear_v3';
+const STATS_KEY = 'domifect_stats_v3';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v3';
 
 let tasks = [];
 let schedules = [];
@@ -543,7 +543,6 @@ function triggerPanicMode() {
     return;
   }
 
-  // Urutkan berdasarkan prioritas gabungan: (Slack Time dibagi Bobot Nilai)
   const sorted = [...active].sort((a, b) => {
     const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
     const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
@@ -567,8 +566,7 @@ function triggerPanicMode() {
   });
   planHtml += '</ol>';
 
-  lastPanicTextWA = waLines.join('
-');
+  lastPanicTextWA = waLines.join('\n');
   panicBox.classList.remove('hidden');
   panicContent.innerHTML = planHtml;
 }
@@ -735,7 +733,6 @@ function setupEventListeners() {
     window.open(url, '_blank');
   });
 
-  // Pilih Cepat dari Jadwal Pelajaran
   document.getElementById('tQuickSchedule')?.addEventListener('change', (e) => {
     const sch = schedules.find(s => s.id === e.target.value);
     if (sch) {
@@ -744,7 +741,6 @@ function setupEventListeners() {
     }
   });
 
-  // Custom Persona Toggle
   const personaSelect = document.getElementById('tPersona');
   const customGroup = document.getElementById('customPersonaGroup');
   personaSelect?.addEventListener('change', (e) => {
@@ -759,7 +755,6 @@ function setupEventListeners() {
 
   document.getElementById('btnCancelEdit')?.addEventListener('click', resetTaskForm);
 
-  // Mode Alarm
   const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   const alarmSelect = document.getElementById('alarmModeSelect');
   if (alarmSelect) {
@@ -769,13 +764,11 @@ function setupEventListeners() {
     });
   }
 
-  // Simpan / Update Tugas
   document.getElementById('taskForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const existingId = document.getElementById('editTaskId').value;
     const id = existingId || ('t_' + Date.now());
 
-    // Parse Micro-Task (Sub-Tasks)
     const rawSubs = document.getElementById('tSubTasks').value.trim();
     let parsedSubTasks = [];
     if (rawSubs) {
@@ -812,7 +805,6 @@ function setupEventListeners() {
     renderAll();
   });
 
-  // Jadwal Pelajaran Form
   document.getElementById('scheduleForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     schedules.push({
@@ -826,7 +818,6 @@ function setupEventListeners() {
     renderAll();
   });
 
-  // Checklist Perlengkapan Form
   document.getElementById('gearForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const val = document.getElementById('gearInput').value.trim();
@@ -838,7 +829,6 @@ function setupEventListeners() {
     }
   });
 
-  // Generator Chat Negosiasi Guru
   document.getElementById('btnGenerateChat')?.addEventListener('click', () => {
     const taskId = document.getElementById('negoTaskSelect').value;
     const reason = document.getElementById('negoReasonSelect').value;
@@ -858,13 +848,7 @@ function setupEventListeners() {
       revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta'
     };
 
-    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.
-
-Mohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.
-
-Saat ini progres pengerjaan sudah berjalan, namun ${reasonTexts[reason]}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].
-
-Terima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
+    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.\n\nMohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.\n\nSaat ini progres pengerjaan sudah berjalan, namun ${reasonTexts[reason]}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
 
     document.getElementById('negoChatOutput').value = draft;
     document.getElementById('negoResultBox').classList.remove('hidden');
@@ -877,7 +861,6 @@ Terima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
     alert('📋 Draf chat WhatsApp berhasil disalin!');
   });
 
-  // Ekspor & Impor Backup JSON
   document.getElementById('btnExportData')?.addEventListener('click', () => {
     const backup = { userProfile, tasks, schedules, gears, stats };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -1029,7 +1012,6 @@ function renderAssignments() {
     const slack = calculateSlack(t);
     const parent = t.dependsOn ? tasks.find(p => p.id === t.dependsOn) : null;
 
-    // Micro-Tasks Progress
     let subTasksHtml = '';
     if (t.subTasks && t.subTasks.length > 0) {
       const doneCount = t.subTasks.filter(s => s.done).length;
@@ -1251,4 +1233,3 @@ function renderStats() {
   if (lateEl) lateEl.textContent = stats.late || 0;
   if (streakEl) streakEl.textContent = `${stats.streak || 0} 🔥`;
 }
-
