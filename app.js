@@ -1,16 +1,19 @@
 /* ==========================================================================
-   DOMIFECT v5 — Academic & Vocational Domino Effect Planner
-   Full 15-Feature Logic Engine (Bulletproof Save, Alert, Simulator & Panic)
+   DOMIFECT v6 — Academic & Vocational Domino Effect Planner
+   Separated Create vs Active Tasks, Instant Notification, Simulator & Panic
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v5';
-const PROFILE_KEY = 'domifect_profile_v5';
-const SCHEDULE_KEY = 'domifect_schedule_v5';
-const GEAR_KEY = 'domifect_gear_v5';
-const STATS_KEY = 'domifect_stats_v5';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v5';
+const TASKS_KEY = 'domifect_tasks_v6';
+const ARCHIVE_KEY = 'domifect_archive_v6';
+const PROFILE_KEY = 'domifect_profile_v6';
+const SCHEDULE_KEY = 'domifect_schedule_v6';
+const GEAR_KEY = 'domifect_gear_v6';
+const STATS_KEY = 'domifect_stats_v6';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v6';
+const EXAM_MODE_KEY = 'domifect_exam_mode_v6';
 
 const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const DAY_NAMES_BY_INDEX = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_ORDER = {
   'Senin': 1,
   'Selasa': 2,
@@ -21,10 +24,13 @@ const DAY_ORDER = {
 };
 
 let tasks = [];
+let archivedTasks = [];
 let schedules = [];
 let gears = [];
 let stats = { onTime: 0, late: 0, streak: 0 };
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
+let isExamMode = false;
+let currentTaskFilter = 'all';
 let swRegistration = null;
 
 let focusTimerInterval = null;
@@ -35,10 +41,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   await registerServiceWorker();
   loadAllData();
+  setDefaultTaskDates();
   setupPWAInstall();
   setupNavigation();
   setupEventListeners();
   setupFocusTimerUI();
+  updateNotifStatusBadge();
   renderAll();
   startWatchdog();
 });
@@ -74,6 +82,22 @@ function updateThemeButtonText(theme) {
   if (mobileBtn) mobileBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
+function toLocalDatetimeInputValue(dateObj) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+}
+
+function setDefaultTaskDates() {
+  const workEl = document.getElementById('tWorkSchedule');
+  const deadEl = document.getElementById('tDeadline');
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 3600000);
+  tomorrow.setHours(7, 0, 0, 0);
+
+  if (workEl && !workEl.value) workEl.value = toLocalDatetimeInputValue(now);
+  if (deadEl && !deadEl.value) deadEl.value = toLocalDatetimeInputValue(tomorrow);
+}
+
 function loadAllData() {
   try {
     const rawProf = localStorage.getItem(PROFILE_KEY);
@@ -89,13 +113,19 @@ function loadAllData() {
       if (pTargetHours) pTargetHours.value = userProfile.targetHours || 3;
       updateStudentTags();
     }
-  } catch (e) { console.log('Profile load error:', e); }
+  } catch (e) {}
 
   try {
     const rawTasks = localStorage.getItem(TASKS_KEY);
     const parsed = rawTasks ? JSON.parse(rawTasks) : [];
     tasks = Array.isArray(parsed) ? parsed : [];
   } catch (e) { tasks = []; }
+
+  try {
+    const rawArch = localStorage.getItem(ARCHIVE_KEY);
+    const parsed = rawArch ? JSON.parse(rawArch) : [];
+    archivedTasks = Array.isArray(parsed) ? parsed : [];
+  } catch (e) { archivedTasks = []; }
 
   try {
     const rawSched = localStorage.getItem(SCHEDULE_KEY);
@@ -113,25 +143,17 @@ function loadAllData() {
     const rawStats = localStorage.getItem(STATS_KEY);
     if (rawStats) stats = JSON.parse(rawStats);
   } catch (e) { stats = { onTime: 0, late: 0, streak: 0 }; }
+
+  isExamMode = localStorage.getItem(EXAM_MODE_KEY) === 'true';
+  updateExamModeUI();
 }
 
-function saveTasks() {
-  try {
-    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-  } catch (e) {
-    console.error('Failed to save tasks:', e);
-  }
-}
-
+function saveTasks() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
+function saveArchive() { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archivedTasks)); }
 function saveSchedules() {
-  try {
-    schedules = sortSchedulesByDay(schedules);
-    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules));
-  } catch (e) {
-    console.error('Failed to save schedules:', e);
-  }
+  schedules = sortSchedulesByDay(schedules);
+  localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules));
 }
-
 function saveGears() { localStorage.setItem(GEAR_KEY, JSON.stringify(gears)); }
 function saveStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
 
@@ -152,6 +174,21 @@ function updateStudentTags() {
   const mobTag = document.getElementById('mobileStudentTag');
   if (sideTag) sideTag.textContent = tagText;
   if (mobTag) mobTag.textContent = userProfile.name ? tagText : 'SMA & SMK';
+}
+
+function updateExamModeUI() {
+  const badge = document.getElementById('examModeBadge');
+  const btn = document.getElementById('btnToggleExamMode');
+  if (badge) {
+    if (isExamMode) badge.classList.remove('hidden');
+    else badge.classList.add('hidden');
+  }
+  if (btn) {
+    btn.textContent = isExamMode
+      ? '🎓 Nonaktifkan Mode Ujian / Pekan Praktik'
+      : '🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)';
+    btn.className = isExamMode ? 'btn btn-danger btn-block btn-sm' : 'btn btn-secondary btn-block btn-sm';
+  }
 }
 
 function saveProfile(e) {
@@ -493,6 +530,12 @@ function calculateSlack(task) {
   return Math.round(((deadlineTime - dur * 3600000 - parentEnd) / 3600000) * 10) / 10;
 }
 
+function getEffectiveWeight(task) {
+  const base = parseInt(task?.gradeWeight) || 1;
+  if (isExamMode && base >= 3) return base * 2;
+  return base;
+}
+
 function getGradeLabel(weight) {
   const w = parseInt(weight) || 1;
   if (w === 4) return '🏆 Ujian Praktik / UKK (4x)';
@@ -521,6 +564,24 @@ function getDownstreamTasks(taskId) {
 // =========================================================================
 // NOTIFIKASI SISTEM & POPUP HEADS-UP DI LAYAR
 // =========================================================================
+function updateNotifStatusBadge() {
+  const badge = document.getElementById('notifStatusBadge');
+  if (!badge) return;
+  if (!('Notification' in window)) {
+    badge.textContent = '🔴 Browser Tidak Mendukung';
+    badge.className = 'slack-pill slack-danger';
+  } else if (Notification.permission === 'granted') {
+    badge.textContent = '🟢 Notifikasi Pop-up Aktif';
+    badge.className = 'slack-pill slack-safe';
+  } else if (Notification.permission === 'denied') {
+    badge.textContent = '🔴 Diblokir Browser (Ubah di Setelan Situs)';
+    badge.className = 'slack-pill slack-danger';
+  } else {
+    badge.textContent = '🟡 Belum Diizinkan';
+    badge.className = 'slack-pill';
+  }
+}
+
 function showScreenPopup(task) {
   const banner = document.getElementById('popupTerrorBanner');
   if (!banner) return;
@@ -545,7 +606,7 @@ window.triggerTestPopup = (taskId) => {
 };
 
 async function triggerNotifications(task) {
-  // 1. Selalu tampilkan Pop-up Heads-up Banner langsung di layar aplikasi
+  // 1. Selalu tampilkan Pop-up Banner langsung di layar aplikasi
   showScreenPopup(task);
 
   const terrorMsg = generateTerrorMessage(task);
@@ -556,21 +617,21 @@ async function triggerNotifications(task) {
     vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
     silent: mode === 'silent',
     requireInteraction: true,
-    tag: 'domifect-' + task.id
+    tag: 'domifect-' + task.id + '-' + Date.now()
   };
 
-  // 2. Kirim Notifikasi Native HP / Browser
+  // 2. Kirim Notifikasi Sistem Perangkat
   if ('Notification' in window) {
     let perm = Notification.permission;
     if (perm === 'default') {
       try { perm = await Notification.requestPermission(); } catch (e) {}
+      updateNotifStatusBadge();
     }
 
     if (perm === 'granted') {
       try {
-        const reg = await navigator.serviceWorker?.ready;
-        if (reg && reg.showNotification) {
-          await reg.showNotification(title, options);
+        if (swRegistration && swRegistration.showNotification) {
+          await swRegistration.showNotification(title, options);
         } else {
           new Notification(title, options);
         }
@@ -618,10 +679,8 @@ function triggerPanicMode() {
   }
 
   const sorted = [...active].sort((a, b) => {
-    const wA = parseInt(a.gradeWeight) || 1;
-    const wB = parseInt(b.gradeWeight) || 1;
-    const scoreA = calculateSlack(a) / wA;
-    const scoreB = calculateSlack(b) / wB;
+    const scoreA = calculateSlack(a) / getEffectiveWeight(a);
+    const scoreB = calculateSlack(b) / getEffectiveWeight(b);
     return scoreA - scoreB;
   });
 
@@ -654,7 +713,8 @@ function triggerPanicMode() {
 // =========================================================================
 const pageTitles = {
   dashboard: 'Dashboard Akademik & Kejuruan',
-  assignments: 'Daftar Tugas, Micro-Task & Kelompok',
+  'create-task': 'Buat / Edit Tugas Baru',
+  'active-tasks': 'Daftar Tugas Aktif & Arsip',
   simulator: 'Simulasi Efek Domino',
   schedule: 'Jadwal Pelajaran & Perlengkapan',
   alerts: 'Pusat Teror & Chat Negosiasi Guru',
@@ -662,7 +722,7 @@ const pageTitles = {
   profile: 'Profil Siswa, Statistik & Backup'
 };
 
-function navigateTo(pageId) {
+window.navigateTo = function(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById(`page-${pageId}`)?.classList.add('active');
@@ -671,16 +731,34 @@ function navigateTo(pageId) {
   if (titleEl) titleEl.textContent = pageTitles[pageId] || 'DOMIFECT';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   renderAll();
-}
+};
+
+window.openNewTaskForm = function() {
+  resetTaskForm();
+  navigateTo('create-task');
+};
+
+window.focusOnTask = function(taskId) {
+  const t = tasks.find(item => item.id === taskId);
+  const targetLabel = document.getElementById('focusTaskTargetLabel');
+  if (targetLabel && t) {
+    targetLabel.textContent = `🎯 Sedang Fokus: "${t.title}" (${t.subject} - ${t.teacher})`;
+  }
+  const mins = t ? Math.min(180, Math.max(5, Math.round((parseFloat(t.duration) || 1) * 60))) : 25;
+  navigateTo('focus');
+  startCustomFocus(mins);
+};
 
 function setupNavigation() {
   document.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.page === 'create-task' && !document.getElementById('editTaskId')?.value) {
+        resetTaskForm();
+      }
+      navigateTo(btn.dataset.page);
+    });
   });
-  document.getElementById('btnQuickAdd')?.addEventListener('click', () => {
-    resetTaskForm();
-    navigateTo('assignments');
-  });
+  document.getElementById('btnQuickAdd')?.addEventListener('click', openNewTaskForm);
 }
 
 function startCustomFocus(minutes) {
@@ -702,7 +780,7 @@ function startCustomFocus(minutes) {
       if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
       if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
         swRegistration.showNotification('⏱️ Sesi Fokus DOMIFECT Selesai!', {
-          body: 'Waktu fokusmu sudah habis. Mantap! Kamu sudah berhasil memulai.',
+          body: 'Waktu fokusmu sudah habis. Mantap! Kamu sudah berhasil menyelesaikannya.',
           silent: mode === 'silent'
         });
       }
@@ -754,6 +832,8 @@ function setupFocusTimerUI() {
   });
 
   document.getElementById('btnAntiMager')?.addEventListener('click', () => {
+    const targetLabel = document.getElementById('focusTaskTargetLabel');
+    if (targetLabel) targetLabel.textContent = '⚡ Tantangan Anti-Mager 5 Menit — Mulai Sekarang!';
     navigateTo('focus');
     startCustomFocus(5);
   });
@@ -769,6 +849,7 @@ function updateTimerDisplay() {
 async function requestNotificationPermission() {
   if ('Notification' in window) {
     const p = await Notification.requestPermission();
+    updateNotifStatusBadge();
     alert(p === 'granted' ? '✅ Notifikasi sistem & teror guru berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
   } else {
     alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
@@ -776,7 +857,7 @@ async function requestNotificationPermission() {
 }
 
 // =========================================================================
-// EVENT LISTENERS (FORM TUGAS, EDIT, JADWAL, GEAR, CHAT GURU, BACKUP)
+// EVENT LISTENERS (FORM TUGAS, FILTER, JADWAL, GEAR, CHAT GURU, BACKUP)
 // =========================================================================
 function resetTaskForm() {
   const form = document.getElementById('taskForm');
@@ -789,11 +870,12 @@ function resetTaskForm() {
   const customInput = document.getElementById('tCustomText');
 
   if (editEl) editEl.value = '';
-  if (titleEl) titleEl.textContent = '➕ Tambah Tugas & Karakter Guru';
+  if (titleEl) titleEl.textContent = '➕ Buat Tugas & Karakter Guru';
   if (btnEl) btnEl.textContent = '💾 Simpan Tugas & Aktifkan Teror';
   if (cancelEl) cancelEl.classList.add('hidden');
   if (customEl) customEl.classList.add('hidden');
   if (customInput) customInput.required = false;
+  setDefaultTaskDates();
 }
 
 function setupEventListeners() {
@@ -811,6 +893,13 @@ function setupEventListeners() {
   document.getElementById('btnPanic')?.addEventListener('click', triggerPanicMode);
   document.getElementById('btnClosePanic')?.addEventListener('click', () => {
     document.getElementById('panicBox')?.classList.add('hidden');
+  });
+
+  document.getElementById('btnToggleExamMode')?.addEventListener('click', () => {
+    isExamMode = !isExamMode;
+    localStorage.setItem(EXAM_MODE_KEY, String(isExamMode));
+    updateExamModeUI();
+    renderAll();
   });
 
   document.getElementById('btnSharePanicWA')?.addEventListener('click', () => {
@@ -839,7 +928,23 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('btnCancelEdit')?.addEventListener('click', resetTaskForm);
+  document.getElementById('btnCancelEdit')?.addEventListener('click', () => {
+    resetTaskForm();
+    navigateTo('active-tasks');
+  });
+
+  // Filter tabs di halaman Tugas Aktif
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      currentTaskFilter = tab.dataset.filter || 'all';
+      document.querySelectorAll('.filter-tab').forEach(t => {
+        t.className = t.dataset.filter === currentTaskFilter
+          ? 'btn btn-sm btn-primary filter-tab'
+          : 'btn btn-sm btn-secondary filter-tab';
+      });
+      renderAssignments();
+    });
+  });
 
   const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   const alarmSelect = document.getElementById('alarmModeSelect');
@@ -850,7 +955,7 @@ function setupEventListeners() {
     });
   }
 
-  // Simpan / Update Tugas (Dijamin Tersimpan & Notifikasi Langsung Muncul)
+  // Simpan / Update Tugas -> Pindah ke Halaman Daftar Tugas Aktif -> Picu Notifikasi Teror
   const taskForm = document.getElementById('taskForm');
   if (taskForm) {
     taskForm.addEventListener('submit', (e) => {
@@ -904,10 +1009,8 @@ function setupEventListeners() {
 
       saveTasks();
       resetTaskForm();
-      renderAll();
-
-      // Scroll ke daftar tugas aktif agar terlihat langsung & picu teror notifikasi
-      document.getElementById('assignmentsList')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      currentTaskFilter = 'all';
+      navigateTo('active-tasks');
       triggerNotifications(newTask);
     });
   }
@@ -980,7 +1083,7 @@ function setupEventListeners() {
 
   // Ekspor & Impor Backup JSON
   document.getElementById('btnExportData')?.addEventListener('click', () => {
-    const backup = { userProfile, tasks, schedules, gears, stats };
+    const backup = { userProfile, tasks, archivedTasks, schedules, gears, stats };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -999,11 +1102,12 @@ function setupEventListeners() {
         const data = JSON.parse(ev.target.result);
         if (data.userProfile) userProfile = data.userProfile;
         if (data.tasks) tasks = data.tasks;
+        if (data.archivedTasks) archivedTasks = data.archivedTasks;
         if (data.schedules) schedules = sortSchedulesByDay(data.schedules);
         if (data.gears) gears = data.gears;
         if (data.stats) stats = data.stats;
         localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-        saveTasks(); saveSchedules(); saveGears(); saveStats();
+        saveTasks(); saveArchive(); saveSchedules(); saveGears(); saveStats();
         loadAllData();
         renderAll();
         alert('✅ Data backup berhasil dipulihkan!');
@@ -1099,33 +1203,46 @@ function renderDashboard() {
     descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Patuhi time-blocking agar tidak menumpuk.`;
   }
 
-  const list = document.getElementById('dashboardAlertsList');
-  if (list) {
-    list.innerHTML = active.slice(0, 3).map(t => {
-      const slack = calculateSlack(t);
-      return `
-        <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-          <strong>🚨 ${t.teacher} — ${t.subject}</strong>
-          <p class="alert-msg">${generateTerrorMessage(t)}</p>
-        </div>
-      `;
-    }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
+  // Pengingat H-1 Perlengkapan Besok
+  const tomorrowBox = document.getElementById('tomorrowGearAlert');
+  if (tomorrowBox) {
+    const tomorrowIdx = (new Date().getDay() + 1) % 7;
+    const tomorrowDayName = DAY_NAMES_BY_INDEX[tomorrowIdx];
+    const tomorrowClasses = schedules.filter(s => s.day === tomorrowDayName);
+    const uncheckedGears = gears.filter(g => !g.checked);
+
+    if (tomorrowClasses.length > 0 || uncheckedGears.length > 0) {
+      tomorrowBox.classList.remove('hidden');
+      document.getElementById('tomorrowDayLabel').textContent = tomorrowDayName;
+      document.getElementById('tomorrowScheduleHint').textContent = tomorrowClasses.length > 0
+        ? `Jadwal ${tomorrowDayName}: ${tomorrowClasses.map(c => c.subject).join(', ')}.`
+        : `Pastikan seluruh perlengkapan praktik siap sebelum tidur.`;
+      document.getElementById('tomorrowGearSummary').innerHTML = uncheckedGears.length > 0
+        ? `<small style="color:var(--warning);">⚠️ Belum diceklis (${uncheckedGears.length}): <strong>${uncheckedGears.map(g => g.text).join(', ')}</strong></small>`
+        : `<small style="color:var(--success);">✅ Semua perlengkapan di checklist sudah siap dibawa!</small>`;
+    } else {
+      tomorrowBox.classList.add('hidden');
+    }
   }
 
+  // Urutan Prioritas & Risiko di Beranda (Bersih tanpa kotak teror)
   const priorityList = document.getElementById('todayActionList');
   if (priorityList) {
     const sorted = [...active].sort((a, b) => {
-      const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
-      const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
+      const scoreA = calculateSlack(a) / getEffectiveWeight(a);
+      const scoreB = calculateSlack(b) / getEffectiveWeight(b);
       return scoreA - scoreB;
     });
 
-    priorityList.innerHTML = sorted.slice(0, 4).map((t, i) => {
+    priorityList.innerHTML = sorted.slice(0, 5).map((t, i) => {
       const slack = calculateSlack(t);
       return `
-        <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-          <strong>#${i + 1} ${t.title} (${t.subject})</strong>
-          <p class="hint">${getGradeLabel(t.gradeWeight)} • Slack: ${slack} jam</p>
+        <div class="alert-card ${slack <= 0 ? 'urgent' : ''}" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <strong>#${i + 1} ${t.title} (${t.subject})</strong>
+            <p class="hint">${getGradeLabel(t.gradeWeight)} • Slack: ${slack} jam</p>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" onclick="focusOnTask('${t.id}')">⏱️ Fokus</button>
         </div>
       `;
     }).join('') || '<p class="hint">Belum ada daftar prioritas tugas.</p>';
@@ -1135,11 +1252,40 @@ function renderDashboard() {
 function renderAssignments() {
   const active = tasks.filter(t => t.status === 'active');
   const labelEl = document.getElementById('totalTasksLabel');
+  const archEl = document.getElementById('archiveCountLabel');
   if (labelEl) labelEl.textContent = active.length;
+  if (archEl) archEl.textContent = archivedTasks.length;
+
   const container = document.getElementById('assignmentsList');
   if (!container) return;
 
-  container.innerHTML = active.map(t => {
+  if (currentTaskFilter === 'archive') {
+    container.innerHTML = archivedTasks.map(t => `
+      <div class="task-item" style="opacity:0.85;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="subject-pill">${t.subject}</span>
+          <span class="slack-pill slack-safe">✓ Selesai</span>
+        </div>
+        <h4>${t.title}</h4>
+        <small class="hint">Guru: ${t.teacher} • Selesai pada: ${t.completedAt || '-'}</small>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button type="button" class="btn btn-sm btn-secondary" style="flex:1;" onclick="restoreArchivedTask('${t.id}')">↩️ Kembalikan ke Aktif</button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteArchivedTask('${t.id}')">🗑️</button>
+        </div>
+      </div>
+    `).join('') || '<p class="hint">Belum ada riwayat tugas yang selesai.</p>';
+    return;
+  }
+
+  let filtered = active;
+  if (currentTaskFilter === 'critical') {
+    filtered = active.filter(t => calculateSlack(t) <= 0);
+  } else if (currentTaskFilter === 'today') {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    filtered = active.filter(t => (t.deadline || '').startsWith(todayStr));
+  }
+
+  container.innerHTML = filtered.map(t => {
     const slack = calculateSlack(t);
     const parent = t.dependsOn ? tasks.find(p => p.id === t.dependsOn) : null;
 
@@ -1187,14 +1333,15 @@ function renderAssignments() {
         ${parent ? `<small class="hint">⛓️ Bergantung pada: ${parent.title}</small>` : ''}
         ${groupHtml}
         ${subTasksHtml}
-        <div style="display:flex; gap:6px; margin-top:8px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
           <button type="button" class="btn btn-sm btn-primary" style="flex:1;" onclick="completeTask('${t.id}')">✓ Selesai</button>
-          <button type="button" class="btn btn-sm btn-secondary" onclick="editTask('${t.id}')">✏️ Edit</button>
-          <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">🗑️</button>
+          <button type="button" class="btn btn-sm btn-warning" onclick="focusOnTask('${t.id}')" title="Mulai Fokus">⏱️</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="editTask('${t.id}')" title="Edit">✏️</button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')" title="Hapus">🗑️</button>
         </div>
       </div>
     `;
-  }).join('') || '<p class="hint">Belum ada tugas yang ditambahkan.</p>';
+  }).join('') || '<p class="hint">Tidak ada tugas pada kategori ini. Tekan "+ Tambah Tugas Baru" untuk membuat tugas.</p>';
 }
 
 window.toggleSubTask = (taskId, subIndex) => {
@@ -1209,6 +1356,7 @@ window.toggleSubTask = (taskId, subIndex) => {
 window.editTask = (id) => {
   const t = tasks.find(item => item.id === id);
   if (!t) return;
+  navigateTo('create-task');
   document.getElementById('editTaskId').value = t.id;
   document.getElementById('tTitle').value = t.title;
   document.getElementById('tSubject').value = t.subject;
@@ -1232,7 +1380,6 @@ window.editTask = (id) => {
   document.getElementById('formModeTitle').textContent = '✏️ Edit Tugas & Jadwal';
   document.getElementById('btnSubmitTask').textContent = '💾 Simpan Perubahan Tugas';
   document.getElementById('btnCancelEdit').classList.remove('hidden');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 window.completeTask = (id) => {
@@ -1247,9 +1394,33 @@ window.completeTask = (id) => {
       stats.streak++;
     }
     saveStats();
+
+    archivedTasks.unshift({
+      ...t,
+      status: 'completed',
+      completedAt: new Date().toLocaleString('id-ID')
+    });
+    saveArchive();
   }
   tasks = tasks.filter(item => item.id !== id);
   saveTasks();
+  renderAll();
+};
+
+window.restoreArchivedTask = (id) => {
+  const t = archivedTasks.find(item => item.id === id);
+  if (t) {
+    tasks.push({ ...t, status: 'active' });
+    archivedTasks = archivedTasks.filter(item => item.id !== id);
+    saveTasks();
+    saveArchive();
+    renderAll();
+  }
+};
+
+window.deleteArchivedTask = (id) => {
+  archivedTasks = archivedTasks.filter(item => item.id !== id);
+  saveArchive();
   renderAll();
 };
 
@@ -1260,7 +1431,7 @@ window.deleteTask = (id) => {
 };
 
 // =========================================================================
-// SIMULATOR DOMINO LENGKAP (MENGHITUNG SLACK, DAMPAK BERANTAI & RISIKO NILAI)
+// SIMULATOR DOMINO LENGKAP
 // =========================================================================
 function renderSimulator() {
   const selectEl = document.getElementById('simTaskSelect');
@@ -1274,7 +1445,7 @@ function renderSimulator() {
   if (label) label.textContent = `+${delay} Jam`;
 
   if (!id) {
-    box.innerHTML = '<p class="hint">Tambahkan tugas terlebih dahulu di menu Tugas untuk menjalankan simulasi efek domino.</p>';
+    box.innerHTML = '<p class="hint">Tambahkan tugas terlebih dahulu di menu Buat Tugas untuk menjalankan simulasi efek domino.</p>';
     return;
   }
 
@@ -1400,20 +1571,21 @@ window.toggleGear = (id) => {
   if (g) {
     g.checked = !g.checked;
     saveGears();
-    renderScheduleAndGear();
+    renderAll();
   }
 };
 
 window.deleteGear = (id) => {
   gears = gears.filter(g => g.id !== id);
   saveGears();
-  renderScheduleAndGear();
+  renderAll();
 };
 
 function renderAlerts() {
   const active = tasks.filter(t => t.status === 'active');
   const badge = document.getElementById('alertCountBadge');
   if (badge) badge.textContent = active.length;
+  updateNotifStatusBadge();
 
   const list = document.getElementById('fullAlertsList');
   if (list) {
