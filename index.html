@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DOMIFECT" />
   <title>DOMIFECT — Academic & Vocational Domino Effect Planner</title>
-  <link rel="stylesheet" href="./style.css?v=10" />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div id="toastFeedback" class="toast-feedback hidden"></div>
@@ -426,14 +426,6 @@
     </div>
   </div>
 
-  <!-- Bersihkan cache SW lama sebelum memuat app.js agar versi terbaru langsung aktif -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        regs.forEach(function(r) { r.unregister(); });
-      }).catch(function() {});
-    }
-  </script>
-  <script src="./app.js?v=10"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
