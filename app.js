@@ -1,11 +1,11 @@
-const TASKS_KEY = 'domifect_tasks_v10';
-const ARCHIVE_KEY = 'domifect_archive_v10';
-const PROFILE_KEY = 'domifect_profile_v10';
-const SCHEDULE_KEY = 'domifect_schedule_v10';
-const GEAR_KEY = 'domifect_gear_v10';
-const STATS_KEY = 'domifect_stats_v10';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v10';
-const EXAM_MODE_KEY = 'domifect_exam_mode_v10';
+const TASKS_KEY = 'domifect_tasks';
+const ARCHIVE_KEY = 'domifect_archive';
+const PROFILE_KEY = 'domifect_profile';
+const SCHEDULE_KEY = 'domifect_schedule';
+const GEAR_KEY = 'domifect_gear';
+const STATS_KEY = 'domifect_stats';
+const ALARM_MODE_KEY = 'domifect_alarm_mode';
+const EXAM_MODE_KEY = 'domifect_exam_mode';
 
 const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_NAMES_BY_INDEX = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -46,7 +46,7 @@ function initApp() {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js?v=10').then(reg => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
       reg.update();
     }).catch(() => {});
   }
@@ -347,13 +347,7 @@ function handleGenerateChat() {
     pkl: 'dikarenakan terdapat penyesuaian jadwal kerja / lembur di tempat PKL (Prakerin) yang baru selesai cukup malam',
     kelompok: 'dikarenakan kami masih menunggu kelengkapan data dari salah satu anggota kelompok agar laporan dapat digabungkan secara utuh'
   };
-  const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.
-
-Mohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.
-
-Saat ini progres pengerjaan sudah berjalan, namun ${reasonTexts[reason] || reasonTexts.alat}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].
-
-Terima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
+  const draft = "Assalamu'alaikum / Selamat pagi/siang " + task.teacher + ".\n\nMohon maaf mengganggu waktunya. Saya " + studentName + " dari kelas " + studentClass + ". Saya ingin mengonfirmasi terkait tugas \"" + task.title + "\" pada mata pelajaran " + task.subject + ".\n\nSaat ini progres pengerjaan sudah berjalan, namun " + (reasonTexts[reason] || reasonTexts.alat) + ". Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, " + task.teacher + ".";
   document.getElementById('negoChatOutput').value = draft;
   document.getElementById('negoResultBox').classList.remove('hidden');
   showToast('✍️ Draf chat WhatsApp siap disalin!');
@@ -577,8 +571,7 @@ function triggerPanicMode() {
     waLines.push(`${idx + 1}. *${t.title}* (${t.subject}) | ${mins} menit | ${statusText}`);
   });
   planHtml += '</ol>';
-  lastPanicTextWA = waLines.join('
-');
+  lastPanicTextWA = waLines.join('\n');
   panicBox.classList.remove('hidden');
   panicContent.innerHTML = planHtml;
   showToast('🚨 Rencana Darurat Kilat disusun!');
@@ -729,7 +722,6 @@ function renderDashboard() {
     descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam.`;
   }
 
-  // Pengingat perlengkapan besok
   const tomorrowBox = document.getElementById('tomorrowGearAlert');
   if (tomorrowBox) {
     const tomorrowIdx = (new Date().getDay() + 1) % 7;
