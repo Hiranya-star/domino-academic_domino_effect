@@ -428,6 +428,19 @@ input[type="range"] {
   gap: 6px;
 }
 
+.progress-wrap {
+  height: 6px;
+  background: var(--secondary);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 4px 0 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+}
+
 .subtask-row {
   display: flex;
   align-items: center;
