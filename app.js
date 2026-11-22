@@ -1,15 +1,15 @@
 /* ==========================================================================
-   DOMIFECT v7 — Bulletproof Event Delegation & Zero-Freeze Execution
+   DOMIFECT v8 — Direct Inline Handlers & Bulletproof Execution
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v7';
-const ARCHIVE_KEY = 'domifect_archive_v7';
-const PROFILE_KEY = 'domifect_profile_v7';
-const SCHEDULE_KEY = 'domifect_schedule_v7';
-const GEAR_KEY = 'domifect_gear_v7';
-const STATS_KEY = 'domifect_stats_v7';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v7';
-const EXAM_MODE_KEY = 'domifect_exam_mode_v7';
+const TASKS_KEY = 'domifect_tasks_v8';
+const ARCHIVE_KEY = 'domifect_archive_v8';
+const PROFILE_KEY = 'domifect_profile_v8';
+const SCHEDULE_KEY = 'domifect_schedule_v8';
+const GEAR_KEY = 'domifect_gear_v8';
+const STATS_KEY = 'domifect_stats_v8';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v8';
+const EXAM_MODE_KEY = 'domifect_exam_mode_v8';
 
 const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_NAMES_BY_INDEX = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -46,7 +46,6 @@ function initApp() {
   try { initTheme(); } catch (e) {}
   try { loadAllData(); } catch (e) {}
   try { setDefaultTaskDates(); } catch (e) {}
-  try { setupGlobalDelegation(); } catch (e) {}
   try { setupPWAInstall(); } catch (e) {}
   try { updateNotifStatusBadge(); } catch (e) {}
   try { renderAll(); } catch (e) {}
@@ -106,18 +105,18 @@ function setDefaultTaskDates() {
 }
 
 function loadAllData() {
-  // Migrasi otomatis data lama dari v6 jika v7 masih kosong
-  const oldTasks = localStorage.getItem('domifect_tasks_v6');
+  // Migrasi otomatis data lama jika v8 kosong
+  const oldTasks = localStorage.getItem('domifect_tasks_v7') || localStorage.getItem('domifect_tasks_v6');
   if (!localStorage.getItem(TASKS_KEY) && oldTasks) {
     localStorage.setItem(TASKS_KEY, oldTasks);
   }
-  const oldSched = localStorage.getItem('domifect_schedule_v6');
+  const oldSched = localStorage.getItem('domifect_schedule_v7') || localStorage.getItem('domifect_schedule_v6');
   if (!localStorage.getItem(SCHEDULE_KEY) && oldSched) {
     localStorage.setItem(SCHEDULE_KEY, oldSched);
   }
 
   try {
-    const rawProf = localStorage.getItem(PROFILE_KEY) || localStorage.getItem('domifect_profile_v6');
+    const rawProf = localStorage.getItem(PROFILE_KEY) || localStorage.getItem('domifect_profile_v7') || localStorage.getItem('domifect_profile_v6');
     if (rawProf) {
       userProfile = JSON.parse(rawProf);
       const pName = document.getElementById('pName');
@@ -222,191 +221,182 @@ function setupPWAInstall() {
 }
 
 // =========================================================================
-// GLOBAL EVENT DELEGATION (MENJAMIN SEMUA TOMBOL, FORM & SLIDER BISA DIPENCET)
+// DIRECT INLINE BRIDGE FUNCTIONS (DIPANGGIL LANGSUNG DARI ONCLICK HTML)
 // =========================================================================
-function setupGlobalDelegation() {
-  // 1. Delegasi Klik Global untuk seluruh tombol & navigasi
-  document.addEventListener('click', (e) => {
-    const target = e.target;
+window.uiGoPage = function(pageId) {
+  if (pageId === 'create-task' && !document.getElementById('editTaskId')?.value) {
+    resetTaskForm();
+  }
+  navigateTo(pageId);
+};
 
-    // Navigasi Sidebar / Bottom Nav (menggunakan .closest agar klik icon/span tetap terbaca)
-    const navBtn = target.closest('[data-page]');
-    if (navBtn) {
-      e.preventDefault();
-      const pageId = navBtn.getAttribute('data-page');
-      if (pageId === 'create-task' && !document.getElementById('editTaskId')?.value) {
-        resetTaskForm();
-      }
-      navigateTo(pageId);
-      return;
-    }
+window.uiToggleTheme = function() {
+  toggleTheme();
+};
 
-    // Filter tabs di Tugas Aktif
-    const filterBtn = target.closest('.filter-tab');
-    if (filterBtn) {
-      e.preventDefault();
-      currentTaskFilter = filterBtn.getAttribute('data-filter') || 'all';
-      document.querySelectorAll('.filter-tab').forEach(t => {
-        t.className = t.getAttribute('data-filter') === currentTaskFilter
-          ? 'btn btn-sm btn-primary filter-tab'
-          : 'btn btn-sm btn-secondary filter-tab';
-      });
-      renderAssignments();
-      return;
-    }
+window.uiRequestNotif = function() {
+  requestNotificationPermission();
+};
 
-    // Tombol-tombol aksi utama berdasarkan ID
-    const btn = target.closest('button');
-    if (!btn) return;
-    const id = btn.id;
+window.uiQuickAdd = function() {
+  resetTaskForm();
+  navigateTo('create-task');
+};
 
-    if (id === 'btnQuickAdd' || id === 'btnAddFromActive') {
-      e.preventDefault();
-      resetTaskForm();
-      navigateTo('create-task');
-    } else if (id === 'btnGoActiveTasks') {
-      e.preventDefault();
-      navigateTo('active-tasks');
-    } else if (id === 'btnCancelEdit') {
-      e.preventDefault();
-      resetTaskForm();
-      navigateTo('active-tasks');
-    } else if (id === 'btnSidebarTheme' || id === 'btnMobileTheme') {
-      e.preventDefault();
-      toggleTheme();
-    } else if (id === 'btnEnableNotif' || id === 'btnMobileNotif' || id === 'btnEnableNotifMobile') {
-      e.preventDefault();
-      requestNotificationPermission();
-    } else if (id === 'btnClosePopup') {
-      e.preventDefault();
-      document.getElementById('popupTerrorBanner')?.classList.add('hidden');
-    } else if (id === 'btnPanic') {
-      e.preventDefault();
-      triggerPanicMode();
-    } else if (id === 'btnClosePanic') {
-      e.preventDefault();
-      document.getElementById('panicBox')?.classList.add('hidden');
-    } else if (id === 'btnSharePanicWA') {
-      e.preventDefault();
-      if (lastPanicTextWA) {
-        window.open(`https://wa.me/?text=${encodeURIComponent(lastPanicTextWA)}`, '_blank');
-      }
-    } else if (id === 'btnToggleExamMode') {
-      e.preventDefault();
-      isExamMode = !isExamMode;
-      localStorage.setItem(EXAM_MODE_KEY, String(isExamMode));
-      updateExamModeUI();
-      renderAll();
-      showToast(isExamMode ? '🎓 Mode Ujian / UKK Aktif!' : 'Mode Ujian Dinonaktifkan');
-    } else if (id === 'btnAntiMager') {
-      e.preventDefault();
-      const targetLabel = document.getElementById('focusTaskTargetLabel');
-      if (targetLabel) targetLabel.textContent = '⚡ Tantangan Anti-Mager 5 Menit — Mulai Sekarang!';
-      navigateTo('focus');
-      startCustomFocus(5);
-    } else if (id === 'btnStartTimer') {
-      e.preventDefault();
-      handleStartTimer();
-    } else if (id === 'btnPauseTimer') {
-      e.preventDefault();
-      clearInterval(focusTimerInterval);
-      isFocusRunning = false;
-      showToast('⏸️ Timer dijeda');
-    } else if (id === 'btnResetTimer') {
-      e.preventDefault();
-      clearInterval(focusTimerInterval);
-      isFocusRunning = false;
-      const input = document.getElementById('customTimerInput');
-      const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
-      focusSecondsRemaining = mins * 60;
-      updateTimerDisplay();
-      showToast('🔄 Timer di-reset');
-    } else if (id === 'btnGenerateChat') {
-      e.preventDefault();
-      handleGenerateChat();
-    } else if (id === 'btnCopyChat') {
-      e.preventDefault();
-      const output = document.getElementById('negoChatOutput');
-      if (output) {
-        output.select();
-        navigator.clipboard?.writeText(output.value);
-        showToast('📋 Draf chat WhatsApp berhasil disalin!');
-      }
-    } else if (id === 'btnExportData') {
-      e.preventDefault();
-      handleExportData();
-    } else if (id === 'btnInstallApp') {
-      e.preventDefault();
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          document.getElementById('installBanner')?.classList.add('hidden');
-          deferredPrompt = null;
-        });
-      }
-    } else if (id === 'btnCloseInstall') {
-      e.preventDefault();
+window.uiPanic = function() {
+  triggerPanicMode();
+};
+
+window.uiClosePanic = function() {
+  document.getElementById('panicBox')?.classList.add('hidden');
+};
+
+window.uiSharePanicWA = function() {
+  if (lastPanicTextWA) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(lastPanicTextWA), '_blank');
+  }
+};
+
+window.uiAntiMager = function() {
+  const targetLabel = document.getElementById('focusTaskTargetLabel');
+  if (targetLabel) targetLabel.textContent = '⚡ Tantangan Anti-Mager 5 Menit — Mulai Sekarang!';
+  navigateTo('focus');
+  startCustomFocus(5);
+};
+
+window.uiToggleExamMode = function() {
+  isExamMode = !isExamMode;
+  localStorage.setItem(EXAM_MODE_KEY, String(isExamMode));
+  updateExamModeUI();
+  renderAll();
+  showToast(isExamMode ? '🎓 Mode Ujian / UKK Aktif!' : 'Mode Ujian Dinonaktifkan');
+};
+
+window.uiFilterTasks = function(filterType) {
+  currentTaskFilter = filterType || 'all';
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    t.className = t.getAttribute('data-filter') === currentTaskFilter
+      ? 'btn btn-sm btn-primary filter-tab'
+      : 'btn btn-sm btn-secondary filter-tab';
+  });
+  renderAssignments();
+};
+
+window.uiCancelEdit = function() {
+  resetTaskForm();
+  navigateTo('active-tasks');
+};
+
+window.uiOnQuickScheduleChange = function(val) {
+  const sch = schedules.find(s => s.id === val);
+  if (sch) {
+    document.getElementById('tSubject').value = sch.subject;
+    document.getElementById('tTeacher').value = sch.teacher;
+  }
+};
+
+window.uiOnPersonaChange = function(val) {
+  const customGroup = document.getElementById('customPersonaGroup');
+  if (val === 'custom') customGroup?.classList.remove('hidden');
+  else customGroup?.classList.add('hidden');
+};
+
+window.uiSubmitTask = function(e) {
+  if (e) e.preventDefault();
+  handleTaskSubmit();
+  return false;
+};
+
+window.uiSubmitSchedule = function(e) {
+  if (e) e.preventDefault();
+  handleScheduleSubmit();
+  return false;
+};
+
+window.uiSubmitGear = function(e) {
+  if (e) e.preventDefault();
+  handleGearSubmit();
+  return false;
+};
+
+window.uiSubmitProfile = function(e) {
+  if (e) e.preventDefault();
+  handleProfileSubmit();
+  return false;
+};
+
+window.uiStartTimer = function() {
+  handleStartTimer();
+};
+
+window.uiPauseTimer = function() {
+  clearInterval(focusTimerInterval);
+  isFocusRunning = false;
+  showToast('⏸️ Timer dijeda');
+};
+
+window.uiResetTimer = function() {
+  clearInterval(focusTimerInterval);
+  isFocusRunning = false;
+  const input = document.getElementById('customTimerInput');
+  const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
+  focusSecondsRemaining = mins * 60;
+  updateTimerDisplay();
+  showToast('🔄 Timer di-reset');
+};
+
+window.uiOnTimerInputChange = function(val) {
+  if (!isFocusRunning) {
+    const mins = Math.max(1, Math.min(180, parseInt(val) || 25));
+    focusSecondsRemaining = mins * 60;
+    updateTimerDisplay();
+  }
+};
+
+window.uiGenerateChat = function() {
+  handleGenerateChat();
+};
+
+window.uiCopyChat = function() {
+  const output = document.getElementById('negoChatOutput');
+  if (output) {
+    output.select();
+    navigator.clipboard?.writeText(output.value);
+    showToast('📋 Draf chat WhatsApp berhasil disalin!');
+  }
+};
+
+window.uiOnAlarmModeChange = function(val) {
+  localStorage.setItem(ALARM_MODE_KEY, val);
+};
+
+window.uiExportData = function() {
+  handleExportData();
+};
+
+window.uiImportData = function(inputEl) {
+  if (inputEl && inputEl.files && inputEl.files[0]) {
+    handleImportData(inputEl.files[0]);
+  }
+};
+
+window.uiClosePopup = function() {
+  document.getElementById('popupTerrorBanner')?.classList.add('hidden');
+};
+
+window.uiInstallApp = function() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
       document.getElementById('installBanner')?.classList.add('hidden');
-    }
-  });
+      deferredPrompt = null;
+    });
+  }
+};
 
-  // 2. Delegasi Submit Form Global
-  document.addEventListener('submit', (e) => {
-    const form = e.target;
-    if (!form) return;
-
-    if (form.id === 'taskForm') {
-      e.preventDefault();
-      handleTaskSubmit();
-    } else if (form.id === 'scheduleForm') {
-      e.preventDefault();
-      handleScheduleSubmit();
-    } else if (form.id === 'gearForm') {
-      e.preventDefault();
-      handleGearSubmit();
-    } else if (form.id === 'profileForm') {
-      e.preventDefault();
-      handleProfileSubmit();
-    }
-  });
-
-  // 3. Delegasi Input & Change Global (Simulator Slider, Dropdown, Backup File)
-  document.addEventListener('input', (e) => {
-    if (e.target && e.target.id === 'simDelaySlider') {
-      renderSimulator();
-    }
-  });
-
-  document.addEventListener('change', (e) => {
-    const el = e.target;
-    if (!el) return;
-
-    if (el.id === 'simTaskSelect') {
-      renderSimulator();
-    } else if (el.id === 'tQuickSchedule') {
-      const sch = schedules.find(s => s.id === el.value);
-      if (sch) {
-        document.getElementById('tSubject').value = sch.subject;
-        document.getElementById('tTeacher').value = sch.teacher;
-      }
-    } else if (el.id === 'tPersona') {
-      const customGroup = document.getElementById('customPersonaGroup');
-      if (el.value === 'custom') customGroup?.classList.remove('hidden');
-      else customGroup?.classList.add('hidden');
-    } else if (el.id === 'alarmModeSelect') {
-      localStorage.setItem(ALARM_MODE_KEY, el.value);
-    } else if (el.id === 'customTimerInput') {
-      if (!isFocusRunning) {
-        const mins = Math.max(1, Math.min(180, parseInt(el.value) || 25));
-        el.value = mins;
-        focusSecondsRemaining = mins * 60;
-        updateTimerDisplay();
-      }
-    } else if (el.id === 'inputImportData') {
-      handleImportData(el.files[0]);
-    }
-  });
-}
+window.uiCloseInstall = function() {
+  document.getElementById('installBanner')?.classList.add('hidden');
+};
 
 // =========================================================================
 // HANDLER SUBMIT FORM (TUGAS, JADWAL, GEAR, PROFIL)
@@ -1486,7 +1476,7 @@ window.deleteTask = (id) => {
 // =========================================================================
 // SIMULATOR DOMINO LENGKAP
 // =========================================================================
-function renderSimulator() {
+window.renderSimulator = function() {
   const selectEl = document.getElementById('simTaskSelect');
   const sliderEl = document.getElementById('simDelaySlider');
   const label = document.getElementById('simDelayLabel');
@@ -1561,7 +1551,7 @@ function renderSimulator() {
   }
 
   box.innerHTML = html;
-}
+};
 
 // =========================================================================
 // JADWAL TETAP PER HARI (SENIN - SABTU) & PERLENGKAPAN
