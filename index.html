@@ -17,11 +17,11 @@
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <strong>📲 Download & Install DOMIFECT</strong>
-      <small>Pasang sebagai aplikasi penuh di HP (Bukan sekadar pintasan web)</small>
+      <small>Pasang sebagai aplikasi penuh di HP (Offline & WebAPK)</small>
     </div>
     <div class="install-btns">
-      <button id="btnInstallApp" class="btn btn-primary btn-sm">Download App</button>
-      <button id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
+      <button type="button" id="btnInstallApp" class="btn btn-primary btn-sm">Download App</button>
+      <button type="button" id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
     </div>
   </div>
 
@@ -33,16 +33,17 @@
         <span id="sidebarStudentTag">Planner SMA & SMK</span>
       </div>
       <nav class="nav-menu">
-        <button class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
-        <button class="nav-item" data-page="assignments">📝 <span>Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
-        <button class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
-        <button class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
-        <button class="nav-item" data-page="focus">⏱️ <span>Fokus</span></button>
-        <button class="nav-item" data-page="profile">👤 <span>Profil</span></button>
+        <button type="button" class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
+        <button type="button" class="nav-item" data-page="assignments">📝 <span>Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button type="button" class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
+        <button type="button" class="nav-item" data-page="schedule">🎒 <span>Jadwal</span></button>
+        <button type="button" class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
+        <button type="button" class="nav-item" data-page="focus">⏱️ <span>Fokus</span></button>
+        <button type="button" class="nav-item" data-page="profile">👤 <span>Profil</span></button>
       </nav>
       <div class="sidebar-footer">
-        <button id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
+        <button type="button" id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
+        <button type="button" id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
       </div>
     </aside>
 
@@ -57,33 +58,38 @@
           <h2 id="pageTitle" class="desktop-title">Dashboard Akademik & Kejuruan</h2>
         </div>
         <div class="topbar-right">
-          <button id="btnMobileTheme" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
-          <button id="btnMobileNotif" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
-          <button class="btn btn-primary btn-sm" onclick="navigateTo('assignments')">➕ Tugas</button>
+          <button type="button" id="btnMobileTheme" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
+          <button type="button" id="btnMobileNotif" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
+          <button type="button" id="btnQuickAdd" class="btn btn-primary btn-sm">➕ Tugas</button>
         </div>
       </header>
 
-      <!-- HALAMAN 1: DASHBOARD & PANIC BUTTON -->
+      <!-- HALAMAN 1: DASHBOARD, PANIC BUTTON & ANTI-MAGER -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
-            <span class="label">INDEKS STABILITAS & BEBAN MENTAL</span>
-            <h3 id="stabilityScore">100% — Jadwal Stabil</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <span class="label">INDEKS STABILITAS & BEBAN MENTAL</span>
+              <span id="streakBadge" class="slack-pill slack-safe">🔥 Streak: 0 Tepat Waktu</span>
+            </div>
+            <h3 id="stabilityScore">100% — Jadwal Stabil | Beban Mental: 0%</h3>
             <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
           </div>
-          <div style="margin-top: 14px;">
-            <button id="btnPanic" class="btn btn-danger btn-block">🚨 PANIC BUTTON (Rencana Darurat Kilat)</button>
+          <div class="dashboard-actions-grid" style="margin-top: 14px;">
+            <button type="button" id="btnPanic" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
+            <button type="button" id="btnAntiMager" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
           </div>
         </div>
 
-        <!-- KOTAK RENCANA DARURAT -->
+        <!-- KOTAK RENCANA DARURAT (PRIORITAS RAPOR) -->
         <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="color: var(--danger);">🚨 Rencana Darurat Kilat</h3>
-            <button class="btn-icon" onclick="document.getElementById('panicBox').classList.add('hidden')">✕</button>
+            <h3 style="color: var(--danger);">🚨 Rencana Darurat Kilat (Prioritas Rapor)</h3>
+            <button type="button" id="btnClosePanic" class="btn-icon">✕</button>
           </div>
-          <p class="hint">Urutan eksekusi menit-per-menit untuk menyelamatkan deadline:</p>
+          <p class="hint">Urutan eksekusi menit-per-menit berdasarkan Slack Time & Bobot Nilai Rapor:</p>
           <div id="panicContent" style="margin-top: 10px;"></div>
+          <button type="button" id="btnSharePanicWA" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
         </div>
 
         <div class="dashboard-split">
@@ -93,46 +99,75 @@
           </div>
           <div class="card">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <div id="todayActionList" style="margin-top:10px;"></div>
+            <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
           </div>
         </div>
       </section>
 
-      <!-- HALAMAN 2: DAFTAR TUGAS & FORM -->
+      <!-- HALAMAN 2: DAFTAR TUGAS, MICRO-TASK & KELOMPOK -->
       <section id="page-assignments" class="page">
         <div class="card">
-          <h3 id="formModeTitle">➕ Tambah Tugas & Karakter Guru</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 id="formModeTitle">➕ Tambah Tugas & Karakter Guru</h3>
+            <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
+          </div>
           <form id="taskForm" class="task-form" style="margin-top:12px;">
             <input type="hidden" id="editTaskId" />
+
+            <!-- PILIH CEPAT DARI JADWAL MAPEL -->
+            <div class="form-group">
+              <label>⚡ Isi Otomatis dari Jadwal Pelajaran (Opsional)</label>
+              <select id="tQuickSchedule">
+                <option value="">-- Pilih Mapel dari Jadwal Tersimpan --</option>
+              </select>
+            </div>
+
             <div class="form-group">
               <label>Nama Tugas / Laporan Praktikum / Project PKL *</label>
               <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Uji Kompetensi" required />
             </div>
-            <div class="form-group">
-              <label>Mata Pelajaran / Produktif Kejuruan *</label>
-              <input type="text" id="tSubject" placeholder="Contoh: Pemesinan / TKJ / RPL / Matematika" required />
+
+            <div class="form-row-mobile">
+              <div class="form-group">
+                <label>Mata Pelajaran / Produktif Kejuruan *</label>
+                <input type="text" id="tSubject" placeholder="Contoh: Pemesinan / TKJ / RPL / Matematika" required />
+              </div>
+              <div class="form-group">
+                <label>Nama Guru / Instruktur Pengampu *</label>
+                <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
+              </div>
             </div>
-            <div class="form-group">
-              <label>Nama Guru / Instruktur Pengampu *</label>
-              <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
+
+            <div class="form-row-mobile">
+              <div class="form-group">
+                <label>Bobot Nilai Rapor (Grade Impact) *</label>
+                <select id="tGradeWeight" required>
+                  <option value="1">📘 Tugas Harian / Latihan (Bobot 1x)</option>
+                  <option value="2">📙 Ulangan Harian / Kuis (Bobot 2x)</option>
+                  <option value="3">📕 Laporan Praktikum / Project PKL (Bobot 3x)</option>
+                  <option value="4">🏆 Ujian Praktik / UKK / SAS (Bobot 4x - Kritis)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Karakter / Tipe Guru (500+ Kalimat Teror) *</label>
+                <select id="tPersona" required>
+                  <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
+                  <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
+                  <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
+                  <option value="friendly">🤝 Ramah tapi Menagih (Memelas penuh rasa kecewa)</option>
+                  <option value="vocational">🔧 Instruktur Bengkel / Lab (Khas SMK & SOP)</option>
+                  <option value="silentkiller">👻 Misterius / Silent Killer (Langsung coret nama)</option>
+                  <option value="motivator">📢 Ceramah Panjang / Motivator (Bawa-bawa masa depan)</option>
+                  <option value="custom">💬 Custom Persona (Jargon khas gurumu sendiri)</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Karakter / Tipe Guru (Mesin 500+ Kalimat Teror) *</label>
-              <select id="tPersona" required>
-                <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
-                <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
-                <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
-                <option value="friendly">🤝 Ramah tapi Menagih (Memelas penuh rasa kecewa)</option>
-                <option value="vocational">🔧 Instruktur Bengkel / Lab (Khas SMK & SOP)</option>
-                <option value="silentkiller">👻 Misterius / Silent Killer (Langsung coret nama)</option>
-                <option value="motivator">📢 Ceramah Panjang / Motivator (Bawa-bawa masa depan)</option>
-                <option value="custom">💬 Custom Persona (Jargon khas gurumu sendiri)</option>
-              </select>
-            </div>
+
             <div class="form-group hidden" id="customPersonaGroup">
               <label>Masukkan Kalimat / Jargon Khas Gurumu:</label>
               <input type="text" id="tCustomText" placeholder="Contoh: Awas kalau berani telat kumpul laporan!" />
             </div>
+
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Mulai Kerja (Time-Blocking) *</label>
@@ -143,6 +178,7 @@
                 <input type="datetime-local" id="tDeadline" required />
               </div>
             </div>
+
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Estimasi Durasi (Jam) *</label>
@@ -155,6 +191,19 @@
                 </select>
               </div>
             </div>
+
+            <!-- MICRO-TASK / SUB-TASK -->
+            <div class="form-group">
+              <label>🧩 Pecah Langkah Kecil / Micro-Task (Pisahkan dengan koma, opsional)</label>
+              <input type="text" id="tSubTasks" placeholder="Contoh: Cari referensi, Ketik BAB 1, Cek format, Print laporan" />
+            </div>
+
+            <!-- GROUP TASK SPLITTER -->
+            <div class="form-group">
+              <label>👥 Pembagian Tugas Kelompok (Pisahkan dengan koma, opsional)</label>
+              <input type="text" id="tGroupMembers" placeholder="Contoh: Andi (BAB 1), Budi (Alat & Bahan), Sinta (Edit PPT)" />
+            </div>
+
             <div class="form-actions">
               <button type="submit" class="btn btn-primary btn-block" id="btnSubmitTask">💾 Simpan Tugas & Aktifkan Teror</button>
             </div>
@@ -167,11 +216,11 @@
         </div>
       </section>
 
-      <!-- HALAMAN 3: SIMULATOR DOMINO -->
+      <!-- HALAMAN 3: SIMULATOR DOMINO & GRADE IMPACT -->
       <section id="page-simulator" class="page">
         <div class="card">
           <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
-          <p class="hint">Geser waktu keterlambatan untuk melihat dampak berantai pada tugas berikutnya.</p>
+          <p class="hint">Geser waktu keterlambatan untuk melihat dampak berantai pada tugas berikutnya dan risiko nilai rapor.</p>
           <div class="form-group" style="margin-top:12px;">
             <label>Pilih Tugas yang Terlambat:</label>
             <select id="simTaskSelect"></select>
@@ -184,11 +233,82 @@
         </div>
       </section>
 
-      <!-- HALAMAN 4: PUSAT NOTIFIKASI -->
+      <!-- HALAMAN 4: JADWAL PELAJARAN & CHECKLIST PERLENGKAPAN BESOK -->
+      <section id="page-schedule" class="page">
+        <div class="dashboard-split">
+          <!-- JADWAL MAPEL -->
+          <div class="card">
+            <h3>📅 Jadwal Pelajaran Mingguan</h3>
+            <p class="hint">Simpan jadwal mapel & nama guru agar input tugas baru otomatis terisi.</p>
+            <form id="scheduleForm" style="margin-top:12px;">
+              <div class="form-row-mobile">
+                <div class="form-group">
+                  <label>Hari *</label>
+                  <select id="sDay" required>
+                    <option value="Senin">Senin</option>
+                    <option value="Selasa">Selasa</option>
+                    <option value="Rabu">Rabu</option>
+                    <option value="Kamis">Kamis</option>
+                    <option value="Jumat">Jumat</option>
+                    <option value="Sabtu">Sabtu</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Mata Pelajaran *</label>
+                  <input type="text" id="sSubject" placeholder="Contoh: Pemrograman Web / Kimia" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Nama Guru / Instruktur *</label>
+                <input type="text" id="sTeacher" placeholder="Contoh: Pak Hendra" required />
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">➕ Tambah ke Jadwal</button>
+            </form>
+            <div id="scheduleList" class="alert-list" style="margin-top:14px;"></div>
+          </div>
+
+          <!-- CHECKLIST PERLENGKAPAN PRAKTIK BESOK -->
+          <div class="card">
+            <h3>🎒 Checklist Perlengkapan Besok</h3>
+            <p class="hint">Catat barang wajib bawa (wearpack, jas lab, jangka sorong, flashdisk) agar tidak tertinggal.</p>
+            <form id="gearForm" style="display:flex; gap:8px; margin-top:12px;">
+              <input type="text" id="gearInput" placeholder="Contoh: Wearpack Bengkel / Jas Lab" required />
+              <button type="submit" class="btn btn-primary">Tambah</button>
+            </form>
+            <div id="gearList" class="alert-list" style="margin-top:14px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HALAMAN 5: PUSAT NOTIFIKASI & NEGOSIASI CHAT GURU -->
       <section id="page-alerts" class="page">
         <div class="card">
-          <h3>🔔 Pusat Notifikasi & Teror Guru</h3>
-          <p class="hint">Atur mode pengingat dan uji coba teror kata-kata guru di layar HP.</p>
+          <h3>💬 Generator Template Chat Izin / Negosiasi Guru</h3>
+          <p class="hint">Kondisi darurat? Susun draf pesan WhatsApp yang sopan sesuai karakter gurumu.</p>
+          <div class="form-row-mobile" style="margin-top:12px;">
+            <div class="form-group">
+              <label>Pilih Tugas Terkait:</label>
+              <select id="negoTaskSelect"></select>
+            </div>
+            <div class="form-group">
+              <label>Alasan / Situasi Darurat:</label>
+              <select id="negoReasonSelect">
+                <option value="alat">Kendala teknis / Alat praktik atau laptop bermasalah</option>
+                <option value="sakit">Kondisi kesehatan kurang fit / Izin sakit</option>
+                <option value="bertumpuk">Bentrok dengan jadwal uji kompetensi / tugas lain</option>
+                <option value="revisi">Meminta waktu tambahan untuk penyempurnaan revisi</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" id="btnGenerateChat" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
+          <div id="negoResultBox" class="hidden" style="margin-top:12px;">
+            <textarea id="negoChatOutput" rows="5" readonly></textarea>
+            <button type="button" id="btnCopyChat" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🔔 Pusat Notifikasi & Uji Teror Guru</h3>
           <div class="form-group" style="margin-top:12px;">
             <label>Mode Alarm Pengingat:</label>
             <select id="alarmModeSelect">
@@ -196,34 +316,53 @@
               <option value="silent">Pengingat Senyap (Tanpa Suara / Getar Saja)</option>
             </select>
           </div>
-          <button id="btnEnableNotifMobile" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
+          <button type="button" id="btnEnableNotifMobile" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
 
-      <!-- HALAMAN 5: MODE FOKUS -->
+      <!-- HALAMAN 6: MODE FOKUS KUSTOM -->
       <section id="page-focus" class="page">
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan Kustom</h3>
-          <p class="hint">Atur durasi waktumu sendiri untuk menyelesaikan tugas teori maupun kejuruan.</p>
+          <p class="hint">Atur durasi waktumu sendiri atau gunakan mode cepat Anti-Mager 5 menit.</p>
           <div class="form-group" style="max-width: 260px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
             <input type="number" id="customTimerInput" min="1" max="180" value="25" />
           </div>
-          <div class="timer-display" id="timerDisplay" style="font-size:3.2rem; font-weight:800; margin:18px 0; color:var(--primary);">25:00</div>
+          <div class="timer-display" id="timerDisplay" style="font-size:3.4rem; font-weight:800; margin:18px 0; color:var(--primary);">25:00</div>
           <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-            <button id="btnStartTimer" class="btn btn-primary">▶️ Mulai</button>
-            <button id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
-            <button id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
+            <button type="button" id="btnStartTimer" class="btn btn-primary">▶️ Mulai</button>
+            <button type="button" id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+            <button type="button" id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
           </div>
         </div>
       </section>
 
-      <!-- HALAMAN 6: PROFIL SISWA (SMA / SMK) -->
+      <!-- HALAMAN 7: PROFIL, STATISTIK & BACKUP DATA -->
       <section id="page-profile" class="page">
+        <!-- STATISTIK & STREAK -->
+        <div class="card">
+          <h3>🏆 Statistik Ketuntasan & Streak Kedisiplinan</h3>
+          <div class="stats-grid" style="margin-top:12px;">
+            <div class="stat-box">
+              <span class="hint">Tepat Waktu</span>
+              <strong id="statOnTime" style="color:var(--success); font-size:1.4rem;">0</strong>
+            </div>
+            <div class="stat-box">
+              <span class="hint">Terlambat</span>
+              <strong id="statLate" style="color:var(--danger); font-size:1.4rem;">0</strong>
+            </div>
+            <div class="stat-box">
+              <span class="hint">Streak Aktif</span>
+              <strong id="statStreak" style="color:var(--warning); font-size:1.4rem;">0 🔥</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROFIL SISWA -->
         <div class="card">
           <h3>👤 Profil Siswa (SMA / SMK)</h3>
-          <p class="hint">Identitas ini digunakan untuk personalisasi pengingat dan kalkulator beban mental.</p>
           <form id="profileForm" class="task-form" style="margin-top:12px;">
             <div class="form-group">
               <label>Nama Lengkap *</label>
@@ -246,6 +385,19 @@
             </div>
           </form>
         </div>
+
+        <!-- EKSPOR / IMPOR DATA BACKUP -->
+        <div class="card">
+          <h3>💾 Cadangkan & Pulihkan Data (Backup)</h3>
+          <p class="hint">Simpan cadangan seluruh tugas, jadwal, dan profil ke file JSON agar aman saat ganti HP.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" id="btnExportData" class="btn btn-secondary" style="flex:1;">⬇️ Ekspor Backup (.json)</button>
+            <label class="btn btn-secondary" style="flex:1; cursor:pointer; text-align:center;">
+              ⬆️ Impor Backup (.json)
+              <input type="file" id="inputImportData" accept=".json" class="hidden" />
+            </label>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -259,7 +411,7 @@
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
       <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
-      <button id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
+      <button type="button" id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
     </div>
   </div>
 
