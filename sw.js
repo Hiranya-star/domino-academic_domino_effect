@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domifect-clean-cache';
+const CACHE_NAME = 'domifect-clean-cache-v2';
 const ASSETS = [
   './',
   './index.html',
