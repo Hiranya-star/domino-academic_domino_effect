@@ -1,27 +1,19 @@
 /* ==========================================================================
-   DOMIFECT v6 — Academic & Vocational Domino Effect Planner
-   Separated Create vs Active Tasks, Instant Notification, Simulator & Panic
+   DOMIFECT v7 — Bulletproof Event Delegation & Zero-Freeze Execution
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v6';
-const ARCHIVE_KEY = 'domifect_archive_v6';
-const PROFILE_KEY = 'domifect_profile_v6';
-const SCHEDULE_KEY = 'domifect_schedule_v6';
-const GEAR_KEY = 'domifect_gear_v6';
-const STATS_KEY = 'domifect_stats_v6';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v6';
-const EXAM_MODE_KEY = 'domifect_exam_mode_v6';
+const TASKS_KEY = 'domifect_tasks_v7';
+const ARCHIVE_KEY = 'domifect_archive_v7';
+const PROFILE_KEY = 'domifect_profile_v7';
+const SCHEDULE_KEY = 'domifect_schedule_v7';
+const GEAR_KEY = 'domifect_gear_v7';
+const STATS_KEY = 'domifect_stats_v7';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v7';
+const EXAM_MODE_KEY = 'domifect_exam_mode_v7';
 
 const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_NAMES_BY_INDEX = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-const DAY_ORDER = {
-  'Senin': 1,
-  'Selasa': 2,
-  'Rabu': 3,
-  'Kamis': 4,
-  'Jumat': 5,
-  'Sabtu': 6
-};
+const DAY_ORDER = { 'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5, 'Sabtu': 6 };
 
 let tasks = [];
 let archivedTasks = [];
@@ -32,32 +24,47 @@ let userProfile = { name: '', className: '', school: '', targetHours: 3 };
 let isExamMode = false;
 let currentTaskFilter = 'all';
 let swRegistration = null;
+let lastPanicTextWA = '';
 
 let focusTimerInterval = null;
 let focusSecondsRemaining = 25 * 60;
 let isFocusRunning = false;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  initTheme();
-  await registerServiceWorker();
-  loadAllData();
-  setDefaultTaskDates();
-  setupPWAInstall();
-  setupNavigation();
-  setupEventListeners();
-  setupFocusTimerUI();
-  updateNotifStatusBadge();
-  renderAll();
-  startWatchdog();
-});
+function showToast(msg) {
+  const el = document.getElementById('toastFeedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+}
+
+// =========================================================================
+// INISIALISASI AMAN
+// =========================================================================
+function initApp() {
+  try { initTheme(); } catch (e) {}
+  try { loadAllData(); } catch (e) {}
+  try { setDefaultTaskDates(); } catch (e) {}
+  try { setupGlobalDelegation(); } catch (e) {}
+  try { setupPWAInstall(); } catch (e) {}
+  try { updateNotifStatusBadge(); } catch (e) {}
+  try { renderAll(); } catch (e) {}
+  try { startWatchdog(); } catch (e) {}
+  registerServiceWorker();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
       swRegistration = await navigator.serviceWorker.register('./sw.js');
-    } catch (e) {
-      console.log('SW Error:', e);
-    }
+    } catch (e) {}
   }
 }
 
@@ -94,13 +101,23 @@ function setDefaultTaskDates() {
   const tomorrow = new Date(now.getTime() + 24 * 3600000);
   tomorrow.setHours(7, 0, 0, 0);
 
-  if (workEl && !workEl.value) workEl.value = toLocalDatetimeInputValue(now);
-  if (deadEl && !deadEl.value) deadEl.value = toLocalDatetimeInputValue(tomorrow);
+  if (workEl) workEl.value = toLocalDatetimeInputValue(now);
+  if (deadEl) deadEl.value = toLocalDatetimeInputValue(tomorrow);
 }
 
 function loadAllData() {
+  // Migrasi otomatis data lama dari v6 jika v7 masih kosong
+  const oldTasks = localStorage.getItem('domifect_tasks_v6');
+  if (!localStorage.getItem(TASKS_KEY) && oldTasks) {
+    localStorage.setItem(TASKS_KEY, oldTasks);
+  }
+  const oldSched = localStorage.getItem('domifect_schedule_v6');
+  if (!localStorage.getItem(SCHEDULE_KEY) && oldSched) {
+    localStorage.setItem(SCHEDULE_KEY, oldSched);
+  }
+
   try {
-    const rawProf = localStorage.getItem(PROFILE_KEY);
+    const rawProf = localStorage.getItem(PROFILE_KEY) || localStorage.getItem('domifect_profile_v6');
     if (rawProf) {
       userProfile = JSON.parse(rawProf);
       const pName = document.getElementById('pName');
@@ -146,6 +163,10 @@ function loadAllData() {
 
   isExamMode = localStorage.getItem(EXAM_MODE_KEY) === 'true';
   updateExamModeUI();
+
+  const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
+  const alarmSelect = document.getElementById('alarmModeSelect');
+  if (alarmSelect) alarmSelect.value = savedAlarmMode;
 }
 
 function saveTasks() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
@@ -191,8 +212,285 @@ function updateExamModeUI() {
   }
 }
 
-function saveProfile(e) {
-  e.preventDefault();
+let deferredPrompt = null;
+function setupPWAInstall() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBanner')?.classList.remove('hidden');
+  });
+}
+
+// =========================================================================
+// GLOBAL EVENT DELEGATION (MENJAMIN SEMUA TOMBOL, FORM & SLIDER BISA DIPENCET)
+// =========================================================================
+function setupGlobalDelegation() {
+  // 1. Delegasi Klik Global untuk seluruh tombol & navigasi
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+
+    // Navigasi Sidebar / Bottom Nav (menggunakan .closest agar klik icon/span tetap terbaca)
+    const navBtn = target.closest('[data-page]');
+    if (navBtn) {
+      e.preventDefault();
+      const pageId = navBtn.getAttribute('data-page');
+      if (pageId === 'create-task' && !document.getElementById('editTaskId')?.value) {
+        resetTaskForm();
+      }
+      navigateTo(pageId);
+      return;
+    }
+
+    // Filter tabs di Tugas Aktif
+    const filterBtn = target.closest('.filter-tab');
+    if (filterBtn) {
+      e.preventDefault();
+      currentTaskFilter = filterBtn.getAttribute('data-filter') || 'all';
+      document.querySelectorAll('.filter-tab').forEach(t => {
+        t.className = t.getAttribute('data-filter') === currentTaskFilter
+          ? 'btn btn-sm btn-primary filter-tab'
+          : 'btn btn-sm btn-secondary filter-tab';
+      });
+      renderAssignments();
+      return;
+    }
+
+    // Tombol-tombol aksi utama berdasarkan ID
+    const btn = target.closest('button');
+    if (!btn) return;
+    const id = btn.id;
+
+    if (id === 'btnQuickAdd' || id === 'btnAddFromActive') {
+      e.preventDefault();
+      resetTaskForm();
+      navigateTo('create-task');
+    } else if (id === 'btnGoActiveTasks') {
+      e.preventDefault();
+      navigateTo('active-tasks');
+    } else if (id === 'btnCancelEdit') {
+      e.preventDefault();
+      resetTaskForm();
+      navigateTo('active-tasks');
+    } else if (id === 'btnSidebarTheme' || id === 'btnMobileTheme') {
+      e.preventDefault();
+      toggleTheme();
+    } else if (id === 'btnEnableNotif' || id === 'btnMobileNotif' || id === 'btnEnableNotifMobile') {
+      e.preventDefault();
+      requestNotificationPermission();
+    } else if (id === 'btnClosePopup') {
+      e.preventDefault();
+      document.getElementById('popupTerrorBanner')?.classList.add('hidden');
+    } else if (id === 'btnPanic') {
+      e.preventDefault();
+      triggerPanicMode();
+    } else if (id === 'btnClosePanic') {
+      e.preventDefault();
+      document.getElementById('panicBox')?.classList.add('hidden');
+    } else if (id === 'btnSharePanicWA') {
+      e.preventDefault();
+      if (lastPanicTextWA) {
+        window.open(`https://wa.me/?text=${encodeURIComponent(lastPanicTextWA)}`, '_blank');
+      }
+    } else if (id === 'btnToggleExamMode') {
+      e.preventDefault();
+      isExamMode = !isExamMode;
+      localStorage.setItem(EXAM_MODE_KEY, String(isExamMode));
+      updateExamModeUI();
+      renderAll();
+      showToast(isExamMode ? '🎓 Mode Ujian / UKK Aktif!' : 'Mode Ujian Dinonaktifkan');
+    } else if (id === 'btnAntiMager') {
+      e.preventDefault();
+      const targetLabel = document.getElementById('focusTaskTargetLabel');
+      if (targetLabel) targetLabel.textContent = '⚡ Tantangan Anti-Mager 5 Menit — Mulai Sekarang!';
+      navigateTo('focus');
+      startCustomFocus(5);
+    } else if (id === 'btnStartTimer') {
+      e.preventDefault();
+      handleStartTimer();
+    } else if (id === 'btnPauseTimer') {
+      e.preventDefault();
+      clearInterval(focusTimerInterval);
+      isFocusRunning = false;
+      showToast('⏸️ Timer dijeda');
+    } else if (id === 'btnResetTimer') {
+      e.preventDefault();
+      clearInterval(focusTimerInterval);
+      isFocusRunning = false;
+      const input = document.getElementById('customTimerInput');
+      const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
+      focusSecondsRemaining = mins * 60;
+      updateTimerDisplay();
+      showToast('🔄 Timer di-reset');
+    } else if (id === 'btnGenerateChat') {
+      e.preventDefault();
+      handleGenerateChat();
+    } else if (id === 'btnCopyChat') {
+      e.preventDefault();
+      const output = document.getElementById('negoChatOutput');
+      if (output) {
+        output.select();
+        navigator.clipboard?.writeText(output.value);
+        showToast('📋 Draf chat WhatsApp berhasil disalin!');
+      }
+    } else if (id === 'btnExportData') {
+      e.preventDefault();
+      handleExportData();
+    } else if (id === 'btnInstallApp') {
+      e.preventDefault();
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          document.getElementById('installBanner')?.classList.add('hidden');
+          deferredPrompt = null;
+        });
+      }
+    } else if (id === 'btnCloseInstall') {
+      e.preventDefault();
+      document.getElementById('installBanner')?.classList.add('hidden');
+    }
+  });
+
+  // 2. Delegasi Submit Form Global
+  document.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!form) return;
+
+    if (form.id === 'taskForm') {
+      e.preventDefault();
+      handleTaskSubmit();
+    } else if (form.id === 'scheduleForm') {
+      e.preventDefault();
+      handleScheduleSubmit();
+    } else if (form.id === 'gearForm') {
+      e.preventDefault();
+      handleGearSubmit();
+    } else if (form.id === 'profileForm') {
+      e.preventDefault();
+      handleProfileSubmit();
+    }
+  });
+
+  // 3. Delegasi Input & Change Global (Simulator Slider, Dropdown, Backup File)
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'simDelaySlider') {
+      renderSimulator();
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el) return;
+
+    if (el.id === 'simTaskSelect') {
+      renderSimulator();
+    } else if (el.id === 'tQuickSchedule') {
+      const sch = schedules.find(s => s.id === el.value);
+      if (sch) {
+        document.getElementById('tSubject').value = sch.subject;
+        document.getElementById('tTeacher').value = sch.teacher;
+      }
+    } else if (el.id === 'tPersona') {
+      const customGroup = document.getElementById('customPersonaGroup');
+      if (el.value === 'custom') customGroup?.classList.remove('hidden');
+      else customGroup?.classList.add('hidden');
+    } else if (el.id === 'alarmModeSelect') {
+      localStorage.setItem(ALARM_MODE_KEY, el.value);
+    } else if (el.id === 'customTimerInput') {
+      if (!isFocusRunning) {
+        const mins = Math.max(1, Math.min(180, parseInt(el.value) || 25));
+        el.value = mins;
+        focusSecondsRemaining = mins * 60;
+        updateTimerDisplay();
+      }
+    } else if (el.id === 'inputImportData') {
+      handleImportData(el.files[0]);
+    }
+  });
+}
+
+// =========================================================================
+// HANDLER SUBMIT FORM (TUGAS, JADWAL, GEAR, PROFIL)
+// =========================================================================
+function handleTaskSubmit() {
+  const titleVal = document.getElementById('tTitle')?.value.trim();
+  const subjectVal = document.getElementById('tSubject')?.value.trim();
+  const teacherVal = document.getElementById('tTeacher')?.value.trim();
+  const workVal = document.getElementById('tWorkSchedule')?.value;
+  const deadlineVal = document.getElementById('tDeadline')?.value;
+
+  if (!titleVal || !subjectVal || !teacherVal || !deadlineVal) {
+    alert('⚠️ Mohon isi Nama Tugas, Mata Pelajaran, Nama Guru, dan Deadline!');
+    return;
+  }
+
+  const existingId = document.getElementById('editTaskId')?.value || '';
+  const id = existingId || ('t_' + Date.now());
+
+  const rawSubs = document.getElementById('tSubTasks')?.value.trim() || '';
+  let parsedSubTasks = [];
+  if (rawSubs) {
+    const oldTask = tasks.find(t => t.id === existingId);
+    parsedSubTasks = rawSubs.split(',').map(s => s.trim()).filter(Boolean).map(text => {
+      const prev = oldTask?.subTasks?.find(os => os.text === text);
+      return { text, done: prev ? prev.done : false };
+    });
+  }
+
+  const newTask = {
+    id,
+    title: titleVal,
+    subject: subjectVal,
+    teacher: teacherVal,
+    gradeWeight: document.getElementById('tGradeWeight')?.value || '1',
+    persona: document.getElementById('tPersona')?.value || 'killer',
+    customText: document.getElementById('tCustomText')?.value.trim() || '',
+    workSchedule: workVal || deadlineVal,
+    deadline: deadlineVal,
+    duration: parseFloat(document.getElementById('tDuration')?.value) || 1,
+    dependsOn: document.getElementById('tDependsOn')?.value || '',
+    subTasks: parsedSubTasks,
+    groupMembers: document.getElementById('tGroupMembers')?.value.trim() || '',
+    status: 'active'
+  };
+
+  const idx = tasks.findIndex(t => t.id === id);
+  if (idx >= 0) tasks[idx] = newTask;
+  else tasks.push(newTask);
+
+  saveTasks();
+  resetTaskForm();
+  currentTaskFilter = 'all';
+  navigateTo('active-tasks');
+  showToast('✅ Tugas berhasil disimpan!');
+  triggerNotifications(newTask);
+}
+
+function handleScheduleSubmit() {
+  const day = document.getElementById('sDay').value;
+  const subject = document.getElementById('sSubject').value.trim();
+  const teacher = document.getElementById('sTeacher').value.trim();
+  if (!subject || !teacher) return;
+
+  schedules.push({ id: 's_' + Date.now(), day, subject, teacher });
+  saveSchedules();
+  document.getElementById('scheduleForm')?.reset();
+  renderAll();
+  showToast(`📅 Mapel ${subject} (${day}) tersimpan!`);
+}
+
+function handleGearSubmit() {
+  const input = document.getElementById('gearInput');
+  const val = input?.value.trim();
+  if (!val) return;
+
+  gears.push({ id: 'g_' + Date.now(), text: val, checked: false });
+  saveGears();
+  input.value = '';
+  renderAll();
+  showToast('🎒 Perlengkapan ditambahkan!');
+}
+
+function handleProfileSubmit() {
   userProfile = {
     name: document.getElementById('pName').value.trim(),
     className: document.getElementById('pClass').value.trim(),
@@ -201,28 +499,76 @@ function saveProfile(e) {
   };
   localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
   updateStudentTags();
-  alert('✅ Profil siswa berhasil disimpan!');
   renderAll();
+  showToast('✅ Profil siswa berhasil disimpan!');
 }
 
-let deferredPrompt = null;
-function setupPWAInstall() {
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installBanner')?.classList.remove('hidden');
-  });
-  document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') document.getElementById('installBanner')?.classList.add('hidden');
-      deferredPrompt = null;
+function handleGenerateChat() {
+  const taskId = document.getElementById('negoTaskSelect')?.value;
+  const reason = document.getElementById('negoReasonSelect')?.value;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) {
+    alert('Tambahkan atau pilih tugas terlebih dahulu!');
+    return;
+  }
+
+  const studentName = userProfile.name || '[Nama Saya]';
+  const studentClass = userProfile.className || '[Kelas]';
+
+  const reasonTexts = {
+    alat: 'dikarenakan terdapat kendala teknis pada perangkat/alat praktik atau laptop yang sedang mengalami gangguan',
+    sakit: 'dikarenakan kondisi kesehatan saya sedang kurang fit / sakit sehingga proses pengerjaan sedikit terhambat',
+    bertumpuk: 'dikarenakan bersamaan dengan jadwal uji kompetensi/praktik mata pelajaran lain yang cukup padat',
+    revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta',
+    listrik: 'dikarenakan terjadi pemadaman listrik dan gangguan jaringan internet di wilayah tempat tinggal saya sejak tadi malam',
+    keluarga: 'dikarenakan terdapat urusan keluarga yang sangat mendesak / anggota keluarga sedang sakit sehingga saya harus mendampingi',
+    dispen: 'dikarenakan saya sedang menjalankan tugas dispensasi kegiatan sekolah / lomba mewakili sekolah',
+    pkl: 'dikarenakan terdapat penyesuaian jadwal kerja / lembur di tempat PKL (Prakerin) yang baru selesai cukup malam',
+    kelompok: 'dikarenakan kami masih menunggu kelengkapan data dari salah satu anggota kelompok agar laporan dapat digabungkan secara utuh'
+  };
+
+  const selectedReasonText = reasonTexts[reason] || reasonTexts.alat;
+  const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.\n\nMohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.\n\nSaat ini progres pengerjaan sudah berjalan, namun ${selectedReasonText}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
+
+  document.getElementById('negoChatOutput').value = draft;
+  document.getElementById('negoResultBox').classList.remove('hidden');
+  showToast('✍️ Draf chat WhatsApp siap disalin!');
+}
+
+function handleExportData() {
+  const backup = { userProfile, tasks, archivedTasks, schedules, gears, stats };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `DOMIFECT_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇️ File backup berhasil diunduh!');
+}
+
+function handleImportData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.userProfile) userProfile = data.userProfile;
+      if (data.tasks) tasks = data.tasks;
+      if (data.archivedTasks) archivedTasks = data.archivedTasks;
+      if (data.schedules) schedules = sortSchedulesByDay(data.schedules);
+      if (data.gears) gears = data.gears;
+      if (data.stats) stats = data.stats;
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
+      saveTasks(); saveArchive(); saveSchedules(); saveGears(); saveStats();
+      loadAllData();
+      renderAll();
+      showToast('✅ Data backup berhasil dipulihkan!');
+    } catch (err) {
+      alert('⚠️ File backup tidak valid!');
     }
-  });
-  document.getElementById('btnCloseInstall')?.addEventListener('click', () => {
-    document.getElementById('installBanner')?.classList.add('hidden');
-  });
+  };
+  reader.readAsText(file);
 }
 
 // =========================================================================
@@ -606,7 +952,6 @@ window.triggerTestPopup = (taskId) => {
 };
 
 async function triggerNotifications(task) {
-  // 1. Selalu tampilkan Pop-up Banner langsung di layar aplikasi
   showScreenPopup(task);
 
   const terrorMsg = generateTerrorMessage(task);
@@ -620,7 +965,6 @@ async function triggerNotifications(task) {
     tag: 'domifect-' + task.id + '-' + Date.now()
   };
 
-  // 2. Kirim Notifikasi Sistem Perangkat
   if ('Notification' in window) {
     let perm = Notification.permission;
     if (perm === 'default') {
@@ -639,6 +983,16 @@ async function triggerNotifications(task) {
         try { new Notification(title, options); } catch (e2) {}
       }
     }
+  }
+}
+
+async function requestNotificationPermission() {
+  if ('Notification' in window) {
+    const p = await Notification.requestPermission();
+    updateNotifStatusBadge();
+    showToast(p === 'granted' ? '✅ Notifikasi pop-up berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak browser');
+  } else {
+    alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
   }
 }
 
@@ -662,7 +1016,6 @@ function startWatchdog() {
 // =========================================================================
 // PANIC BUTTON (RENCANA DARURAT KILAT)
 // =========================================================================
-let lastPanicTextWA = '';
 function triggerPanicMode() {
   const active = tasks.filter(t => t.status === 'active');
   const panicBox = document.getElementById('panicBox');
@@ -675,6 +1028,7 @@ function triggerPanicMode() {
     panicContent.innerHTML = '<p class="hint">Tidak ada tugas aktif saat ini. Jadwalmu masih aman terkendali!</p>';
     lastPanicTextWA = 'Jadwal DOMIFECT saat ini aman terkendali!';
     panicBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('🚨 Panic Button dijalankan');
     return;
   }
 
@@ -706,10 +1060,11 @@ function triggerPanicMode() {
   panicBox.classList.remove('hidden');
   panicContent.innerHTML = planHtml;
   panicBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('🚨 Rencana Darurat Kilat disusun!');
 }
 
 // =========================================================================
-// NAVIGASI & MODE FOKUS + ANTI-MAGER 5 MENIT
+// NAVIGASI & MODE FOKUS
 // =========================================================================
 const pageTitles = {
   dashboard: 'Dashboard Akademik & Kejuruan',
@@ -725,17 +1080,14 @@ const pageTitles = {
 window.navigateTo = function(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById(`page-${pageId}`)?.classList.add('active');
-  document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+  const targetPage = document.getElementById(`page-${pageId}`);
+  const targetNav = document.querySelector(`[data-page="${pageId}"]`);
+  if (targetPage) targetPage.classList.add('active');
+  if (targetNav) targetNav.classList.add('active');
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.textContent = pageTitles[pageId] || 'DOMIFECT';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   renderAll();
-};
-
-window.openNewTaskForm = function() {
-  resetTaskForm();
-  navigateTo('create-task');
 };
 
 window.focusOnTask = function(taskId) {
@@ -748,18 +1100,6 @@ window.focusOnTask = function(taskId) {
   navigateTo('focus');
   startCustomFocus(mins);
 };
-
-function setupNavigation() {
-  document.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.page === 'create-task' && !document.getElementById('editTaskId')?.value) {
-        resetTaskForm();
-      }
-      navigateTo(btn.dataset.page);
-    });
-  });
-  document.getElementById('btnQuickAdd')?.addEventListener('click', openNewTaskForm);
-}
 
 function startCustomFocus(minutes) {
   clearInterval(focusTimerInterval);
@@ -780,7 +1120,7 @@ function startCustomFocus(minutes) {
       if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
       if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
         swRegistration.showNotification('⏱️ Sesi Fokus DOMIFECT Selesai!', {
-          body: 'Waktu fokusmu sudah habis. Mantap! Kamu sudah berhasil menyelesaikannya.',
+          body: 'Waktu fokusmu sudah habis. Mantap!',
           silent: mode === 'silent'
         });
       }
@@ -789,54 +1129,24 @@ function startCustomFocus(minutes) {
   }, 1000);
 }
 
-function setupFocusTimerUI() {
-  const input = document.getElementById('customTimerInput');
-  input?.addEventListener('change', () => {
-    if (!isFocusRunning) {
-      const mins = Math.max(1, Math.min(180, parseInt(input.value) || 25));
-      input.value = mins;
-      focusSecondsRemaining = mins * 60;
-      updateTimerDisplay();
-    }
-  });
-
-  document.getElementById('btnStartTimer')?.addEventListener('click', () => {
-    if (!isFocusRunning) {
-      const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
-      if (focusSecondsRemaining <= 0) focusSecondsRemaining = mins * 60;
-      isFocusRunning = true;
-      focusTimerInterval = setInterval(() => {
-        if (focusSecondsRemaining > 0) {
-          focusSecondsRemaining--;
-          updateTimerDisplay();
-        } else {
-          clearInterval(focusTimerInterval);
-          isFocusRunning = false;
-          alert('⏱️ Waktu sesi fokus selesai!');
-        }
-      }, 1000);
-    }
-  });
-
-  document.getElementById('btnPauseTimer')?.addEventListener('click', () => {
-    clearInterval(focusTimerInterval);
-    isFocusRunning = false;
-  });
-
-  document.getElementById('btnResetTimer')?.addEventListener('click', () => {
-    clearInterval(focusTimerInterval);
-    isFocusRunning = false;
+function handleStartTimer() {
+  if (!isFocusRunning) {
+    const input = document.getElementById('customTimerInput');
     const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
-    focusSecondsRemaining = mins * 60;
-    updateTimerDisplay();
-  });
-
-  document.getElementById('btnAntiMager')?.addEventListener('click', () => {
-    const targetLabel = document.getElementById('focusTaskTargetLabel');
-    if (targetLabel) targetLabel.textContent = '⚡ Tantangan Anti-Mager 5 Menit — Mulai Sekarang!';
-    navigateTo('focus');
-    startCustomFocus(5);
-  });
+    if (focusSecondsRemaining <= 0) focusSecondsRemaining = mins * 60;
+    isFocusRunning = true;
+    showToast('▶️ Timer fokus berjalan!');
+    focusTimerInterval = setInterval(() => {
+      if (focusSecondsRemaining > 0) {
+        focusSecondsRemaining--;
+        updateTimerDisplay();
+      } else {
+        clearInterval(focusTimerInterval);
+        isFocusRunning = false;
+        alert('⏱️ Waktu sesi fokus selesai!');
+      }
+    }, 1000);
+  }
 }
 
 function updateTimerDisplay() {
@@ -846,19 +1156,6 @@ function updateTimerDisplay() {
   if (disp) disp.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-async function requestNotificationPermission() {
-  if ('Notification' in window) {
-    const p = await Notification.requestPermission();
-    updateNotifStatusBadge();
-    alert(p === 'granted' ? '✅ Notifikasi sistem & teror guru berhasil diaktifkan!' : '⚠️ Izin notifikasi ditolak oleh browser.');
-  } else {
-    alert('⚠️ Browser ini tidak mendukung notifikasi sistem.');
-  }
-}
-
-// =========================================================================
-// EVENT LISTENERS (FORM TUGAS, FILTER, JADWAL, GEAR, CHAT GURU, BACKUP)
-// =========================================================================
 function resetTaskForm() {
   const form = document.getElementById('taskForm');
   if (form) form.reset();
@@ -867,259 +1164,13 @@ function resetTaskForm() {
   const btnEl = document.getElementById('btnSubmitTask');
   const cancelEl = document.getElementById('btnCancelEdit');
   const customEl = document.getElementById('customPersonaGroup');
-  const customInput = document.getElementById('tCustomText');
 
   if (editEl) editEl.value = '';
   if (titleEl) titleEl.textContent = '➕ Buat Tugas & Karakter Guru';
   if (btnEl) btnEl.textContent = '💾 Simpan Tugas & Aktifkan Teror';
   if (cancelEl) cancelEl.classList.add('hidden');
   if (customEl) customEl.classList.add('hidden');
-  if (customInput) customInput.required = false;
   setDefaultTaskDates();
-}
-
-function setupEventListeners() {
-  document.getElementById('btnSidebarTheme')?.addEventListener('click', toggleTheme);
-  document.getElementById('btnMobileTheme')?.addEventListener('click', toggleTheme);
-  document.getElementById('btnEnableNotif')?.addEventListener('click', requestNotificationPermission);
-  document.getElementById('btnMobileNotif')?.addEventListener('click', requestNotificationPermission);
-  document.getElementById('btnEnableNotifMobile')?.addEventListener('click', requestNotificationPermission);
-
-  document.getElementById('btnClosePopup')?.addEventListener('click', () => {
-    document.getElementById('popupTerrorBanner')?.classList.add('hidden');
-  });
-
-  document.getElementById('profileForm')?.addEventListener('submit', saveProfile);
-  document.getElementById('btnPanic')?.addEventListener('click', triggerPanicMode);
-  document.getElementById('btnClosePanic')?.addEventListener('click', () => {
-    document.getElementById('panicBox')?.classList.add('hidden');
-  });
-
-  document.getElementById('btnToggleExamMode')?.addEventListener('click', () => {
-    isExamMode = !isExamMode;
-    localStorage.setItem(EXAM_MODE_KEY, String(isExamMode));
-    updateExamModeUI();
-    renderAll();
-  });
-
-  document.getElementById('btnSharePanicWA')?.addEventListener('click', () => {
-    if (!lastPanicTextWA) return;
-    const url = `https://wa.me/?text=${encodeURIComponent(lastPanicTextWA)}`;
-    window.open(url, '_blank');
-  });
-
-  document.getElementById('tQuickSchedule')?.addEventListener('change', (e) => {
-    const sch = schedules.find(s => s.id === e.target.value);
-    if (sch) {
-      document.getElementById('tSubject').value = sch.subject;
-      document.getElementById('tTeacher').value = sch.teacher;
-    }
-  });
-
-  const personaSelect = document.getElementById('tPersona');
-  const customGroup = document.getElementById('customPersonaGroup');
-  personaSelect?.addEventListener('change', (e) => {
-    if (e.target.value === 'custom') {
-      customGroup.classList.remove('hidden');
-      document.getElementById('tCustomText').required = true;
-    } else {
-      customGroup.classList.add('hidden');
-      document.getElementById('tCustomText').required = false;
-    }
-  });
-
-  document.getElementById('btnCancelEdit')?.addEventListener('click', () => {
-    resetTaskForm();
-    navigateTo('active-tasks');
-  });
-
-  // Filter tabs di halaman Tugas Aktif
-  document.querySelectorAll('.filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      currentTaskFilter = tab.dataset.filter || 'all';
-      document.querySelectorAll('.filter-tab').forEach(t => {
-        t.className = t.dataset.filter === currentTaskFilter
-          ? 'btn btn-sm btn-primary filter-tab'
-          : 'btn btn-sm btn-secondary filter-tab';
-      });
-      renderAssignments();
-    });
-  });
-
-  const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
-  const alarmSelect = document.getElementById('alarmModeSelect');
-  if (alarmSelect) {
-    alarmSelect.value = savedAlarmMode;
-    alarmSelect.addEventListener('change', (e) => {
-      localStorage.setItem(ALARM_MODE_KEY, e.target.value);
-    });
-  }
-
-  // Simpan / Update Tugas -> Pindah ke Halaman Daftar Tugas Aktif -> Picu Notifikasi Teror
-  const taskForm = document.getElementById('taskForm');
-  if (taskForm) {
-    taskForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const titleVal = document.getElementById('tTitle')?.value.trim();
-      const subjectVal = document.getElementById('tSubject')?.value.trim();
-      const teacherVal = document.getElementById('tTeacher')?.value.trim();
-      const workVal = document.getElementById('tWorkSchedule')?.value;
-      const deadlineVal = document.getElementById('tDeadline')?.value;
-
-      if (!titleVal || !subjectVal || !teacherVal || !deadlineVal) {
-        alert('⚠️ Mohon lengkapi Nama Tugas, Mata Pelajaran, Nama Guru, dan Deadline!');
-        return;
-      }
-
-      const existingId = document.getElementById('editTaskId')?.value || '';
-      const id = existingId || ('t_' + Date.now());
-
-      const rawSubs = document.getElementById('tSubTasks')?.value.trim() || '';
-      let parsedSubTasks = [];
-      if (rawSubs) {
-        const oldTask = tasks.find(t => t.id === existingId);
-        parsedSubTasks = rawSubs.split(',').map(s => s.trim()).filter(Boolean).map(text => {
-          const prev = oldTask?.subTasks?.find(os => os.text === text);
-          return { text, done: prev ? prev.done : false };
-        });
-      }
-
-      const newTask = {
-        id,
-        title: titleVal,
-        subject: subjectVal,
-        teacher: teacherVal,
-        gradeWeight: document.getElementById('tGradeWeight')?.value || '1',
-        persona: document.getElementById('tPersona')?.value || 'killer',
-        customText: document.getElementById('tCustomText')?.value.trim() || '',
-        workSchedule: workVal || deadlineVal,
-        deadline: deadlineVal,
-        duration: parseFloat(document.getElementById('tDuration')?.value) || 1,
-        dependsOn: document.getElementById('tDependsOn')?.value || '',
-        subTasks: parsedSubTasks,
-        groupMembers: document.getElementById('tGroupMembers')?.value.trim() || '',
-        status: 'active'
-      };
-
-      const idx = tasks.findIndex(t => t.id === id);
-      if (idx >= 0) tasks[idx] = newTask;
-      else tasks.push(newTask);
-
-      saveTasks();
-      resetTaskForm();
-      currentTaskFilter = 'all';
-      navigateTo('active-tasks');
-      triggerNotifications(newTask);
-    });
-  }
-
-  // Jadwal Pelajaran Form (Otomatis Terurut & Terkelompok Tetap Per Hari)
-  document.getElementById('scheduleForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    schedules.push({
-      id: 's_' + Date.now(),
-      day: document.getElementById('sDay').value,
-      subject: document.getElementById('sSubject').value.trim(),
-      teacher: document.getElementById('sTeacher').value.trim()
-    });
-    saveSchedules();
-    e.target.reset();
-    renderAll();
-  });
-
-  // Checklist Perlengkapan Form
-  document.getElementById('gearForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const val = document.getElementById('gearInput').value.trim();
-    if (val) {
-      gears.push({ id: 'g_' + Date.now(), text: val, checked: false });
-      saveGears();
-      e.target.reset();
-      renderAll();
-    }
-  });
-
-  // Generator Chat Negosiasi Guru (9 Situasi Darurat Lengkap)
-  document.getElementById('btnGenerateChat')?.addEventListener('click', () => {
-    const taskId = document.getElementById('negoTaskSelect').value;
-    const reason = document.getElementById('negoReasonSelect').value;
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) {
-      alert('Pilih tugas terlebih dahulu!');
-      return;
-    }
-
-    const studentName = userProfile.name || '[Nama Saya]';
-    const studentClass = userProfile.className || '[Kelas]';
-
-    const reasonTexts = {
-      alat: 'dikarenakan terdapat kendala teknis pada perangkat/alat praktik atau laptop yang sedang mengalami gangguan',
-      sakit: 'dikarenakan kondisi kesehatan saya sedang kurang fit / sakit sehingga proses pengerjaan sedikit terhambat',
-      bertumpuk: 'dikarenakan bersamaan dengan jadwal uji kompetensi/praktik mata pelajaran lain yang cukup padat',
-      revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta',
-      listrik: 'dikarenakan terjadi pemadaman listrik dan gangguan jaringan internet di wilayah tempat tinggal saya sejak tadi malam',
-      keluarga: 'dikarenakan terdapat urusan keluarga yang sangat mendesak / anggota keluarga sedang sakit sehingga saya harus mendampingi',
-      dispen: 'dikarenakan saya sedang menjalankan tugas dispensasi kegiatan sekolah / lomba mewakili sekolah',
-      pkl: 'dikarenakan terdapat penyesuaian jadwal kerja / lembur di tempat PKL (Prakerin) yang baru selesai cukup malam',
-      kelompok: 'dikarenakan kami masih menunggu kelengkapan data dari salah satu anggota kelompok agar laporan dapat digabungkan secara utuh'
-    };
-
-    const selectedReasonText = reasonTexts[reason] || reasonTexts.alat;
-
-    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.\n\nMohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.\n\nSaat ini progres pengerjaan sudah berjalan, namun ${selectedReasonText}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
-
-    document.getElementById('negoChatOutput').value = draft;
-    document.getElementById('negoResultBox').classList.remove('hidden');
-  });
-
-  document.getElementById('btnCopyChat')?.addEventListener('click', () => {
-    const output = document.getElementById('negoChatOutput');
-    output.select();
-    navigator.clipboard?.writeText(output.value);
-    alert('📋 Draf chat WhatsApp berhasil disalin!');
-  });
-
-  // Ekspor & Impor Backup JSON
-  document.getElementById('btnExportData')?.addEventListener('click', () => {
-    const backup = { userProfile, tasks, archivedTasks, schedules, gears, stats };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DOMIFECT_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('inputImportData')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (data.userProfile) userProfile = data.userProfile;
-        if (data.tasks) tasks = data.tasks;
-        if (data.archivedTasks) archivedTasks = data.archivedTasks;
-        if (data.schedules) schedules = sortSchedulesByDay(data.schedules);
-        if (data.gears) gears = data.gears;
-        if (data.stats) stats = data.stats;
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
-        saveTasks(); saveArchive(); saveSchedules(); saveGears(); saveStats();
-        loadAllData();
-        renderAll();
-        alert('✅ Data backup berhasil dipulihkan!');
-      } catch (err) {
-        alert('⚠️ File backup tidak valid!');
-      }
-    };
-    reader.readAsText(file);
-  });
-
-  document.getElementById('simTaskSelect')?.addEventListener('change', renderSimulator);
-  document.getElementById('simDelaySlider')?.addEventListener('input', renderSimulator);
 }
 
 // =========================================================================
@@ -1157,6 +1208,7 @@ function renderDropdowns() {
       sim.innerHTML += `<option value="${t.id}">${t.title} — ${t.teacher}</option>`;
     });
     if (prevSim && active.some(t => t.id === prevSim)) sim.value = prevSim;
+    else if (active.length > 0) sim.value = active[0].id;
   }
   if (nego) {
     const prevNego = nego.value;
@@ -1165,6 +1217,7 @@ function renderDropdowns() {
       nego.innerHTML += `<option value="${t.id}">${t.title} (${t.teacher})</option>`;
     });
     if (prevNego && active.some(t => t.id === prevNego)) nego.value = prevNego;
+    else if (active.length > 0) nego.value = active[0].id;
   }
   if (quickSch) {
     const sortedSch = sortSchedulesByDay(schedules);
@@ -1192,18 +1245,19 @@ function renderDashboard() {
   const descEl = document.getElementById('stabilityDesc');
   const greeting = userProfile.name ? `Halo, ${userProfile.name}! ` : '';
 
-  if (active.length === 0) {
-    scoreEl.textContent = '100% — Jadwal Stabil | Beban Mental: 0%';
-    descEl.textContent = `${greeting}Belum ada tugas terdaftar. Tekan "+ Tugas" untuk mulai mengatur jadwal teori maupun kejuruan.`;
-  } else if (critical.length > 0) {
-    scoreEl.textContent = `⚠️ Jalur Kritis (${critical.length} Tugas) | Beban Mental: ${mentalLoadPercent}%`;
-    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button untuk urutan penyelamatan nilai rapor.`;
-  } else {
-    scoreEl.textContent = `✅ Jadwal Aman | Beban Mental: ${mentalLoadPercent}%`;
-    descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Patuhi time-blocking agar tidak menumpuk.`;
+  if (scoreEl && descEl) {
+    if (active.length === 0) {
+      scoreEl.textContent = '100% — Jadwal Stabil | Beban Mental: 0%';
+      descEl.textContent = `${greeting}Belum ada tugas terdaftar. Tekan "+ Tugas" untuk mulai mengatur jadwal teori maupun kejuruan.`;
+    } else if (critical.length > 0) {
+      scoreEl.textContent = `⚠️ Jalur Kritis (${critical.length} Tugas) | Beban Mental: ${mentalLoadPercent}%`;
+      descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button untuk urutan penyelamatan nilai rapor.`;
+    } else {
+      scoreEl.textContent = `✅ Jadwal Aman | Beban Mental: ${mentalLoadPercent}%`;
+      descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Patuhi time-blocking agar tidak menumpuk.`;
+    }
   }
 
-  // Pengingat H-1 Perlengkapan Besok
   const tomorrowBox = document.getElementById('tomorrowGearAlert');
   if (tomorrowBox) {
     const tomorrowIdx = (new Date().getDay() + 1) % 7;
@@ -1225,7 +1279,6 @@ function renderDashboard() {
     }
   }
 
-  // Urutan Prioritas & Risiko di Beranda (Bersih tanpa kotak teror)
   const priorityList = document.getElementById('todayActionList');
   if (priorityList) {
     const sorted = [...active].sort((a, b) => {
@@ -1371,11 +1424,8 @@ window.editTask = (id) => {
   document.getElementById('tSubTasks').value = t.subTasks ? t.subTasks.map(s => s.text).join(', ') : '';
   document.getElementById('tGroupMembers').value = t.groupMembers || '';
 
-  if (t.persona === 'custom') {
-    document.getElementById('customPersonaGroup').classList.remove('hidden');
-  } else {
-    document.getElementById('customPersonaGroup').classList.add('hidden');
-  }
+  if (t.persona === 'custom') document.getElementById('customPersonaGroup').classList.remove('hidden');
+  else document.getElementById('customPersonaGroup').classList.add('hidden');
 
   document.getElementById('formModeTitle').textContent = '✏️ Edit Tugas & Jadwal';
   document.getElementById('btnSubmitTask').textContent = '💾 Simpan Perubahan Tugas';
@@ -1405,6 +1455,7 @@ window.completeTask = (id) => {
   tasks = tasks.filter(item => item.id !== id);
   saveTasks();
   renderAll();
+  showToast('🎉 Tugas selesai dan dipindah ke Riwayat!');
 };
 
 window.restoreArchivedTask = (id) => {
@@ -1415,6 +1466,7 @@ window.restoreArchivedTask = (id) => {
     saveTasks();
     saveArchive();
     renderAll();
+    showToast('↩️ Tugas dikembalikan ke Daftar Aktif');
   }
 };
 
@@ -1428,6 +1480,7 @@ window.deleteTask = (id) => {
   tasks = tasks.filter(item => item.id !== id);
   saveTasks();
   renderAll();
+  showToast('🗑️ Tugas dihapus');
 };
 
 // =========================================================================
