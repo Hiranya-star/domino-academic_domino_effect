@@ -41,7 +41,6 @@ body {
   display: none !important;
 }
 
-/* LAYOUT SHELL */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -216,7 +215,6 @@ body {
   }
 }
 
-/* PAGES & CARDS */
 .page {
   display: none;
 }
@@ -261,7 +259,6 @@ body {
   line-height: 1.45;
 }
 
-/* BUTTONS */
 .btn {
   border: none;
   border-radius: 10px;
@@ -302,7 +299,6 @@ body {
   cursor: pointer;
 }
 
-/* FORMS */
 .form-group {
   margin-bottom: 12px;
   display: flex;
@@ -362,7 +358,6 @@ input[type="range"] {
   .dashboard-split { grid-template-columns: 1fr; }
 }
 
-/* PILLS, BADGES & LISTS */
 .badge, .badge-soft {
   background: var(--danger);
   color: #fff;
@@ -472,7 +467,6 @@ input[type="range"] {
   gap: 4px;
 }
 
-/* POPUP & TOAST */
 .popup-terror-container {
   position: fixed;
   top: 16px;
