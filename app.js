@@ -1,15 +1,16 @@
 /* ==========================================================================
-   DOMIFECT v4 — Academic & Vocational Domino Effect Planner
-   Full 15-Feature Logic Engine (Sorted Schedule + Instant Task Save & Alert)
+   DOMIFECT v5 — Academic & Vocational Domino Effect Planner
+   Full 15-Feature Logic Engine (Bulletproof Save, Alert, Simulator & Panic)
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v4';
-const PROFILE_KEY = 'domifect_profile_v4';
-const SCHEDULE_KEY = 'domifect_schedule_v4';
-const GEAR_KEY = 'domifect_gear_v4';
-const STATS_KEY = 'domifect_stats_v4';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v4';
+const TASKS_KEY = 'domifect_tasks_v5';
+const PROFILE_KEY = 'domifect_profile_v5';
+const SCHEDULE_KEY = 'domifect_schedule_v5';
+const GEAR_KEY = 'domifect_gear_v5';
+const STATS_KEY = 'domifect_stats_v5';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v5';
 
+const DAYS_LIST = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_ORDER = {
   'Senin': 1,
   'Selasa': 2,
@@ -92,17 +93,20 @@ function loadAllData() {
 
   try {
     const rawTasks = localStorage.getItem(TASKS_KEY);
-    tasks = rawTasks ? JSON.parse(rawTasks) : [];
+    const parsed = rawTasks ? JSON.parse(rawTasks) : [];
+    tasks = Array.isArray(parsed) ? parsed : [];
   } catch (e) { tasks = []; }
 
   try {
     const rawSched = localStorage.getItem(SCHEDULE_KEY);
-    schedules = rawSched ? JSON.parse(rawSched) : [];
+    const parsed = rawSched ? JSON.parse(rawSched) : [];
+    schedules = Array.isArray(parsed) ? sortSchedulesByDay(parsed) : [];
   } catch (e) { schedules = []; }
 
   try {
     const rawGear = localStorage.getItem(GEAR_KEY);
-    gears = rawGear ? JSON.parse(rawGear) : [];
+    const parsed = rawGear ? JSON.parse(rawGear) : [];
+    gears = Array.isArray(parsed) ? parsed : [];
   } catch (e) { gears = []; }
 
   try {
@@ -111,8 +115,23 @@ function loadAllData() {
   } catch (e) { stats = { onTime: 0, late: 0, streak: 0 }; }
 }
 
-function saveTasks() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
-function saveSchedules() { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules)); }
+function saveTasks() {
+  try {
+    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+  } catch (e) {
+    console.error('Failed to save tasks:', e);
+  }
+}
+
+function saveSchedules() {
+  try {
+    schedules = sortSchedulesByDay(schedules);
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules));
+  } catch (e) {
+    console.error('Failed to save schedules:', e);
+  }
+}
+
 function saveGears() { localStorage.setItem(GEAR_KEY, JSON.stringify(gears)); }
 function saveStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
 
@@ -456,20 +475,22 @@ function generateTerrorMessage(task) {
 // PERHITUNGAN SLACK TIME, DEPENDENCY & GRADE IMPACT
 // =========================================================================
 function calculateSlack(task) {
+  if (!task || !task.deadline) return 0;
   const deadlineTime = new Date(task.deadline).getTime();
   if (isNaN(deadlineTime)) return 0;
+  const dur = parseFloat(task.duration) || 1;
 
   if (!task.dependsOn) {
     const h = (deadlineTime - Date.now()) / 3600000;
-    return Math.round((h - task.duration) * 10) / 10;
+    return Math.round((h - dur) * 10) / 10;
   }
   const parent = tasks.find(t => t.id === task.dependsOn);
-  if (!parent) {
+  if (!parent || !parent.deadline) {
     const h = (deadlineTime - Date.now()) / 3600000;
-    return Math.round((h - task.duration) * 10) / 10;
+    return Math.round((h - dur) * 10) / 10;
   }
   const parentEnd = new Date(parent.deadline).getTime();
-  return Math.round(((deadlineTime - task.duration * 3600000 - parentEnd) / 3600000) * 10) / 10;
+  return Math.round(((deadlineTime - dur * 3600000 - parentEnd) / 3600000) * 10) / 10;
 }
 
 function getGradeLabel(weight) {
@@ -482,29 +503,39 @@ function getGradeLabel(weight) {
 
 function getDownstreamTasks(taskId) {
   let affected = [];
-  tasks.forEach(t => {
-    if (t.status === 'active' && t.dependsOn === taskId) {
-      affected.push(t);
-      affected = affected.concat(getDownstreamTasks(t.id));
-    }
-  });
+  const visited = new Set([taskId]);
+
+  function findChildren(parentId) {
+    tasks.forEach(t => {
+      if (t.status === 'active' && t.dependsOn === parentId && !visited.has(t.id)) {
+        visited.add(t.id);
+        affected.push(t);
+        findChildren(t.id);
+      }
+    });
+  }
+  findChildren(taskId);
   return affected;
 }
 
 // =========================================================================
-// NOTIFIKASI, POPUP HEADS-UP & PANIC MODE
+// NOTIFIKASI SISTEM & POPUP HEADS-UP DI LAYAR
 // =========================================================================
 function showScreenPopup(task) {
+  const banner = document.getElementById('popupTerrorBanner');
+  if (!banner) return;
   const terrorMsg = generateTerrorMessage(task);
   document.getElementById('popupTeacherTag').textContent = `${task.teacher} • ${task.subject}`;
   document.getElementById('popupTaskTitle').textContent = task.title;
   document.getElementById('popupTerrorText').textContent = terrorMsg;
-  document.getElementById('popupTerrorBanner').classList.remove('hidden');
+  banner.classList.remove('hidden');
 
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   if ('vibrate' in navigator) {
-    if (mode === 'silent') navigator.vibrate([120, 60, 120]);
-    else navigator.vibrate([300, 100, 300, 100, 300]);
+    try {
+      if (mode === 'silent') navigator.vibrate([120, 60, 120]);
+      else navigator.vibrate([300, 100, 300, 100, 300]);
+    } catch (e) {}
   }
 }
 
@@ -514,23 +545,38 @@ window.triggerTestPopup = (taskId) => {
 };
 
 async function triggerNotifications(task) {
+  // 1. Selalu tampilkan Pop-up Heads-up Banner langsung di layar aplikasi
   showScreenPopup(task);
+
   const terrorMsg = generateTerrorMessage(task);
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
+  const title = `🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`;
+  const options = {
+    body: terrorMsg,
+    vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
+    silent: mode === 'silent',
+    requireInteraction: true,
+    tag: 'domifect-' + task.id
+  };
 
-  if ('Notification' in window && Notification.permission === 'granted') {
-    if (swRegistration && swRegistration.showNotification) {
-      swRegistration.showNotification(`🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`, {
-        body: terrorMsg,
-        vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
-        silent: mode === 'silent',
-        requireInteraction: true
-      });
-    } else {
-      new Notification(`🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`, {
-        body: terrorMsg,
-        silent: mode === 'silent'
-      });
+  // 2. Kirim Notifikasi Native HP / Browser
+  if ('Notification' in window) {
+    let perm = Notification.permission;
+    if (perm === 'default') {
+      try { perm = await Notification.requestPermission(); } catch (e) {}
+    }
+
+    if (perm === 'granted') {
+      try {
+        const reg = await navigator.serviceWorker?.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, options);
+        } else {
+          new Notification(title, options);
+        }
+      } catch (err) {
+        try { new Notification(title, options); } catch (e2) {}
+      }
     }
   }
 }
@@ -552,36 +598,45 @@ function startWatchdog() {
   }, 45000);
 }
 
+// =========================================================================
+// PANIC BUTTON (RENCANA DARURAT KILAT)
+// =========================================================================
 let lastPanicTextWA = '';
 function triggerPanicMode() {
   const active = tasks.filter(t => t.status === 'active');
   const panicBox = document.getElementById('panicBox');
   const panicContent = document.getElementById('panicContent');
 
+  if (!panicBox || !panicContent) return;
+
   if (active.length === 0) {
     panicBox.classList.remove('hidden');
     panicContent.innerHTML = '<p class="hint">Tidak ada tugas aktif saat ini. Jadwalmu masih aman terkendali!</p>';
     lastPanicTextWA = 'Jadwal DOMIFECT saat ini aman terkendali!';
+    panicBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   const sorted = [...active].sort((a, b) => {
-    const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
-    const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
+    const wA = parseInt(a.gradeWeight) || 1;
+    const wB = parseInt(b.gradeWeight) || 1;
+    const scoreA = calculateSlack(a) / wA;
+    const scoreB = calculateSlack(b) / wB;
     return scoreA - scoreB;
   });
 
-  let planHtml = '<ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">';
+  let planHtml = '<ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 10px;">';
   let waLines = ['🚨 *RENCANA DARURAT KILAT DOMIFECT* 🚨', ''];
 
   sorted.forEach((t, idx) => {
     const slack = calculateSlack(t);
-    const mins = Math.round(t.duration * 60);
+    const dur = parseFloat(t.duration) || 1;
+    const mins = Math.round(dur * 60);
     const statusText = slack <= 0 ? 'KRITIS — KERJAKAN SEKARANG!' : `Sisa cadangan ${slack} jam`;
     planHtml += `
       <li>
         <strong>[Langkah ${idx + 1}] ${t.title} (${t.subject} - ${t.teacher})</strong><br/>
-        <small>Bobot: ${getGradeLabel(t.gradeWeight)} • Alokasi Kilat: <strong>${mins} menit</strong> • Status: <span style="color:var(--danger)">${statusText}</span></small>
+        <small>Bobot: ${getGradeLabel(t.gradeWeight)} • Alokasi Kilat: <strong>${mins} menit</strong> • Status: <span style="color:var(--danger); font-weight:600;">${statusText}</span></small>
       </li>
     `;
     waLines.push(`${idx + 1}. *${t.title}* (${t.subject} - ${t.teacher}) | ${mins} menit | ${statusText}`);
@@ -591,6 +646,7 @@ function triggerPanicMode() {
   lastPanicTextWA = waLines.join('\n');
   panicBox.classList.remove('hidden');
   panicContent.innerHTML = planHtml;
+  panicBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // =========================================================================
@@ -794,14 +850,28 @@ function setupEventListeners() {
     });
   }
 
-  // Simpan / Update Tugas + Langsung Munculkan Notifikasi Teror Pertama
-  document.getElementById('taskForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    try {
-      const existingId = document.getElementById('editTaskId').value;
+  // Simpan / Update Tugas (Dijamin Tersimpan & Notifikasi Langsung Muncul)
+  const taskForm = document.getElementById('taskForm');
+  if (taskForm) {
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const titleVal = document.getElementById('tTitle')?.value.trim();
+      const subjectVal = document.getElementById('tSubject')?.value.trim();
+      const teacherVal = document.getElementById('tTeacher')?.value.trim();
+      const workVal = document.getElementById('tWorkSchedule')?.value;
+      const deadlineVal = document.getElementById('tDeadline')?.value;
+
+      if (!titleVal || !subjectVal || !teacherVal || !deadlineVal) {
+        alert('⚠️ Mohon lengkapi Nama Tugas, Mata Pelajaran, Nama Guru, dan Deadline!');
+        return;
+      }
+
+      const existingId = document.getElementById('editTaskId')?.value || '';
       const id = existingId || ('t_' + Date.now());
 
-      const rawSubs = document.getElementById('tSubTasks').value.trim();
+      const rawSubs = document.getElementById('tSubTasks')?.value.trim() || '';
       let parsedSubTasks = [];
       if (rawSubs) {
         const oldTask = tasks.find(t => t.id === existingId);
@@ -813,18 +883,18 @@ function setupEventListeners() {
 
       const newTask = {
         id,
-        title: document.getElementById('tTitle').value.trim(),
-        subject: document.getElementById('tSubject').value.trim(),
-        teacher: document.getElementById('tTeacher').value.trim(),
-        gradeWeight: document.getElementById('tGradeWeight').value || '1',
-        persona: document.getElementById('tPersona').value || 'killer',
-        customText: document.getElementById('tCustomText').value.trim(),
-        workSchedule: document.getElementById('tWorkSchedule').value,
-        deadline: document.getElementById('tDeadline').value,
-        duration: parseFloat(document.getElementById('tDuration').value) || 1,
-        dependsOn: document.getElementById('tDependsOn').value || '',
+        title: titleVal,
+        subject: subjectVal,
+        teacher: teacherVal,
+        gradeWeight: document.getElementById('tGradeWeight')?.value || '1',
+        persona: document.getElementById('tPersona')?.value || 'killer',
+        customText: document.getElementById('tCustomText')?.value.trim() || '',
+        workSchedule: workVal || deadlineVal,
+        deadline: deadlineVal,
+        duration: parseFloat(document.getElementById('tDuration')?.value) || 1,
+        dependsOn: document.getElementById('tDependsOn')?.value || '',
         subTasks: parsedSubTasks,
-        groupMembers: document.getElementById('tGroupMembers').value.trim(),
+        groupMembers: document.getElementById('tGroupMembers')?.value.trim() || '',
         status: 'active'
       };
 
@@ -836,15 +906,13 @@ function setupEventListeners() {
       resetTaskForm();
       renderAll();
 
-      // Pemicu notifikasi teror guru langsung saat tugas baru disimpan
+      // Scroll ke daftar tugas aktif agar terlihat langsung & picu teror notifikasi
+      document.getElementById('assignmentsList')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       triggerNotifications(newTask);
-    } catch (err) {
-      console.error('Error saving task:', err);
-      alert('Terjadi kendala saat menyimpan tugas. Pastikan semua kolom bertanda * sudah diisi.');
-    }
-  });
+    });
+  }
 
-  // Jadwal Pelajaran Form (Otomatis Terurut Hari Senin - Sabtu)
+  // Jadwal Pelajaran Form (Otomatis Terurut & Terkelompok Tetap Per Hari)
   document.getElementById('scheduleForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     schedules.push({
@@ -853,7 +921,6 @@ function setupEventListeners() {
       subject: document.getElementById('sSubject').value.trim(),
       teacher: document.getElementById('sTeacher').value.trim()
     });
-    schedules = sortSchedulesByDay(schedules);
     saveSchedules();
     e.target.reset();
     renderAll();
@@ -871,7 +938,7 @@ function setupEventListeners() {
     }
   });
 
-  // Generator Chat Negosiasi Guru
+  // Generator Chat Negosiasi Guru (9 Situasi Darurat Lengkap)
   document.getElementById('btnGenerateChat')?.addEventListener('click', () => {
     const taskId = document.getElementById('negoTaskSelect').value;
     const reason = document.getElementById('negoReasonSelect').value;
@@ -885,13 +952,20 @@ function setupEventListeners() {
     const studentClass = userProfile.className || '[Kelas]';
 
     const reasonTexts = {
-      alat: 'dikarenakan terdapat kendala teknis pada perangkat/alat praktik yang sedang dalam perbaikan',
-      sakit: 'dikarenakan kondisi kesehatan saya sedang kurang fit sehingga proses pengerjaan sedikit terhambat',
+      alat: 'dikarenakan terdapat kendala teknis pada perangkat/alat praktik atau laptop yang sedang mengalami gangguan',
+      sakit: 'dikarenakan kondisi kesehatan saya sedang kurang fit / sakit sehingga proses pengerjaan sedikit terhambat',
       bertumpuk: 'dikarenakan bersamaan dengan jadwal uji kompetensi/praktik mata pelajaran lain yang cukup padat',
-      revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta'
+      revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta',
+      listrik: 'dikarenakan terjadi pemadaman listrik dan gangguan jaringan internet di wilayah tempat tinggal saya sejak tadi malam',
+      keluarga: 'dikarenakan terdapat urusan keluarga yang sangat mendesak / anggota keluarga sedang sakit sehingga saya harus mendampingi',
+      dispen: 'dikarenakan saya sedang menjalankan tugas dispensasi kegiatan sekolah / lomba mewakili sekolah',
+      pkl: 'dikarenakan terdapat penyesuaian jadwal kerja / lembur di tempat PKL (Prakerin) yang baru selesai cukup malam',
+      kelompok: 'dikarenakan kami masih menunggu kelengkapan data dari salah satu anggota kelompok agar laporan dapat digabungkan secara utuh'
     };
 
-    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.\n\nMohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.\n\nSaat ini progres pengerjaan sudah berjalan, namun ${reasonTexts[reason]}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
+    const selectedReasonText = reasonTexts[reason] || reasonTexts.alat;
+
+    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.\n\nMohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.\n\nSaat ini progres pengerjaan sudah berjalan, namun ${selectedReasonText}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].\n\nTerima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
 
     document.getElementById('negoChatOutput').value = draft;
     document.getElementById('negoResultBox').classList.remove('hidden');
@@ -965,22 +1039,28 @@ function renderDropdowns() {
   const quickSch = document.getElementById('tQuickSchedule');
 
   if (dep) {
+    const prevDep = dep.value;
     dep.innerHTML = '<option value="">-- Tugas Mandiri --</option>';
     active.forEach(t => {
       dep.innerHTML += `<option value="${t.id}">${t.title} (${t.subject})</option>`;
     });
+    if (prevDep) dep.value = prevDep;
   }
   if (sim) {
+    const prevSim = sim.value;
     sim.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
     active.forEach(t => {
       sim.innerHTML += `<option value="${t.id}">${t.title} — ${t.teacher}</option>`;
     });
+    if (prevSim && active.some(t => t.id === prevSim)) sim.value = prevSim;
   }
   if (nego) {
+    const prevNego = nego.value;
     nego.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
     active.forEach(t => {
       nego.innerHTML += `<option value="${t.id}">${t.title} (${t.teacher})</option>`;
     });
+    if (prevNego && active.some(t => t.id === prevNego)) nego.value = prevNego;
   }
   if (quickSch) {
     const sortedSch = sortSchedulesByDay(schedules);
@@ -1000,7 +1080,7 @@ function renderDashboard() {
   if (streakBadge) streakBadge.textContent = `🔥 Streak: ${stats.streak} Tepat Waktu`;
 
   const critical = active.filter(t => calculateSlack(t) <= 0);
-  const totalWorkHours = active.reduce((sum, t) => sum + (t.duration || 0), 0);
+  const totalWorkHours = active.reduce((sum, t) => sum + (parseFloat(t.duration) || 0), 0);
   const targetDaily = userProfile.targetHours || 3;
   const mentalLoadPercent = Math.min(100, Math.round((totalWorkHours / (targetDaily * 2)) * 100));
 
@@ -1020,38 +1100,44 @@ function renderDashboard() {
   }
 
   const list = document.getElementById('dashboardAlertsList');
-  list.innerHTML = active.slice(0, 3).map(t => {
-    const slack = calculateSlack(t);
-    return `
-      <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-        <strong>🚨 ${t.teacher} — ${t.subject}</strong>
-        <p class="alert-msg">${generateTerrorMessage(t)}</p>
-      </div>
-    `;
-  }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
+  if (list) {
+    list.innerHTML = active.slice(0, 3).map(t => {
+      const slack = calculateSlack(t);
+      return `
+        <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
+          <strong>🚨 ${t.teacher} — ${t.subject}</strong>
+          <p class="alert-msg">${generateTerrorMessage(t)}</p>
+        </div>
+      `;
+    }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
+  }
 
   const priorityList = document.getElementById('todayActionList');
-  const sorted = [...active].sort((a, b) => {
-    const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
-    const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
-    return scoreA - scoreB;
-  });
+  if (priorityList) {
+    const sorted = [...active].sort((a, b) => {
+      const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
+      const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
+      return scoreA - scoreB;
+    });
 
-  priorityList.innerHTML = sorted.slice(0, 4).map((t, i) => {
-    const slack = calculateSlack(t);
-    return `
-      <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
-        <strong>#${i + 1} ${t.title} (${t.subject})</strong>
-        <p class="hint">${getGradeLabel(t.gradeWeight)} • Slack: ${slack} jam</p>
-      </div>
-    `;
-  }).join('') || '<p class="hint">Belum ada daftar prioritas tugas.</p>';
+    priorityList.innerHTML = sorted.slice(0, 4).map((t, i) => {
+      const slack = calculateSlack(t);
+      return `
+        <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
+          <strong>#${i + 1} ${t.title} (${t.subject})</strong>
+          <p class="hint">${getGradeLabel(t.gradeWeight)} • Slack: ${slack} jam</p>
+        </div>
+      `;
+    }).join('') || '<p class="hint">Belum ada daftar prioritas tugas.</p>';
+  }
 }
 
 function renderAssignments() {
   const active = tasks.filter(t => t.status === 'active');
-  document.getElementById('totalTasksLabel').textContent = active.length;
+  const labelEl = document.getElementById('totalTasksLabel');
+  if (labelEl) labelEl.textContent = active.length;
   const container = document.getElementById('assignmentsList');
+  if (!container) return;
 
   container.innerHTML = active.map(t => {
     const slack = calculateSlack(t);
@@ -1173,53 +1259,120 @@ window.deleteTask = (id) => {
   renderAll();
 };
 
+// =========================================================================
+// SIMULATOR DOMINO LENGKAP (MENGHITUNG SLACK, DAMPAK BERANTAI & RISIKO NILAI)
+// =========================================================================
 function renderSimulator() {
-  const id = document.getElementById('simTaskSelect')?.value;
-  const delay = parseInt(document.getElementById('simDelaySlider')?.value) || 0;
+  const selectEl = document.getElementById('simTaskSelect');
+  const sliderEl = document.getElementById('simDelaySlider');
   const label = document.getElementById('simDelayLabel');
-  if (label) label.textContent = `+${delay} Jam`;
   const box = document.getElementById('simConclusionBox');
   if (!box) return;
 
+  const id = selectEl?.value;
+  const delay = parseInt(sliderEl?.value) || 0;
+  if (label) label.textContent = `+${delay} Jam`;
+
   if (!id) {
-    box.innerHTML = '<p class="hint">Tambahkan tugas terlebih dahulu untuk menjalankan simulasi.</p>';
+    box.innerHTML = '<p class="hint">Tambahkan tugas terlebih dahulu di menu Tugas untuk menjalankan simulasi efek domino.</p>';
     return;
   }
 
   const selectedTask = tasks.find(t => t.id === id);
-  const downstream = getDownstreamTasks(id);
-  const gradeImpactNote = `Dampak Nilai: <strong>${getGradeLabel(selectedTask?.gradeWeight)}</strong>.`;
-
-  if (delay === 0) {
-    box.innerHTML = `<div class="alert-card">✅ <strong>Jadwal Stabil:</strong> Tugas "${selectedTask?.title}" berjalan tepat waktu. ${gradeImpactNote}</div>`;
+  if (!selectedTask) {
+    box.innerHTML = '<p class="hint">Pilih tugas yang valid untuk disimulasikan.</p>';
     return;
   }
 
-  if (downstream.length === 0) {
-    const slack = calculateSlack(selectedTask);
-    const over = delay - slack;
-    box.innerHTML = over > 0
-      ? `<div class="alert-card urgent">⚠️ <strong>Melewati Deadline:</strong> Keterlambatan +${delay} jam membuat tugas ini telat ${Math.round(over * 10) / 10} jam! ${gradeImpactNote}<br/><em>"${generateTerrorMessage(selectedTask)}"</em></div>`
-      : `<div class="alert-card">⚠️ <strong>Waktu Cadangan Berkurang:</strong> Masih aman karena tertutup slack time (${slack} jam). ${gradeImpactNote}</div>`;
-  } else {
-    const affectedNames = downstream.map(d => `${d.title} (${d.teacher})`).join(', ');
-    box.innerHTML = `<div class="alert-card urgent">🚨 <strong>Efek Domino Terjadi!</strong> Keterlambatan +${delay} jam pada "${selectedTask?.title}" mengacaukan ${downstream.length} tugas berikutnya: <strong>${affectedNames}</strong>. ${gradeImpactNote}</div>`;
+  const downstream = getDownstreamTasks(id);
+  const slack = calculateSlack(selectedTask);
+  const gradeImpactNote = `Bobot Rapor: <strong>${getGradeLabel(selectedTask.gradeWeight)}</strong>.`;
+
+  if (delay === 0) {
+    box.innerHTML = `
+      <div class="alert-card">
+        ✅ <strong>Kondisi Normal (+0 Jam):</strong> Tugas <strong>"${selectedTask.title}"</strong> (${selectedTask.subject}) berjalan sesuai jadwal.
+        <p class="hint" style="margin-top:4px;">Cadangan Waktu (Slack): <strong>${slack} jam</strong> • ${gradeImpactNote}</p>
+      </div>`;
+    return;
   }
+
+  const over = Math.round((delay - slack) * 10) / 10;
+  let html = '';
+
+  if (over > 0) {
+    html += `
+      <div class="alert-card urgent">
+        ⚠️ <strong>Melewati Deadline Tugas Utama:</strong> Menunda <strong>+${delay} jam</strong> menghabiskan cadangan waktu (${slack} jam) dan membuat <strong>"${selectedTask.title}"</strong> telat <strong>${over} jam</strong> dari batas akhir!
+        <p class="hint" style="margin-top:4px;">${gradeImpactNote}</p>
+        <p class="alert-msg" style="margin-top:6px;">"${generateTerrorMessage(selectedTask)}"</p>
+      </div>`;
+  } else {
+    html += `
+      <div class="alert-card">
+        ⏳ <strong>Cadangan Waktu Menipis:</strong> Keterlambatan <strong>+${delay} jam</strong> pada <strong>"${selectedTask.title}"</strong> masih tertahan oleh slack time (${slack} jam), namun sisa waktu aman tinggal <strong>${Math.round((slack - delay) * 10) / 10} jam</strong>.
+        <p class="hint" style="margin-top:4px;">${gradeImpactNote}</p>
+      </div>`;
+  }
+
+  if (downstream.length > 0) {
+    const listItems = downstream.map((d, index) => {
+      const dSlack = calculateSlack(d);
+      const dImpact = Math.round((delay - dSlack) * 10) / 10;
+      const statusStr = dImpact > 0
+        ? `<span style="color:var(--danger); font-weight:700;">Ikut Telat ${dImpact} jam!</span>`
+        : `<span style="color:var(--warning);">Cadangan waktu tergerus ${delay} jam</span>`;
+      return `<li><strong>Domino #${index + 1}: ${d.title}</strong> (${d.subject} - ${d.teacher}) — ${statusStr}</li>`;
+    }).join('');
+
+    html += `
+      <div class="alert-card urgent" style="margin-top:10px;">
+        🚨 <strong>RANTAI EFEK DOMINO TERPICU (${downstream.length} Tugas Terdampak):</strong>
+        <ul style="padding-left:18px; margin-top:6px; display:flex; flex-direction:column; gap:5px; font-size:0.86rem;">
+          ${listItems}
+        </ul>
+      </div>`;
+  } else {
+    html += `<p class="hint" style="margin-top:6px;">ℹ️ Tugas ini belum memiliki tugas lanjutan yang bergantung padanya (Hubungkan tugas lain di kolom "Bergantung Pada Tugas" untuk melihat rantai domino).</p>`;
+  }
+
+  box.innerHTML = html;
 }
 
+// =========================================================================
+// JADWAL TETAP PER HARI (SENIN - SABTU) & PERLENGKAPAN
+// =========================================================================
 function renderScheduleAndGear() {
   const schList = document.getElementById('scheduleList');
   if (schList) {
     const sortedSch = sortSchedulesByDay(schedules);
-    schList.innerHTML = sortedSch.map(s => `
-      <div class="alert-card" style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <strong>[${s.day}] ${s.subject}</strong>
-          <p class="hint">Pengampu: ${s.teacher}</p>
-        </div>
-        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule('${s.id}')">✕</button>
-      </div>
-    `).join('') || '<p class="hint">Belum ada jadwal pelajaran tersimpan.</p>';
+    if (sortedSch.length === 0) {
+      schList.innerHTML = '<p class="hint">Belum ada jadwal pelajaran tetap yang tersimpan.</p>';
+    } else {
+      let groupedHtml = '';
+      DAYS_LIST.forEach(dayName => {
+        const itemsForDay = sortedSch.filter(s => s.day === dayName);
+        if (itemsForDay.length > 0) {
+          groupedHtml += `
+            <div style="margin-bottom: 12px;">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; border-bottom:1px solid var(--border); padding-bottom:3px;">
+                📌 Hari ${dayName} (${itemsForDay.length} Mapel)
+              </div>
+              ${itemsForDay.map(s => `
+                <div class="alert-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <div>
+                    <strong>${s.subject}</strong>
+                    <p class="hint">Pengampu: ${s.teacher}</p>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule('${s.id}')">✕</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      });
+      schList.innerHTML = groupedHtml;
+    }
   }
 
   const gearList = document.getElementById('gearList');
