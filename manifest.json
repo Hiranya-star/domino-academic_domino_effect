@@ -1,30 +1,20 @@
 {
-  "id": "/domifect-academic-vocational-planner-v3",
   "name": "DOMIFECT — Academic & Vocational Domino Effect Planner",
   "short_name": "DOMIFECT",
-  "description": "Planner akademik & kejuruan (SMA/SMK), simulator efek domino, dan pengingat karakter guru (Full 15 Features).",
+  "description": "Planner efek domino akademik & kejuruan untuk siswa SMA & SMK dengan fitur teror karakter guru, simulator keterlambatan, dan mode fokus.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#0b1120",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
   "theme_color": "#6366f1",
-  "categories": [
-    "education",
-    "productivity"
-  ],
+  "lang": "id",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b1120'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%23131c31' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23ec4899' stroke-width='12'/%3E%3C/svg%3E",
-      "sizes": "192x192",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%236366f1'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='900' font-size='260' fill='%23ffffff'%3ED%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b1120'/%3E%3Crect x='130' y='130' width='84' height='168' rx='16' fill='%23131c31' stroke='%2338bdf8' stroke-width='12'/%3E%3Crect x='230' y='160' width='84' height='168' rx='16' fill='%236366f1' stroke='%23ec4899' stroke-width='12'/%3E%3C/svg%3E",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
