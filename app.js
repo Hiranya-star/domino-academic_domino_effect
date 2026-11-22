@@ -36,11 +36,64 @@ function showToast(msg) {
   }, 2800);
 }
 
+
+
+/* PENGHUBUNG KONTROL HTML KE FUNGSI JAVASCRIPT */
+function bindUIEvents() {
+  const on = (id, event, handler) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, handler);
+  };
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+  });
+  on('btnSidebarTheme', 'click', toggleTheme);
+  on('btnMobileTheme', 'click', toggleTheme);
+  on('btnEnableNotif', 'click', requestNotificationPermission);
+  on('btnMobileNotif', 'click', requestNotificationPermission);
+  on('btnEnableNotifMobile', 'click', requestNotificationPermission);
+  on('btnQuickAdd', 'click', () => window.uiQuickAdd());
+  on('btnAddFromActive', 'click', () => window.uiQuickAdd());
+  on('btnPanic', 'click', triggerPanicMode);
+  on('btnAntiMager', 'click', () => window.uiAntiMager());
+  on('btnToggleExamMode', 'click', () => window.uiToggleExamMode());
+  on('btnClosePanic', 'click', () => window.uiClosePanic());
+  on('btnSharePanicWA', 'click', () => window.uiSharePanicWA());
+  on('btnGoActiveTasks', 'click', () => navigateTo('active-tasks'));
+  on('btnCancelEdit', 'click', () => window.uiCancelEdit());
+  on('btnGenerateChat', 'click', handleGenerateChat);
+  on('btnCopyChat', 'click', () => window.uiCopyChat());
+  on('btnStartTimer', 'click', handleStartTimer);
+  on('btnPauseTimer', 'click', () => window.uiPauseTimer());
+  on('btnResetTimer', 'click', () => window.uiResetTimer());
+  on('btnExportData', 'click', handleExportData);
+  on('btnClosePopup', 'click', () => window.uiClosePopup());
+
+  on('taskForm', 'submit', e => { e.preventDefault(); handleTaskSubmit(); });
+  on('scheduleForm', 'submit', e => { e.preventDefault(); handleScheduleSubmit(); });
+  on('gearForm', 'submit', e => { e.preventDefault(); handleGearSubmit(); });
+  on('profileForm', 'submit', e => { e.preventDefault(); handleProfileSubmit(); });
+
+  on('tQuickSchedule', 'change', e => window.uiOnQuickScheduleChange(e.target.value));
+  on('tPersona', 'change', e => window.uiOnPersonaChange(e.target.value));
+  on('simTaskSelect', 'change', renderSimulator);
+  on('simDelaySlider', 'input', renderSimulator);
+  on('customTimerInput', 'input', e => window.uiOnTimerInputChange(e.target.value));
+  on('alarmModeSelect', 'change', e => window.uiOnAlarmModeChange(e.target.value));
+  on('inputImportData', 'change', e => window.uiImportData(e.target));
+
+  document.querySelectorAll('.filter-tab[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => window.uiFilterTasks(btn.dataset.filter));
+  });
+}
+
 function initApp() {
   initTheme();
   loadAllData();
   setDefaultTaskDates();
   updateNotifStatusBadge();
+  bindUIEvents();
   registerServiceWorker();
   renderAll();
   startWatchdog();
