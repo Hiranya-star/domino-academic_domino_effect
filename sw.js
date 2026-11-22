@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domifect-cache';
+const CACHE_NAME = 'domifect-clean-cache';
 const ASSETS = [
   './',
   './index.html',
@@ -7,30 +7,40 @@ const ASSETS = [
   './manifest.json'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', function(event) {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(ASSETS);
+    }).catch(function() {})
   );
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', function(event) {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE_NAME; }).map(function(k) { return caches.delete(k); })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    })
   );
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', function(event) {
   if (event.request.method !== 'GET') return;
   event.respondWith(
     fetch(event.request)
-      .then((res) => {
+      .then(function(res) {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, clone);
+        });
         return res;
       })
-      .catch(() => caches.match(event.request))
+      .catch(function() {
+        return caches.match(event.request);
+      })
   );
 });
