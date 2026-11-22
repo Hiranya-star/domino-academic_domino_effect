@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DOMIFECT v2 — Academic & Vocational Domino Effect Planner
+   DOMIFECT v3 — Academic & Vocational Domino Effect Planner
    Mobile-First Thumb-Friendly UI & Responsive Styling
    ========================================================================== */
 
@@ -240,7 +240,6 @@ body {
   gap: 12px;
 }
 
-/* Font-size minimal 16px untuk mencegah auto-zoom di HP */
 input, select, textarea {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -308,7 +307,6 @@ input:focus, select:focus, textarea:focus {
 .slack-safe { background: rgba(16, 185, 129, 0.2); color: var(--success); }
 .slack-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
 
-/* MICRO-TASK PROGRESS BAR & CHECKLIST */
 .progress-wrap {
   background: var(--bg-dark);
   border-radius: 99px;
@@ -357,7 +355,6 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-muted);
 }
 
-/* STATISTIK GRID */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -397,7 +394,6 @@ input:focus, select:focus, textarea:focus {
 }
 .badge { background: var(--danger); }
 
-/* POPUP TEROR GURU HEADS-UP BANNER */
 .popup-terror-container {
   position: fixed;
   top: max(14px, env(safe-area-inset-top));
@@ -431,7 +427,6 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
 }
 
-/* BANNER DOWNLOAD / INSTALL APLIKASI */
 .install-banner {
   position: fixed;
   top: max(12px, env(safe-area-inset-top));
@@ -463,7 +458,6 @@ input:focus, select:focus, textarea:focus {
 
 .mobile-only { display: none; }
 
-/* RESPONSIF KHUSUS LAYAR HP (MOBILE-FIRST BOTTOM NAV - 7 MENU) */
 @media(max-width: 768px) {
   .sidebar {
     position: fixed;
