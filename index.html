@@ -22,18 +22,18 @@
         <span id="sidebarStudentTag">Planner SMA & SMK</span>
       </div>
       <nav class="nav-menu">
-        <button type="button" class="nav-item active" data-page="dashboard" onclick="uiGoPage('dashboard')">📊 <span>Beranda</span></button>
-        <button type="button" class="nav-item" data-page="create-task" onclick="uiGoPage('create-task')">➕ <span>Buat Tugas</span></button>
-        <button type="button" class="nav-item" data-page="active-tasks" onclick="uiGoPage('active-tasks')">📋 <span>Tugas Aktif</span> <span class="badge-soft" id="navTaskCount">0</span></button>
-        <button type="button" class="nav-item" data-page="simulator" onclick="uiGoPage('simulator')">🁢 <span>Domino</span></button>
-        <button type="button" class="nav-item" data-page="schedule" onclick="uiGoPage('schedule')">🎒 <span>Jadwal</span></button>
-        <button type="button" class="nav-item" data-page="alerts" onclick="uiGoPage('alerts')">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
-        <button type="button" class="nav-item" data-page="focus" onclick="uiGoPage('focus')">⏱️ <span>Fokus</span></button>
-        <button type="button" class="nav-item" data-page="profile" onclick="uiGoPage('profile')">👤 <span>Profil</span></button>
+        <button type="button" class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
+        <button type="button" class="nav-item" data-page="create-task">➕ <span>Buat Tugas</span></button>
+        <button type="button" class="nav-item" data-page="active-tasks">📋 <span>Tugas Aktif</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button type="button" class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
+        <button type="button" class="nav-item" data-page="schedule">🎒 <span>Jadwal</span></button>
+        <button type="button" class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
+        <button type="button" class="nav-item" data-page="focus">⏱️ <span>Fokus</span></button>
+        <button type="button" class="nav-item" data-page="profile">👤 <span>Profil</span></button>
       </nav>
       <div class="sidebar-footer">
-        <button type="button" id="btnSidebarTheme" onclick="uiToggleTheme()" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button type="button" id="btnEnableNotif" onclick="uiRequestNotif()" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
+        <button type="button" id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
+        <button type="button" id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
       </div>
     </aside>
 
@@ -47,9 +47,9 @@
           <h2 id="pageTitle" class="desktop-title">Dashboard Akademik & Kejuruan</h2>
         </div>
         <div class="topbar-right">
-          <button type="button" id="btnMobileTheme" onclick="uiToggleTheme()" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
-          <button type="button" id="btnMobileNotif" onclick="uiRequestNotif()" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
-          <button type="button" id="btnQuickAdd" onclick="uiQuickAdd()" class="btn btn-primary btn-sm">➕ Tugas</button>
+          <button type="button" id="btnMobileTheme" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
+          <button type="button" id="btnMobileNotif" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
+          <button type="button" id="btnQuickAdd" class="btn btn-primary btn-sm">➕ Tugas</button>
         </div>
       </header>
 
@@ -68,22 +68,22 @@
             <p id="stabilityDesc" class="hint">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
           </div>
           <div class="dashboard-actions-grid" style="margin-top: 14px;">
-            <button type="button" id="btnPanic" onclick="uiPanic()" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
-            <button type="button" id="btnAntiMager" onclick="uiAntiMager()" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
+            <button type="button" id="btnPanic" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
+            <button type="button" id="btnAntiMager" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
           </div>
           <div style="margin-top: 10px;">
-            <button type="button" id="btnToggleExamMode" onclick="uiToggleExamMode()" class="btn btn-secondary btn-block btn-sm">🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)</button>
+            <button type="button" id="btnToggleExamMode" class="btn btn-secondary btn-block btn-sm">🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)</button>
           </div>
         </div>
 
         <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="color: var(--danger);">🚨 Rencana Darurat Kilat (Prioritas Rapor)</h3>
-            <button type="button" id="btnClosePanic" onclick="uiClosePanic()" class="btn-icon">✕</button>
+            <button type="button" id="btnClosePanic" class="btn-icon">✕</button>
           </div>
           <p class="hint">Urutan eksekusi menit-per-menit berdasarkan Slack Time & Bobot Nilai Rapor:</p>
           <div id="panicContent" style="margin-top: 10px;"></div>
-          <button type="button" id="btnSharePanicWA" onclick="uiSharePanicWA()" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
+          <button type="button" id="btnSharePanicWA" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
         </div>
 
         <div id="tomorrowGearAlert" class="card hidden" style="border-left: 4px solid var(--warning);">
@@ -95,7 +95,7 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <button type="button" id="btnGoActiveTasks" onclick="uiGoPage('active-tasks')" class="btn btn-secondary btn-sm">Lihat Semua Tugas →</button>
+            <button type="button" id="btnGoActiveTasks" class="btn btn-secondary btn-sm">Lihat Semua Tugas →</button>
           </div>
           <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
         </div>
@@ -106,14 +106,14 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 id="formModeTitle">➕ Buat Tugas & Karakter Guru</h3>
-            <button type="button" id="btnCancelEdit" onclick="uiCancelEdit()" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
+            <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
           </div>
-          <form id="taskForm" class="task-form" style="margin-top:12px;" onsubmit="return uiSubmitTask(event)" novalidate>
+          <form id="taskForm" class="task-form" style="margin-top:12px;" novalidate>
             <input type="hidden" id="editTaskId" />
 
             <div class="form-group">
               <label>⚡ Isi Otomatis dari Jadwal Pelajaran (Opsional)</label>
-              <select id="tQuickSchedule" onchange="uiOnQuickScheduleChange(this.value)">
+              <select id="tQuickSchedule">
                 <option value="">-- Pilih Mapel dari Jadwal Tersimpan --</option>
               </select>
             </div>
@@ -146,7 +146,7 @@
               </div>
               <div class="form-group">
                 <label>Karakter / Tipe Guru *</label>
-                <select id="tPersona" onchange="uiOnPersonaChange(this.value)">
+                <select id="tPersona">
                   <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
                   <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
                   <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
@@ -210,14 +210,14 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
-            <button type="button" id="btnAddFromActive" onclick="uiQuickAdd()" class="btn btn-primary btn-sm">➕ Tambah Tugas Baru</button>
+            <button type="button" id="btnAddFromActive" class="btn btn-primary btn-sm">➕ Tambah Tugas Baru</button>
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">
-            <button type="button" class="btn btn-sm btn-primary filter-tab" data-filter="all" onclick="uiFilterTasks('all')">Semua Aktif</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="critical" onclick="uiFilterTasks('critical')">🚨 Kritis (Slack ≤ 0)</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="today" onclick="uiFilterTasks('today')">📅 Deadline Hari Ini</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="archive" onclick="uiFilterTasks('archive')">✅ Riwayat Selesai (<span id="archiveCountLabel">0</span>)</button>
+            <button type="button" class="btn btn-sm btn-primary filter-tab" data-filter="all">Semua Aktif</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="critical">🚨 Kritis (Slack ≤ 0)</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="today">📅 Deadline Hari Ini</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="archive">✅ Riwayat Selesai (<span id="archiveCountLabel">0</span>)</button>
           </div>
 
           <div id="assignmentsList" class="assignments-grid" style="margin-top:14px;"></div>
@@ -231,11 +231,11 @@
           <p class="hint">Geser waktu keterlambatan untuk melihat dampak berantai pada tugas berikutnya dan risiko nilai rapor.</p>
           <div class="form-group" style="margin-top:12px;">
             <label>Pilih Tugas yang Terlambat:</label>
-            <select id="simTaskSelect" onchange="renderSimulator()"></select>
+            <select id="simTaskSelect"></select>
           </div>
           <div class="form-group">
             <label>Simulasi Keterlambatan: <strong id="simDelayLabel" style="color:var(--warning);">+0 Jam</strong></label>
-            <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" oninput="renderSimulator()" />
+            <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
           </div>
           <div id="simConclusionBox" class="sim-conclusion" style="margin-top:15px;"></div>
         </div>
@@ -247,11 +247,11 @@
           <div class="card">
             <h3>📅 Jadwal Pelajaran Mingguan (Tetap Per Hari)</h3>
             <p class="hint">Jadwal otomatis dikelompokkan dan diurutkan tetap dari Senin sampai Sabtu.</p>
-            <form id="scheduleForm" style="margin-top:12px;" onsubmit="return uiSubmitSchedule(event)">
+            <form id="scheduleForm" style="margin-top:12px;" novalidate>
               <div class="form-row-mobile">
                 <div class="form-group">
                   <label>Hari *</label>
-                  <select id="sDay" required>
+                  <select id="sDay">
                     <option value="Senin">Senin</option>
                     <option value="Selasa">Selasa</option>
                     <option value="Rabu">Rabu</option>
@@ -262,12 +262,12 @@
                 </div>
                 <div class="form-group">
                   <label>Mata Pelajaran *</label>
-                  <input type="text" id="sSubject" placeholder="Contoh: Pemrograman Web / Kimia" required />
+                  <input type="text" id="sSubject" placeholder="Contoh: Pemrograman Web / Kimia" />
                 </div>
               </div>
               <div class="form-group">
                 <label>Nama Guru / Instruktur *</label>
-                <input type="text" id="sTeacher" placeholder="Contoh: Pak Hendra" required />
+                <input type="text" id="sTeacher" placeholder="Contoh: Pak Hendra" />
               </div>
               <button type="submit" class="btn btn-primary btn-block">➕ Simpan Permanen ke Jadwal</button>
             </form>
@@ -277,8 +277,8 @@
           <div class="card">
             <h3>🎒 Checklist Perlengkapan Besok</h3>
             <p class="hint">Catat barang wajib bawa (wearpack, jas lab, jangka sorong, flashdisk) agar tidak tertinggal.</p>
-            <form id="gearForm" style="display:flex; gap:8px; margin-top:12px;" onsubmit="return uiSubmitGear(event)">
-              <input type="text" id="gearInput" placeholder="Contoh: Wearpack Bengkel / Jas Lab" required />
+            <form id="gearForm" style="display:flex; gap:8px; margin-top:12px;" novalidate>
+              <input type="text" id="gearInput" placeholder="Contoh: Wearpack Bengkel / Jas Lab" />
               <button type="submit" class="btn btn-primary">Tambah</button>
             </form>
             <div id="gearList" class="alert-list" style="margin-top:14px;"></div>
@@ -311,10 +311,10 @@
               </select>
             </div>
           </div>
-          <button type="button" id="btnGenerateChat" onclick="uiGenerateChat()" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
+          <button type="button" id="btnGenerateChat" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
           <div id="negoResultBox" class="hidden" style="margin-top:12px;">
             <textarea id="negoChatOutput" rows="6" readonly></textarea>
-            <button type="button" id="btnCopyChat" onclick="uiCopyChat()" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
+            <button type="button" id="btnCopyChat" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
           </div>
         </div>
 
@@ -325,12 +325,12 @@
           </div>
           <div class="form-group" style="margin-top:12px;">
             <label>Mode Alarm Pengingat:</label>
-            <select id="alarmModeSelect" onchange="uiOnAlarmModeChange(this.value)">
+            <select id="alarmModeSelect">
               <option value="sound">Dengan Suara & Getar Default</option>
               <option value="silent">Pengingat Senyap (Tanpa Suara / Getar Saja)</option>
             </select>
           </div>
-          <button type="button" id="btnEnableNotifMobile" onclick="uiRequestNotif()" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
+          <button type="button" id="btnEnableNotifMobile" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
@@ -342,13 +342,13 @@
           <p id="focusTaskTargetLabel" class="hint" style="font-weight:600; color:var(--primary);">Fokus Umum — Atur durasi waktumu sendiri atau gunakan Anti-Mager 5 menit.</p>
           <div class="form-group" style="max-width: 260px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
-            <input type="number" id="customTimerInput" min="1" max="180" value="25" onchange="uiOnTimerInputChange(this.value)" />
+            <input type="number" id="customTimerInput" min="1" max="180" value="25" />
           </div>
           <div class="timer-display" id="timerDisplay" style="font-size:3.4rem; font-weight:800; margin:18px 0; color:var(--primary);">25:00</div>
           <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-            <button type="button" id="btnStartTimer" onclick="uiStartTimer()" class="btn btn-primary">▶️ Mulai</button>
-            <button type="button" id="btnPauseTimer" onclick="uiPauseTimer()" class="btn btn-secondary">⏸️ Jeda</button>
-            <button type="button" id="btnResetTimer" onclick="uiResetTimer()" class="btn btn-danger">🔄 Reset</button>
+            <button type="button" id="btnStartTimer" class="btn btn-primary">▶️ Mulai</button>
+            <button type="button" id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
+            <button type="button" id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
           </div>
         </div>
       </section>
@@ -375,14 +375,14 @@
 
         <div class="card">
           <h3>👤 Profil Siswa (SMA / SMK)</h3>
-          <form id="profileForm" class="task-form" style="margin-top:12px;" onsubmit="return uiSubmitProfile(event)">
+          <form id="profileForm" class="task-form" style="margin-top:12px;" novalidate>
             <div class="form-group">
               <label>Nama Lengkap *</label>
-              <input type="text" id="pName" placeholder="Masukkan namamu" required />
+              <input type="text" id="pName" placeholder="Masukkan namamu" />
             </div>
             <div class="form-group">
               <label>Jenjang & Jurusan / Program Keahlian *</label>
-              <input type="text" id="pClass" placeholder="Contoh: XII TKJ 2 / XII Mesin / XII MIPA" required />
+              <input type="text" id="pClass" placeholder="Contoh: XII TKJ 2 / XII Mesin / XII MIPA" />
             </div>
             <div class="form-group">
               <label>Nama Sekolah (SMA / SMK)</label>
@@ -402,10 +402,10 @@
           <h3>💾 Cadangkan & Pulihkan Data (Backup)</h3>
           <p class="hint">Simpan cadangan seluruh tugas, jadwal, dan profil ke file JSON agar aman saat ganti HP.</p>
           <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <button type="button" id="btnExportData" onclick="uiExportData()" class="btn btn-secondary" style="flex:1;">⬇️ Ekspor Backup (.json)</button>
+            <button type="button" id="btnExportData" class="btn btn-secondary" style="flex:1;">⬇️ Ekspor Backup (.json)</button>
             <label class="btn btn-secondary" style="flex:1; cursor:pointer; text-align:center;">
               ⬆️ Impor Backup (.json)
-              <input type="file" id="inputImportData" accept=".json" onchange="uiImportData(this)" class="hidden" />
+              <input type="file" id="inputImportData" accept=".json" class="hidden" />
             </label>
           </div>
         </div>
@@ -422,7 +422,7 @@
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
       <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
-      <button type="button" id="btnClosePopup" onclick="uiClosePopup()" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
+      <button type="button" id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
     </div>
   </div>
 
