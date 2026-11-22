@@ -20,6 +20,8 @@ let userProfile = { name: '', className: '', school: '', targetHours: 3 };
 let isExamMode = false;
 let currentTaskFilter = 'all';
 let lastPanicTextWA = '';
+let deferredInstallPrompt = null;
+const notifiedTaskWindows = new Set();
 
 let focusTimerInterval = null;
 let focusSecondsRemaining = 25 * 60;
@@ -51,6 +53,7 @@ function bindUIEvents() {
   on('btnSidebarTheme', 'click', toggleTheme);
   on('btnMobileTheme', 'click', toggleTheme);
   on('btnEnableNotif', 'click', requestNotificationPermission);
+  on('btnInstallPWA', 'click', installPWA);
   on('btnMobileNotif', 'click', requestNotificationPermission);
   on('btnEnableNotifMobile', 'click', requestNotificationPermission);
   on('btnQuickAdd', 'click', () => window.uiQuickAdd());
@@ -95,17 +98,42 @@ function initApp() {
   updateNotifStatusBadge();
   bindUIEvents();
   registerServiceWorker();
+  setupPWAInstall();
   renderAll();
   startWatchdog();
 }
 
 function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(function(reg) {
-      reg.update();
-    }).catch(function() {});
-  }
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  navigator.serviceWorker.register('./sw.js', {scope:'./'}).then(reg => reg.update()).catch(err => console.warn('DOMIFECT SW:', err));
 }
+
+function setupPWAInstall() {
+  const installBtn = document.getElementById('btnInstallPWA');
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    if (installBtn) installBtn.classList.add('hidden');
+  }
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault(); deferredInstallPrompt = event;
+    if (installBtn) installBtn.classList.remove('hidden');
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (installBtn) installBtn.classList.add('hidden');
+    showToast('✅ DOMIFECT berhasil dipasang sebagai aplikasi!');
+  });
+}
+
+async function installPWA() {
+  if (!deferredInstallPrompt) {
+    showToast('Buka menu Chrome ⋮ lalu pilih “Tambahkan ke layar utama” atau “Install app”.');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+}
+
 
 function initTheme() {
   const saved = localStorage.getItem('domifect_theme') || 'dark';
@@ -570,14 +598,63 @@ const terrorMatrix = {
   }
 };
 
+// 50 pesan tambahan untuk setiap karakter guru: 10 pembuka x 5 inti.
+// Gaya pesan tetap jenaka dan suportif, bukan ancaman atau penghinaan.
+const extraTerrorBank = {
+  killer: {
+    a: ["🚨 Panggilan tugas dari {teacher} masuk!", "🔔 Radar deadline mendeteksi tugasmu!", "Perhatian, {teacher} sedang mengecek progres.", "Breaking news dari meja guru {teacher}!", "Status tugasmu terpantau satelit akademik.", "Tim penyelamat deadline memanggilmu!", "Ada pesan dari wilayah {subject}.", "Alarm akademik berbunyi khusus untukmu!", "{teacher} mengirim sinyal pengingat.", "Operasi penyelamatan nilai dimulai!"],
+    b: ["tugas '{title}' untuk {subject} masih menunggu sentuhan terakhirmu.", "misi '{title}' belum berubah menjadi status selesai.", "deadline '{title}' makin dekat—jangan biarkan kalender yang mengerjakannya.", "progres '{title}' perlu ditambah sedikit demi sedikit.", "'{title}' sedang antre untuk dituntaskan sebelum waktunya habis."]
+  },
+  sarcastic: {
+    a: ["Wah, tugasmu sepertinya sedang menikmati waktu libur.", "Halo, pejuang rebahan, kalender ingin bicara.", "File tugasmu sedang menunggu diajak kenalan.", "{teacher} menitipkan salam dari dunia deadline.", "Katanya mau produktif hari ini? Ini kesempatanmu.", "Tugasmu mengirim surat: katanya kangen dikerjakan.", "Waktu tidak sedang menunggu inspirasi turun.", "Ada yang lupa punya tugas {subject}?", "Kursi belajar sudah lama tidak bertemu denganmu.", "Notifikasi ini disponsori deadline yang makin dekat."],
+    b: ["'{title}' belum selesai, mungkin dia menunggu perhatianmu.", "tugas {subject} itu belum bisa mengerjakan dirinya sendiri.", "'{title}' masih ada di daftar, bukan di daftar kenangan.", "progres tugasmu tampaknya sedang mengambil cuti.", "{teacher} tentu lebih senang melihat hasil daripada alasan menunda."]
+  },
+  disciplined: {
+    a: ["⏱️ Pemeriksaan jadwal akademik dimulai.", "Sistem disiplin mencatat waktu pengerjaanmu.", "Laporan waktu dari {teacher} telah diterima.", "Alarm ketepatan waktu aktif untuk {subject}.", "Jadwal harian meminta pembaruan progres.", "Pusat kendali deadline memanggilmu.", "Waktu adalah sumber daya yang terus berjalan.", "Pemeriksaan target belajar: saatnya evaluasi.", "{teacher} mengingatkan pentingnya konsistensi.", "Mode disiplin akademik diaktifkan."],
+    b: ["tugas '{title}' perlu masuk ke urutan prioritasmu.", "target '{title}' belum mencapai status tuntas.", "waktu pengerjaan '{title}' perlu dibagi menjadi langkah realistis.", "'{title}' berpotensi menggeser jadwal lain jika terus ditunda.", "progres {subject} perlu diperbarui agar rencanamu terkendali."]
+  },
+  friendly: {
+    a: ["Hai! Ada pengingat kecil dari {teacher}.", "Halo, semoga harimu menyenangkan!", "🌻 Semangat belajar, waktunya cek tugas.", "{teacher} mengirim dukungan untukmu.", "Hei, jangan lupa luangkan waktu untuk tugasmu.", "Satu pengingat ramah untuk hari ini.", "Kamu sudah berusaha, sekarang lanjutkan sedikit lagi.", "Salam semangat dari kelas {subject}!", "Yuk, cek kembali daftar tugasmu.", "Kamu bisa menyelesaikannya bertahap."],
+    b: ["'{title}' masih menunggu progres berikutnya.", "sedikit waktu untuk {subject} hari ini akan membantu.", "kamu bisa membagi '{title}' menjadi bagian kecil.", "jangan lupa sisakan waktu untuk meninjau '{title}'.", "{teacher} ingin melihat usahamu berkembang, bukan harus sempurna sekaligus."]
+  },
+  vocational: {
+    a: ["🧰 Panggilan dari ruang praktik akademik!", "Pemeriksaan SOP tugas {subject} dimulai.", "Tim kendali mutu mengingatkanmu.", "Laporan pekerjaan dari {teacher} telah masuk.", "Mode proyek aktif: cek daftar pekerjaanmu.", "Perhatian, teknisi tugas sedang dibutuhkan!", "Checklist kompetensi perlu diperbarui.", "Ruang kerja akademik mengirim notifikasi.", "Jadwal produksi tugas hari ini dimulai.", "Quality control tugas memanggil operatornya."],
+    b: ["hasil kerja '{title}' masih perlu diperiksa dan diselesaikan.", "laporan '{title}' belum melewati pemeriksaan akhir.", "proses '{title}' perlu mengikuti rencana yang dibuat.", "komponen tugas {subject} masih menunggu penyelesaian.", "'{title}' perlu dituntaskan agar target belajarmu tercapai."]
+  },
+  silentkiller: {
+    a: ["...Ada pengingat singkat dari {teacher}.", "Notifikasi tenang, tetapi penting.", "{teacher} mengirim satu catatan kecil.", "Status akademikmu mendapat pembaruan.", "Tidak banyak kata, hanya pengingat deadline.", "Sistem mencatat satu tugas yang perlu perhatian.", "Sebuah pengingat muncul di sela kesibukanmu.", "Cek kembali daftar tugas sebelum hari berakhir.", "Pesan singkat dari pengawas progres belajar.", "🔎 Ada tugas yang perlu kamu tinjau."],
+    b: ["'{title}' masih tercatat belum selesai pada mapel {subject}.", "progres '{title}' belum diperbarui di daftar tugasmu.", "deadline '{title}' perlu masuk perhatian hari ini.", "tugas ini lebih aman diselesaikan sebelum waktunya mepet.", "{teacher} berharap kamu konsisten menuntaskan tanggung jawabmu."]
+  },
+  motivator: {
+    a: ["🏆 Panggilan untuk calon juara akademik!", "Setiap progres kecil membawamu lebih dekat ke tujuan.", "{teacher} percaya kamu mampu menyelesaikan tantangan ini.", "Saatnya membuktikan konsistensi, bukan kesempurnaan.", "Semangat juara dimulai dari satu tugas tuntas.", "Tantangan hari ini: selesaikan satu langkah penting.", "Masa depan dibangun dari kebiasaan baik hari ini.", "Ayo nyalakan mode fokusmu!", "Kesempatan berkembang datang dari tugas sehari-hari.", "Kamu sudah sampai sejauh ini—lanjutkan!"],
+    b: ["'{title}' adalah kesempatan melatih tanggung jawabmu di {subject}.", "menuntaskan '{title}' akan membuat jadwalmu lebih lega.", "progres '{title}' menunjukkan kamu bergerak menuju target.", "tugas {subject} ini bisa diselesaikan dengan strategi tepat.", "{teacher} menantikan usaha terbaik yang bisa kamu berikan."]
+  },
+  custom: {
+    a: ["📣 Pesan khusus dari {teacher}!", "Pengingat personal untuk tugasmu.", "Ada catatan dari guru {subject}.", "Pesan yang kamu atur sendiri sedang diputar.", "Sistem mengingatkanmu dengan pesan khusus.", "Catatan penting untuk agenda belajarmu.", "Waktunya membaca pengingat personal.", "Satu pesan khusus sebelum deadline tiba.", "Pengingat buatanmu sendiri muncul kembali.", "Jangan lewatkan pesan dari {teacher}."],
+    b: ["catatan pengingatnya: '{customText}' terkait tugas '{title}'.", "'{customText}' — jangan lupa meninjau tugas '{title}'.", "pesanmu berbunyi '{customText}' untuk tugas {subject}.", "ingat pesan ini: '{customText}' saat mengerjakan '{title}'.", "'{customText}' menjadi pengingat untuk menyelesaikan '{title}'."]
+  }
+};
+const extraTerrorClosers = ["Ayo mulai sekarang!", "Satu langkah kecil lebih baik daripada panik nanti.", "Buka catatanmu dan tuntaskan misinya!", "Atur waktumu dan mulai sesuai rencana.", "Semangat, kamu pasti bisa menyelesaikannya!"];
+const extraTerrorMessages = Object.keys(extraTerrorBank).reduce(function(all, persona) {
+  const group = extraTerrorBank[persona];
+  all[persona] = [];
+  group.a.forEach(function(opener, i) {
+    group.b.forEach(function(core, j) {
+      all[persona].push(opener + ' ' + core + ' ' + extraTerrorClosers[(i + j) % extraTerrorClosers.length]);
+    });
+  });
+  return all;
+}, {});
+
 function generateTerrorMessage(task) {
-  const group = terrorMatrix[task.persona] || terrorMatrix.killer;
-  const pick = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+  const persona = task.persona || 'killer';
+  const bank = extraTerrorMessages[persona] || extraTerrorMessages.killer;
+  const message = bank[Math.floor(Math.random() * bank.length)];
   const customVal = (task.customText || '').trim() || ('Ayo segera selesaikan tugas ' + task.subject + ' tepat waktu!');
-  return (pick(group.openers) + ' ' + pick(group.cores) + ' ' + pick(group.closers))
-    .replace(/\{teacher\}/g, task.teacher)
-    .replace(/\{title\}/g, task.title)
-    .replace(/\{subject\}/g, task.subject)
+  return message
+    .replace(/\{teacher\}/g, task.teacher || 'Guru')
+    .replace(/\{title\}/g, task.title || 'tugasmu')
+    .replace(/\{subject\}/g, task.subject || 'mata pelajaran')
     .replace(/\{customText\}/g, customVal);
 }
 
@@ -660,22 +737,27 @@ window.triggerTestPopup = function(taskId) {
 
 function triggerNotifications(task) {
   showScreenPopup(task);
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification('🚨 DOMIFECT: ' + task.teacher.toUpperCase() + ' (' + task.subject + ')', {
-        body: generateTerrorMessage(task)
-      });
-    } catch (e) {}
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const windowKey = String(task.id) + ':' + Math.floor(Date.now() / 1800000);
+  if (notifiedTaskWindows.has(windowKey)) return;
+  notifiedTaskWindows.add(windowKey);
+  const title = '🚨 DOMIFECT: ' + task.teacher.toUpperCase() + ' (' + task.subject + ')';
+  const body = generateTerrorMessage(task);
+  // Use the service worker notification API where available; it works better with an installed PWA.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => reg.showNotification(title, {body, icon:'./icon-192.png', badge:'./icon-192.png', tag:'task-' + task.id, renotify:false, data:{url:'./index.html'}})).catch(() => {});
+  } else {
+    try { new Notification(title, {body}); } catch (e) {}
   }
 }
 
 function requestNotificationPermission() {
-  if ('Notification' in window) {
-    Notification.requestPermission().then(function(p) {
-      updateNotifStatusBadge();
-      showToast(p === 'granted' ? '✅ Notifikasi pop-up diaktifkan!' : '⚠️ Izin notifikasi ditolak');
-    });
-  }
+  if (!('Notification' in window)) { showToast('Browser ini belum mendukung notifikasi.'); return; }
+  if (!window.isSecureContext) { showToast('Notifikasi memerlukan HTTPS. Buka DOMIFECT dari GitHub Pages.'); return; }
+  Notification.requestPermission().then(function(p) {
+    updateNotifStatusBadge();
+    showToast(p === 'granted' ? '✅ Izin notifikasi aktif. Pengingat berjalan saat DOMIFECT terbuka.' : '⚠️ Izin notifikasi belum diberikan');
+  }).catch(() => showToast('Tidak dapat meminta izin notifikasi.'));
 }
 
 function startWatchdog() {
