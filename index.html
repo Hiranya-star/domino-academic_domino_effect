@@ -10,71 +10,271 @@
   <meta name="apple-mobile-web-app-title" content="DOMIFECT" />
   <title>DOMIFECT — Academic & Vocational Domino Effect Planner</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./style.css" />
   <style>
-    /* OVERRIDE ANTI-MACET & LAYER CLICKABILITY */
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-sidebar: #0b1120;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(148, 163, 184, 0.18);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --secondary: #334155;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-sidebar: #ffffff;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: rgba(15, 23, 42, 0.12);
+      --secondary: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
     .hidden { display: none !important; }
+
+    /* LAYOUT SHELL */
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 1000;
+    }
+    .brand h1 { font-size: 1.4rem; font-weight: 800; color: var(--primary); letter-spacing: 0.5px; }
+    .brand span { font-size: 0.78rem; color: var(--text-muted); display: block; margin-top: 2px; }
+    .nav-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 20px; flex: 1; overflow-y: auto; }
+    .nav-item {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.15s;
+    }
+    .nav-item:hover { background: rgba(99, 102, 241, 0.12); }
+    .nav-item.active { background: var(--primary); color: #fff; }
+    .sidebar-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    .main-content {
+      margin-left: 250px;
+      flex: 1;
+      padding: 18px 22px 90px;
+      max-width: 100%;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+    .desktop-title { font-size: 1.25rem; font-weight: 700; }
+    .mobile-brand { display: none; }
+    .mobile-only { display: none; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    /* RESPONSIVE MOBILE BOTTOM NAV */
+    @media (max-width: 820px) {
+      .sidebar {
+        top: auto; left: 0; right: 0; bottom: 0;
+        width: 100%; height: 66px;
+        flex-direction: row;
+        padding: 4px 6px;
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+      .brand, .sidebar-footer { display: none; }
+      .nav-menu {
+        flex-direction: row;
+        margin-top: 0;
+        gap: 2px;
+        justify-content: space-around;
+        align-items: center;
+        overflow-x: auto;
+      }
+      .nav-item {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 6px 4px;
+        font-size: 0.68rem;
+        gap: 2px;
+        text-align: center;
+        min-width: 46px;
+      }
+      .nav-item .badge, .nav-item .badge-soft { display: none; }
+      .main-content { margin-left: 0; padding: 14px 14px 86px; }
+      .desktop-title { display: none; }
+      .mobile-brand { display: flex; flex-direction: column; }
+      .mobile-brand strong { color: var(--primary); font-size: 1.15rem; }
+      .mobile-brand small { color: var(--text-muted); font-size: 0.72rem; }
+      .mobile-only { display: inline-flex; }
+    }
+
+    /* PAGES & CARDS */
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-    .sidebar, .nav-menu, .nav-item, .topbar, .btn, button, select, input, textarea {
-      pointer-events: auto !important;
-      touch-action: manipulation;
-    }
-    .sidebar { z-index: 900 !important; }
-    .topbar { z-index: 800 !important; }
-    .popup-terror-container {
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(92vw, 440px);
-      z-index: 9999 !important;
-      pointer-events: auto !important;
-    }
-    .popup-terror-card {
-      background: var(--bg-card, #1e293b);
-      border: 2px solid #ef4444;
+    .card, .stability-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 16px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+      margin-bottom: 16px;
     }
-    .popup-terror-header {
-      display: flex;
-      justify-content: space-between;
+    .stability-banner { border-left: 5px solid var(--primary); }
+    .label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.6px; color: var(--primary); }
+    .stability-info h3 { margin: 6px 0; font-size: 1.15rem; }
+    .hint { font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; }
+
+    /* BUTTONS */
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
-      margin-bottom: 8px;
-      gap: 8px;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.15s;
+      text-decoration: none;
     }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--secondary); color: var(--text); }
+    .btn-warning { background: var(--warning); color: #111827; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 7px 11px; font-size: 0.8rem; border-radius: 8px; }
+    .btn-block { width: 100%; }
+    .btn-icon {
+      background: var(--secondary);
+      color: var(--text);
+      border: none;
+      border-radius: 8px;
+      width: 34px; height: 34px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
     }
+
+    /* FORMS */
+    .form-group { margin-bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    input[type="text"], input[type="number"], input[type="datetime-local"], select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .form-row-mobile { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .form-row-mobile { grid-template-columns: 1fr; } }
+
+    .dashboard-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .dashboard-actions-grid { grid-template-columns: 1fr; } }
+
+    .dashboard-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 820px) { .dashboard-split { grid-template-columns: 1fr; } }
+
+    /* PILLS, BADGES & LISTS */
+    .badge, .badge-soft {
+      background: var(--danger); color: #fff;
+      font-size: 0.7rem; padding: 2px 7px; border-radius: 999px; margin-left: auto;
+    }
+    .badge-soft { background: rgba(99, 102, 241, 0.25); color: var(--text); }
+    .slack-pill, .subject-pill, .grade-pill {
+      font-size: 0.74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+      background: rgba(99, 102, 241, 0.16); color: var(--primary);
+    }
+    .slack-safe { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+    .slack-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    .alert-list { display: flex; flex-direction: column; gap: 10px; }
+    .alert-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .alert-card.urgent { border-left: 4px solid var(--danger); }
+    .alert-msg { font-size: 0.86rem; margin-top: 6px; line-height: 1.45; }
+
+    .assignments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .task-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .progress-wrap { height: 6px; background: var(--secondary); border-radius: 999px; overflow: hidden; margin: 4px 0 6px; }
+    .progress-fill { height: 100%; background: var(--success); }
+    .subtask-row { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; padding: 3px 0; cursor: pointer; }
+    .subtask-row.done span { text-decoration: line-through; opacity: 0.6; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .stat-box {
-      background: rgba(99, 102, 241, 0.08);
-      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      background: var(--bg);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px 8px;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      display: flex; flex-direction: column; gap: 4px;
     }
+
+    /* POPUP & TOAST */
+    .popup-terror-container {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      width: min(92vw, 440px); z-index: 9999;
+    }
+    .popup-terror-card {
+      background: var(--bg-card); border: 2px solid var(--danger);
+      border-radius: 14px; padding: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+    }
+    .popup-terror-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
     .toast-feedback {
-      position: fixed;
-      bottom: 84px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #10b981;
-      color: #ffffff;
-      padding: 10px 18px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      z-index: 9998;
+      position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+      background: var(--success); color: #ffffff;
+      padding: 10px 18px; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600; z-index: 9998;
       box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .install-banner {
+      position: fixed; bottom: 76px; left: 12px; right: 12px;
+      background: var(--bg-card); border: 1px solid var(--primary);
+      border-radius: 12px; padding: 12px; z-index: 9500;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
     }
   </style>
 </head>
@@ -82,15 +282,15 @@
   <!-- TOAST FEEDBACK INSTAN -->
   <div id="toastFeedback" class="toast-feedback hidden"></div>
 
-  <!-- BANNER DOWNLOAD / INSTALL APLIKASI (WEBAPK ASLI DARI CHROME) -->
+  <!-- BANNER DOWNLOAD / INSTALL APLIKASI -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
       <strong>📲 Download & Install DOMIFECT</strong>
-      <small>Pasang sebagai aplikasi penuh di HP (Offline & WebAPK)</small>
+      <small style="display:block; color:var(--text-muted);">Pasang sebagai aplikasi penuh di HP</small>
     </div>
-    <div class="install-btns">
-      <button type="button" id="btnInstallApp" class="btn btn-primary btn-sm">Download App</button>
-      <button type="button" id="btnCloseInstall" class="btn-icon" aria-label="Tutup">✕</button>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <button type="button" id="btnInstallApp" onclick="uiInstallApp()" class="btn btn-primary btn-sm">Download App</button>
+      <button type="button" id="btnCloseInstall" onclick="uiCloseInstall()" class="btn-icon" aria-label="Tutup">✕</button>
     </div>
   </div>
 
@@ -102,18 +302,18 @@
         <span id="sidebarStudentTag">Planner SMA & SMK</span>
       </div>
       <nav class="nav-menu">
-        <button type="button" class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
-        <button type="button" class="nav-item" data-page="create-task">➕ <span>Buat Tugas</span></button>
-        <button type="button" class="nav-item" data-page="active-tasks">📋 <span>Tugas Aktif</span> <span class="badge-soft" id="navTaskCount">0</span></button>
-        <button type="button" class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
-        <button type="button" class="nav-item" data-page="schedule">🎒 <span>Jadwal</span></button>
-        <button type="button" class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
-        <button type="button" class="nav-item" data-page="focus">⏱️ <span>Fokus</span></button>
-        <button type="button" class="nav-item" data-page="profile">👤 <span>Profil</span></button>
+        <button type="button" class="nav-item active" data-page="dashboard" onclick="uiGoPage('dashboard')">📊 <span>Beranda</span></button>
+        <button type="button" class="nav-item" data-page="create-task" onclick="uiGoPage('create-task')">➕ <span>Buat Tugas</span></button>
+        <button type="button" class="nav-item" data-page="active-tasks" onclick="uiGoPage('active-tasks')">📋 <span>Tugas Aktif</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button type="button" class="nav-item" data-page="simulator" onclick="uiGoPage('simulator')">🁢 <span>Domino</span></button>
+        <button type="button" class="nav-item" data-page="schedule" onclick="uiGoPage('schedule')">🎒 <span>Jadwal</span></button>
+        <button type="button" class="nav-item" data-page="alerts" onclick="uiGoPage('alerts')">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
+        <button type="button" class="nav-item" data-page="focus" onclick="uiGoPage('focus')">⏱️ <span>Fokus</span></button>
+        <button type="button" class="nav-item" data-page="profile" onclick="uiGoPage('profile')">👤 <span>Profil</span></button>
       </nav>
       <div class="sidebar-footer">
-        <button type="button" id="btnSidebarTheme" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
-        <button type="button" id="btnEnableNotif" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
+        <button type="button" id="btnSidebarTheme" onclick="uiToggleTheme()" class="btn btn-secondary btn-block">☀️ Mode Terang</button>
+        <button type="button" id="btnEnableNotif" onclick="uiRequestNotif()" class="btn btn-warning btn-block">🔔 Aktifkan Notifikasi</button>
       </div>
     </aside>
 
@@ -128,13 +328,13 @@
           <h2 id="pageTitle" class="desktop-title">Dashboard Akademik & Kejuruan</h2>
         </div>
         <div class="topbar-right">
-          <button type="button" id="btnMobileTheme" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
-          <button type="button" id="btnMobileNotif" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
-          <button type="button" id="btnQuickAdd" class="btn btn-primary btn-sm">➕ Tugas</button>
+          <button type="button" id="btnMobileTheme" onclick="uiToggleTheme()" class="btn-icon mobile-only" title="Ganti Tema">☀️</button>
+          <button type="button" id="btnMobileNotif" onclick="uiRequestNotif()" class="btn-icon mobile-only" title="Izin Notifikasi">🔔</button>
+          <button type="button" id="btnQuickAdd" onclick="uiQuickAdd()" class="btn btn-primary btn-sm">➕ Tugas</button>
         </div>
       </header>
 
-      <!-- HALAMAN 1: DASHBOARD UTAMA BERSIH, MODE UJIAN & PANIC BUTTON -->
+      <!-- HALAMAN 1: DASHBOARD UTAMA -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
@@ -146,29 +346,29 @@
               </div>
             </div>
             <h3 id="stabilityScore">100% — Jadwal Stabil | Beban Mental: 0%</h3>
-            <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
+            <p id="stabilityDesc" class="hint">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
           </div>
           <div class="dashboard-actions-grid" style="margin-top: 14px;">
-            <button type="button" id="btnPanic" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
-            <button type="button" id="btnAntiMager" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
+            <button type="button" id="btnPanic" onclick="uiPanic()" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
+            <button type="button" id="btnAntiMager" onclick="uiAntiMager()" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
           </div>
           <div style="margin-top: 10px;">
-            <button type="button" id="btnToggleExamMode" class="btn btn-secondary btn-block btn-sm">🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)</button>
+            <button type="button" id="btnToggleExamMode" onclick="uiToggleExamMode()" class="btn btn-secondary btn-block btn-sm">🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)</button>
           </div>
         </div>
 
-        <!-- KOTAK RENCANA DARURAT (PRIORITAS RAPOR) -->
+        <!-- KOTAK RENCANA DARURAT -->
         <div id="panicBox" class="card hidden" style="border: 2px solid var(--danger);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="color: var(--danger);">🚨 Rencana Darurat Kilat (Prioritas Rapor)</h3>
-            <button type="button" id="btnClosePanic" class="btn-icon">✕</button>
+            <button type="button" id="btnClosePanic" onclick="uiClosePanic()" class="btn-icon">✕</button>
           </div>
           <p class="hint">Urutan eksekusi menit-per-menit berdasarkan Slack Time & Bobot Nilai Rapor:</p>
           <div id="panicContent" style="margin-top: 10px;"></div>
-          <button type="button" id="btnSharePanicWA" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
+          <button type="button" id="btnSharePanicWA" onclick="uiSharePanicWA()" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
         </div>
 
-        <!-- PENGINGAT PERLENGKAPAN BESOK (H-1) JIKA ADA -->
+        <!-- PENGINGAT PERLENGKAPAN BESOK -->
         <div id="tomorrowGearAlert" class="card hidden" style="border-left: 4px solid var(--warning);">
           <h3>🎒 Pengingat Perlengkapan Besok (<span id="tomorrowDayLabel">Besok</span>)</h3>
           <p id="tomorrowScheduleHint" class="hint" style="margin-top:4px;"></p>
@@ -179,26 +379,25 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <button type="button" id="btnGoActiveTasks" class="btn btn-secondary btn-sm">Lihat Semua Tugas →</button>
+            <button type="button" id="btnGoActiveTasks" onclick="uiGoPage('active-tasks')" class="btn btn-secondary btn-sm">Lihat Semua Tugas →</button>
           </div>
           <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
         </div>
       </section>
 
-      <!-- HALAMAN 2A: FORM BUAT / EDIT TUGAS (TERPISAH DI SIDEBAR) -->
+      <!-- HALAMAN 2A: FORM BUAT / EDIT TUGAS -->
       <section id="page-create-task" class="page">
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 id="formModeTitle">➕ Buat Tugas & Karakter Guru</h3>
-            <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
+            <button type="button" id="btnCancelEdit" onclick="uiCancelEdit()" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
           </div>
-          <form id="taskForm" class="task-form" style="margin-top:12px;" novalidate>
+          <form id="taskForm" class="task-form" style="margin-top:12px;" onsubmit="return uiSubmitTask(event)" novalidate>
             <input type="hidden" id="editTaskId" />
 
-            <!-- PILIH CEPAT DARI JADWAL MAPEL -->
             <div class="form-group">
               <label>⚡ Isi Otomatis dari Jadwal Pelajaran (Opsional)</label>
-              <select id="tQuickSchedule">
+              <select id="tQuickSchedule" onchange="uiOnQuickScheduleChange(this.value)">
                 <option value="">-- Pilih Mapel dari Jadwal Tersimpan --</option>
               </select>
             </div>
@@ -231,7 +430,7 @@
               </div>
               <div class="form-group">
                 <label>Karakter / Tipe Guru (500+ Kalimat Teror) *</label>
-                <select id="tPersona">
+                <select id="tPersona" onchange="uiOnPersonaChange(this.value)">
                   <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
                   <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
                   <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
@@ -273,13 +472,11 @@
               </div>
             </div>
 
-            <!-- MICRO-TASK / SUB-TASK -->
             <div class="form-group">
               <label>🧩 Pecah Langkah Kecil / Micro-Task (Pisahkan dengan koma, opsional)</label>
               <input type="text" id="tSubTasks" placeholder="Contoh: Cari referensi, Ketik BAB 1, Cek format, Print laporan" />
             </div>
 
-            <!-- GROUP TASK SPLITTER -->
             <div class="form-group">
               <label>👥 Pembagian Tugas Kelompok (Pisahkan dengan koma, opsional)</label>
               <input type="text" id="tGroupMembers" placeholder="Contoh: Andi (BAB 1), Budi (Alat & Bahan), Sinta (Edit PPT)" />
@@ -292,51 +489,49 @@
         </div>
       </section>
 
-      <!-- HALAMAN 2B: DAFTAR TUGAS AKTIF & RIWAYAT SELESAI (MENU TERPISAH DI SIDEBAR) -->
+      <!-- HALAMAN 2B: DAFTAR TUGAS AKTIF & RIWAYAT SELESAI -->
       <section id="page-active-tasks" class="page">
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
-            <button type="button" id="btnAddFromActive" class="btn btn-primary btn-sm">➕ Tambah Tugas Baru</button>
+            <button type="button" id="btnAddFromActive" onclick="uiQuickAdd()" class="btn btn-primary btn-sm">➕ Tambah Tugas Baru</button>
           </div>
 
-          <!-- FILTER CEPAT & TAB RIWAYAT -->
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">
-            <button type="button" class="btn btn-sm btn-primary filter-tab" data-filter="all">Semua Aktif</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="critical">🚨 Kritis (Slack ≤ 0)</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="today">📅 Deadline Hari Ini</button>
-            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="archive">✅ Riwayat Selesai (<span id="archiveCountLabel">0</span>)</button>
+            <button type="button" class="btn btn-sm btn-primary filter-tab" data-filter="all" onclick="uiFilterTasks('all')">Semua Aktif</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="critical" onclick="uiFilterTasks('critical')">🚨 Kritis (Slack ≤ 0)</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="today" onclick="uiFilterTasks('today')">📅 Deadline Hari Ini</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="archive" onclick="uiFilterTasks('archive')">✅ Riwayat Selesai (<span id="archiveCountLabel">0</span>)</button>
           </div>
 
           <div id="assignmentsList" class="assignments-grid" style="margin-top:14px;"></div>
         </div>
       </section>
 
-      <!-- HALAMAN 3: SIMULATOR DOMINO & GRADE IMPACT -->
+      <!-- HALAMAN 3: SIMULATOR DOMINO -->
       <section id="page-simulator" class="page">
         <div class="card">
           <h3>🁢 Simulator Efek Domino Keterlambatan</h3>
           <p class="hint">Geser waktu keterlambatan untuk melihat dampak berantai pada tugas berikutnya dan risiko nilai rapor.</p>
           <div class="form-group" style="margin-top:12px;">
             <label>Pilih Tugas yang Terlambat:</label>
-            <select id="simTaskSelect"></select>
+            <select id="simTaskSelect" onchange="renderSimulator()"></select>
           </div>
           <div class="form-group">
             <label>Simulasi Keterlambatan: <strong id="simDelayLabel" style="color:var(--warning);">+0 Jam</strong></label>
-            <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" />
+            <input type="range" id="simDelaySlider" min="0" max="72" step="1" value="0" oninput="renderSimulator()" />
           </div>
           <div id="simConclusionBox" class="sim-conclusion" style="margin-top:15px;"></div>
         </div>
       </section>
 
-      <!-- HALAMAN 4: JADWAL PELAJARAN TETAP PER HARI & CHECKLIST PERLENGKAPAN -->
+      <!-- HALAMAN 4: JADWAL PELAJARAN TETAP PER HARI & PERLENGKAPAN -->
       <section id="page-schedule" class="page">
         <div class="dashboard-split">
-          <!-- JADWAL MAPEL TETAP TERKELOMPOK PER HARI -->
           <div class="card">
             <h3>📅 Jadwal Pelajaran Mingguan (Tetap Per Hari)</h3>
             <p class="hint">Jadwal otomatis dikelompokkan dan diurutkan tetap dari Senin sampai Sabtu.</p>
-            <form id="scheduleForm" style="margin-top:12px;">
+            <form id="scheduleForm" style="margin-top:12px;" onsubmit="return uiSubmitSchedule(event)">
               <div class="form-row-mobile">
                 <div class="form-group">
                   <label>Hari *</label>
@@ -363,11 +558,10 @@
             <div id="scheduleList" class="alert-list" style="margin-top:14px;"></div>
           </div>
 
-          <!-- CHECKLIST PERLENGKAPAN PRAKTIK BESOK -->
           <div class="card">
             <h3>🎒 Checklist Perlengkapan Besok</h3>
             <p class="hint">Catat barang wajib bawa (wearpack, jas lab, jangka sorong, flashdisk) agar tidak tertinggal.</p>
-            <form id="gearForm" style="display:flex; gap:8px; margin-top:12px;">
+            <form id="gearForm" style="display:flex; gap:8px; margin-top:12px;" onsubmit="return uiSubmitGear(event)">
               <input type="text" id="gearInput" placeholder="Contoh: Wearpack Bengkel / Jas Lab" required />
               <button type="submit" class="btn btn-primary">Tambah</button>
             </form>
@@ -401,10 +595,10 @@
               </select>
             </div>
           </div>
-          <button type="button" id="btnGenerateChat" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
+          <button type="button" id="btnGenerateChat" onclick="uiGenerateChat()" class="btn btn-primary btn-block">✍️ Buat Draf Chat WhatsApp</button>
           <div id="negoResultBox" class="hidden" style="margin-top:12px;">
             <textarea id="negoChatOutput" rows="6" readonly></textarea>
-            <button type="button" id="btnCopyChat" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
+            <button type="button" id="btnCopyChat" onclick="uiCopyChat()" class="btn btn-secondary btn-block" style="margin-top:8px;">📋 Salin Teks Chat</button>
           </div>
         </div>
 
@@ -415,12 +609,12 @@
           </div>
           <div class="form-group" style="margin-top:12px;">
             <label>Mode Alarm Pengingat:</label>
-            <select id="alarmModeSelect">
+            <select id="alarmModeSelect" onchange="uiOnAlarmModeChange(this.value)">
               <option value="sound">Dengan Suara & Getar Default</option>
               <option value="silent">Pengingat Senyap (Tanpa Suara / Getar Saja)</option>
             </select>
           </div>
-          <button type="button" id="btnEnableNotifMobile" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
+          <button type="button" id="btnEnableNotifMobile" onclick="uiRequestNotif()" class="btn btn-warning btn-block" style="margin-bottom:14px;">🔔 Izinkan Notifikasi Pop-up di HP</button>
           <div id="fullAlertsList" class="alert-list"></div>
         </div>
       </section>
@@ -432,20 +626,19 @@
           <p id="focusTaskTargetLabel" class="hint" style="font-weight:600; color:var(--primary);">Fokus Umum — Atur durasi waktumu sendiri atau gunakan Anti-Mager 5 menit.</p>
           <div class="form-group" style="max-width: 260px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
-            <input type="number" id="customTimerInput" min="1" max="180" value="25" />
+            <input type="number" id="customTimerInput" min="1" max="180" value="25" onchange="uiOnTimerInputChange(this.value)" />
           </div>
           <div class="timer-display" id="timerDisplay" style="font-size:3.4rem; font-weight:800; margin:18px 0; color:var(--primary);">25:00</div>
           <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-            <button type="button" id="btnStartTimer" class="btn btn-primary">▶️ Mulai</button>
-            <button type="button" id="btnPauseTimer" class="btn btn-secondary">⏸️ Jeda</button>
-            <button type="button" id="btnResetTimer" class="btn btn-danger">🔄 Reset</button>
+            <button type="button" id="btnStartTimer" onclick="uiStartTimer()" class="btn btn-primary">▶️ Mulai</button>
+            <button type="button" id="btnPauseTimer" onclick="uiPauseTimer()" class="btn btn-secondary">⏸️ Jeda</button>
+            <button type="button" id="btnResetTimer" onclick="uiResetTimer()" class="btn btn-danger">🔄 Reset</button>
           </div>
         </div>
       </section>
 
       <!-- HALAMAN 7: PROFIL, STATISTIK & BACKUP DATA -->
       <section id="page-profile" class="page">
-        <!-- STATISTIK & STREAK -->
         <div class="card">
           <h3>🏆 Statistik Ketuntasan & Streak Kedisiplinan</h3>
           <div class="stats-grid" style="margin-top:12px;">
@@ -464,10 +657,9 @@
           </div>
         </div>
 
-        <!-- PROFIL SISWA -->
         <div class="card">
           <h3>👤 Profil Siswa (SMA / SMK)</h3>
-          <form id="profileForm" class="task-form" style="margin-top:12px;">
+          <form id="profileForm" class="task-form" style="margin-top:12px;" onsubmit="return uiSubmitProfile(event)">
             <div class="form-group">
               <label>Nama Lengkap *</label>
               <input type="text" id="pName" placeholder="Masukkan namamu" required />
@@ -490,15 +682,14 @@
           </form>
         </div>
 
-        <!-- EKSPOR / IMPOR DATA BACKUP -->
         <div class="card">
           <h3>💾 Cadangkan & Pulihkan Data (Backup)</h3>
           <p class="hint">Simpan cadangan seluruh tugas, jadwal, dan profil ke file JSON agar aman saat ganti HP.</p>
           <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <button type="button" id="btnExportData" class="btn btn-secondary" style="flex:1;">⬇️ Ekspor Backup (.json)</button>
+            <button type="button" id="btnExportData" onclick="uiExportData()" class="btn btn-secondary" style="flex:1;">⬇️ Ekspor Backup (.json)</button>
             <label class="btn btn-secondary" style="flex:1; cursor:pointer; text-align:center;">
               ⬆️ Impor Backup (.json)
-              <input type="file" id="inputImportData" accept=".json" class="hidden" />
+              <input type="file" id="inputImportData" accept=".json" onchange="uiImportData(this)" class="hidden" />
             </label>
           </div>
         </div>
@@ -506,7 +697,7 @@
     </main>
   </div>
 
-  <!-- POPUP TEROR GURU DI LAYAR HP (HEADS-UP BANNER) -->
+  <!-- POPUP TEROR GURU -->
   <div id="popupTerrorBanner" class="popup-terror-container hidden">
     <div class="popup-terror-card">
       <div class="popup-terror-header">
@@ -515,7 +706,7 @@
       </div>
       <h4 id="popupTaskTitle">Judul Tugas</h4>
       <p id="popupTerrorText" class="alert-msg">Pesan teror guru...</p>
-      <button type="button" id="btnClosePopup" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
+      <button type="button" id="btnClosePopup" onclick="uiClosePopup()" class="btn btn-primary btn-sm btn-block" style="margin-top:8px;">Siap, Kerjakan Sekarang!</button>
     </div>
   </div>
 
