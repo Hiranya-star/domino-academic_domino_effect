@@ -1,46 +1,7 @@
-const CACHE_NAME = 'domifect-clean-cache-v2';
-const ASSETS = [
-  './',
-  './index.html',
-  './style.css',
-  './app.js',
-  './manifest.json'
-];
-
-self.addEventListener('install', function(event) {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ASSETS);
-    }).catch(function() {})
-  );
-});
-
-self.addEventListener('activate', function(event) {
-  event.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k) { return k !== CACHE_NAME; }).map(function(k) { return caches.delete(k); })
-      );
-    }).then(function() {
-      return self.clients.claim();
-    })
-  );
-});
-
-self.addEventListener('fetch', function(event) {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request)
-      .then(function(res) {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, clone);
-        });
-        return res;
-      })
-      .catch(function() {
-        return caches.match(event.request);
-      })
-  );
-});
+const CACHE_NAME = 'domifect-pwa-v4';
+const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
+self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))); });
+self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
+self.addEventListener('fetch', event => { if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return; event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => { if (response && response.ok) { const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy)); } return response; }).catch(() => caches.match('./index.html')))); });
+self.addEventListener('message', event => { const data=event.data||{}; if(data.type==='DOMIFECT_NOTIFY' && data.title) { event.waitUntil(self.registration.showNotification(data.title,{body:data.body||'Ada pengingat tugas dari DOMIFECT.',icon:'./icon-192.png',badge:'./icon-192.png',tag:data.tag||'domifect-reminder',renotify:false,data:{url:'./index.html'}})); } });
+self.addEventListener('notificationclick', event => { event.notification.close(); event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{ for(const client of list){ if('focus' in client) return client.focus(); } if(clients.openWindow) return clients.openWindow('./index.html'); })); });
