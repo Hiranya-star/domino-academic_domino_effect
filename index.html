@@ -11,8 +11,77 @@
   <title>DOMIFECT — Academic & Vocational Domino Effect Planner</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./style.css" />
+  <style>
+    /* OVERRIDE ANTI-MACET & LAYER CLICKABILITY */
+    .hidden { display: none !important; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .sidebar, .nav-menu, .nav-item, .topbar, .btn, button, select, input, textarea {
+      pointer-events: auto !important;
+      touch-action: manipulation;
+    }
+    .sidebar { z-index: 900 !important; }
+    .topbar { z-index: 800 !important; }
+    .popup-terror-container {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92vw, 440px);
+      z-index: 9999 !important;
+      pointer-events: auto !important;
+    }
+    .popup-terror-card {
+      background: var(--bg-card, #1e293b);
+      border: 2px solid #ef4444;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+    }
+    .popup-terror-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .stat-box {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .toast-feedback {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 9998;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+  </style>
 </head>
 <body>
+  <!-- TOAST FEEDBACK INSTAN -->
+  <div id="toastFeedback" class="toast-feedback hidden"></div>
+
   <!-- BANNER DOWNLOAD / INSTALL APLIKASI (WEBAPK ASLI DARI CHROME) -->
   <div id="installBanner" class="install-banner hidden">
     <div class="install-info">
@@ -106,11 +175,11 @@
           <div id="tomorrowGearSummary" style="margin-top:8px;"></div>
         </div>
 
-        <!-- URUTAN PRIORITAS & RISIKO (BERSIH TANPA KOTAK TEROR DI BERANDA) -->
+        <!-- URUTAN PRIORITAS & RISIKO -->
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="navigateTo('active-tasks')">Lihat Semua Tugas →</button>
+            <button type="button" id="btnGoActiveTasks" class="btn btn-secondary btn-sm">Lihat Semua Tugas →</button>
           </div>
           <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
         </div>
@@ -123,7 +192,7 @@
             <h3 id="formModeTitle">➕ Buat Tugas & Karakter Guru</h3>
             <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
           </div>
-          <form id="taskForm" class="task-form" style="margin-top:12px;">
+          <form id="taskForm" class="task-form" style="margin-top:12px;" novalidate>
             <input type="hidden" id="editTaskId" />
 
             <!-- PILIH CEPAT DARI JADWAL MAPEL -->
@@ -136,24 +205,24 @@
 
             <div class="form-group">
               <label>Nama Tugas / Laporan Praktikum / Project PKL *</label>
-              <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Uji Kompetensi" required />
+              <input type="text" id="tTitle" placeholder="Contoh: Laporan Bengkel / Makalah / Uji Kompetensi" />
             </div>
 
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Mata Pelajaran / Produktif Kejuruan *</label>
-                <input type="text" id="tSubject" placeholder="Contoh: Pemesinan / TKJ / RPL / Matematika" required />
+                <input type="text" id="tSubject" placeholder="Contoh: Pemesinan / TKJ / RPL / Matematika" />
               </div>
               <div class="form-group">
                 <label>Nama Guru / Instruktur Pengampu *</label>
-                <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" required />
+                <input type="text" id="tTeacher" placeholder="Contoh: Pak Budi / Bu Siti" />
               </div>
             </div>
 
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Bobot Nilai Rapor (Grade Impact) *</label>
-                <select id="tGradeWeight" required>
+                <select id="tGradeWeight">
                   <option value="1">📘 Tugas Harian / Latihan (Bobot 1x)</option>
                   <option value="2">📙 Ulangan Harian / Kuis (Bobot 2x)</option>
                   <option value="3">📕 Laporan Praktikum / Project PKL (Bobot 3x)</option>
@@ -162,7 +231,7 @@
               </div>
               <div class="form-group">
                 <label>Karakter / Tipe Guru (500+ Kalimat Teror) *</label>
-                <select id="tPersona" required>
+                <select id="tPersona">
                   <option value="killer">🔥 Tegas / Killer (Ancaman nilai kosong & rapor)</option>
                   <option value="sarcastic">😏 Sarkas / Sindiran Halus (Menohok mental)</option>
                   <option value="disciplined">⏰ Disiplin / Perfeksionis (Hitung detik deadline)</option>
@@ -183,18 +252,18 @@
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Mulai Kerja (Time-Blocking) *</label>
-                <input type="datetime-local" id="tWorkSchedule" required />
+                <input type="datetime-local" id="tWorkSchedule" />
               </div>
               <div class="form-group">
                 <label>Deadline Akhir *</label>
-                <input type="datetime-local" id="tDeadline" required />
+                <input type="datetime-local" id="tDeadline" />
               </div>
             </div>
 
             <div class="form-row-mobile">
               <div class="form-group">
                 <label>Estimasi Durasi (Jam) *</label>
-                <input type="number" id="tDuration" min="0.5" step="0.5" value="2" required />
+                <input type="number" id="tDuration" min="0.5" step="0.5" value="2" />
               </div>
               <div class="form-group">
                 <label>Bergantung Pada Tugas (Domino)</label>
@@ -228,7 +297,7 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
-            <button type="button" class="btn btn-primary btn-sm" onclick="openNewTaskForm()">➕ Tambah Tugas Baru</button>
+            <button type="button" id="btnAddFromActive" class="btn btn-primary btn-sm">➕ Tambah Tugas Baru</button>
           </div>
 
           <!-- FILTER CEPAT & TAB RIWAYAT -->
