@@ -1,14 +1,23 @@
 /* ==========================================================================
-   DOMIFECT v3 — Academic & Vocational Domino Effect Planner
-   Full 15-Feature Logic Engine (500+ Dynamic Teacher Terror Matrix)
+   DOMIFECT v4 — Academic & Vocational Domino Effect Planner
+   Full 15-Feature Logic Engine (Sorted Schedule + Instant Task Save & Alert)
    ========================================================================== */
 
-const TASKS_KEY = 'domifect_tasks_v3';
-const PROFILE_KEY = 'domifect_profile_v3';
-const SCHEDULE_KEY = 'domifect_schedule_v3';
-const GEAR_KEY = 'domifect_gear_v3';
-const STATS_KEY = 'domifect_stats_v3';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v3';
+const TASKS_KEY = 'domifect_tasks_v4';
+const PROFILE_KEY = 'domifect_profile_v4';
+const SCHEDULE_KEY = 'domifect_schedule_v4';
+const GEAR_KEY = 'domifect_gear_v4';
+const STATS_KEY = 'domifect_stats_v4';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v4';
+
+const DAY_ORDER = {
+  'Senin': 1,
+  'Selasa': 2,
+  'Rabu': 3,
+  'Kamis': 4,
+  'Jumat': 5,
+  'Sabtu': 6
+};
 
 let tasks = [];
 let schedules = [];
@@ -106,6 +115,15 @@ function saveTasks() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
 function saveSchedules() { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules)); }
 function saveGears() { localStorage.setItem(GEAR_KEY, JSON.stringify(gears)); }
 function saveStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
+
+function sortSchedulesByDay(list) {
+  return [...list].sort((a, b) => {
+    const dayA = DAY_ORDER[a.day] || 99;
+    const dayB = DAY_ORDER[b.day] || 99;
+    if (dayA !== dayB) return dayA - dayB;
+    return (a.subject || '').localeCompare(b.subject || '');
+  });
+}
 
 function updateStudentTags() {
   const tagText = userProfile.name
@@ -438,18 +456,20 @@ function generateTerrorMessage(task) {
 // PERHITUNGAN SLACK TIME, DEPENDENCY & GRADE IMPACT
 // =========================================================================
 function calculateSlack(task) {
+  const deadlineTime = new Date(task.deadline).getTime();
+  if (isNaN(deadlineTime)) return 0;
+
   if (!task.dependsOn) {
-    const h = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
+    const h = (deadlineTime - Date.now()) / 3600000;
     return Math.round((h - task.duration) * 10) / 10;
   }
   const parent = tasks.find(t => t.id === task.dependsOn);
   if (!parent) {
-    const h = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
+    const h = (deadlineTime - Date.now()) / 3600000;
     return Math.round((h - task.duration) * 10) / 10;
   }
   const parentEnd = new Date(parent.deadline).getTime();
-  const selfDeadline = new Date(task.deadline).getTime();
-  return Math.round(((selfDeadline - task.duration * 3600000 - parentEnd) / 3600000) * 10) / 10;
+  return Math.round(((deadlineTime - task.duration * 3600000 - parentEnd) / 3600000) * 10) / 10;
 }
 
 function getGradeLabel(weight) {
@@ -521,9 +541,11 @@ function startWatchdog() {
     tasks.forEach(t => {
       if (t.status === 'active') {
         const targetTime = t.workSchedule ? new Date(t.workSchedule).getTime() : new Date(t.deadline).getTime();
-        const diffHours = (targetTime - now) / 3600000;
-        if (diffHours <= 0.5 && diffHours > -0.1) {
-          triggerNotifications(t);
+        if (!isNaN(targetTime)) {
+          const diffHours = (targetTime - now) / 3600000;
+          if (diffHours <= 0.5 && diffHours > -0.1) {
+            triggerNotifications(t);
+          }
         }
       }
     });
@@ -703,11 +725,19 @@ async function requestNotificationPermission() {
 function resetTaskForm() {
   const form = document.getElementById('taskForm');
   if (form) form.reset();
-  document.getElementById('editTaskId').value = '';
-  document.getElementById('formModeTitle').textContent = '➕ Tambah Tugas & Karakter Guru';
-  document.getElementById('btnSubmitTask').textContent = '💾 Simpan Tugas & Aktifkan Teror';
-  document.getElementById('btnCancelEdit').classList.add('hidden');
-  document.getElementById('customPersonaGroup').classList.add('hidden');
+  const editEl = document.getElementById('editTaskId');
+  const titleEl = document.getElementById('formModeTitle');
+  const btnEl = document.getElementById('btnSubmitTask');
+  const cancelEl = document.getElementById('btnCancelEdit');
+  const customEl = document.getElementById('customPersonaGroup');
+  const customInput = document.getElementById('tCustomText');
+
+  if (editEl) editEl.value = '';
+  if (titleEl) titleEl.textContent = '➕ Tambah Tugas & Karakter Guru';
+  if (btnEl) btnEl.textContent = '💾 Simpan Tugas & Aktifkan Teror';
+  if (cancelEl) cancelEl.classList.add('hidden');
+  if (customEl) customEl.classList.add('hidden');
+  if (customInput) customInput.required = false;
 }
 
 function setupEventListeners() {
@@ -764,47 +794,57 @@ function setupEventListeners() {
     });
   }
 
+  // Simpan / Update Tugas + Langsung Munculkan Notifikasi Teror Pertama
   document.getElementById('taskForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const existingId = document.getElementById('editTaskId').value;
-    const id = existingId || ('t_' + Date.now());
+    try {
+      const existingId = document.getElementById('editTaskId').value;
+      const id = existingId || ('t_' + Date.now());
 
-    const rawSubs = document.getElementById('tSubTasks').value.trim();
-    let parsedSubTasks = [];
-    if (rawSubs) {
-      const oldTask = tasks.find(t => t.id === existingId);
-      parsedSubTasks = rawSubs.split(',').map(s => s.trim()).filter(Boolean).map(text => {
-        const prev = oldTask?.subTasks?.find(os => os.text === text);
-        return { text, done: prev ? prev.done : false };
-      });
+      const rawSubs = document.getElementById('tSubTasks').value.trim();
+      let parsedSubTasks = [];
+      if (rawSubs) {
+        const oldTask = tasks.find(t => t.id === existingId);
+        parsedSubTasks = rawSubs.split(',').map(s => s.trim()).filter(Boolean).map(text => {
+          const prev = oldTask?.subTasks?.find(os => os.text === text);
+          return { text, done: prev ? prev.done : false };
+        });
+      }
+
+      const newTask = {
+        id,
+        title: document.getElementById('tTitle').value.trim(),
+        subject: document.getElementById('tSubject').value.trim(),
+        teacher: document.getElementById('tTeacher').value.trim(),
+        gradeWeight: document.getElementById('tGradeWeight').value || '1',
+        persona: document.getElementById('tPersona').value || 'killer',
+        customText: document.getElementById('tCustomText').value.trim(),
+        workSchedule: document.getElementById('tWorkSchedule').value,
+        deadline: document.getElementById('tDeadline').value,
+        duration: parseFloat(document.getElementById('tDuration').value) || 1,
+        dependsOn: document.getElementById('tDependsOn').value || '',
+        subTasks: parsedSubTasks,
+        groupMembers: document.getElementById('tGroupMembers').value.trim(),
+        status: 'active'
+      };
+
+      const idx = tasks.findIndex(t => t.id === id);
+      if (idx >= 0) tasks[idx] = newTask;
+      else tasks.push(newTask);
+
+      saveTasks();
+      resetTaskForm();
+      renderAll();
+
+      // Pemicu notifikasi teror guru langsung saat tugas baru disimpan
+      triggerNotifications(newTask);
+    } catch (err) {
+      console.error('Error saving task:', err);
+      alert('Terjadi kendala saat menyimpan tugas. Pastikan semua kolom bertanda * sudah diisi.');
     }
-
-    const newTask = {
-      id,
-      title: document.getElementById('tTitle').value.trim(),
-      subject: document.getElementById('tSubject').value.trim(),
-      teacher: document.getElementById('tTeacher').value.trim(),
-      gradeWeight: document.getElementById('tGradeWeight').value,
-      persona: document.getElementById('tPersona').value,
-      customText: document.getElementById('tCustomText').value.trim(),
-      workSchedule: document.getElementById('tWorkSchedule').value,
-      deadline: document.getElementById('tDeadline').value,
-      duration: parseFloat(document.getElementById('tDuration').value),
-      dependsOn: document.getElementById('tDependsOn').value,
-      subTasks: parsedSubTasks,
-      groupMembers: document.getElementById('tGroupMembers').value.trim(),
-      status: 'active'
-    };
-
-    const idx = tasks.findIndex(t => t.id === id);
-    if (idx >= 0) tasks[idx] = newTask;
-    else tasks.push(newTask);
-
-    saveTasks();
-    resetTaskForm();
-    renderAll();
   });
 
+  // Jadwal Pelajaran Form (Otomatis Terurut Hari Senin - Sabtu)
   document.getElementById('scheduleForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     schedules.push({
@@ -813,11 +853,13 @@ function setupEventListeners() {
       subject: document.getElementById('sSubject').value.trim(),
       teacher: document.getElementById('sTeacher').value.trim()
     });
+    schedules = sortSchedulesByDay(schedules);
     saveSchedules();
     e.target.reset();
     renderAll();
   });
 
+  // Checklist Perlengkapan Form
   document.getElementById('gearForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const val = document.getElementById('gearInput').value.trim();
@@ -829,6 +871,7 @@ function setupEventListeners() {
     }
   });
 
+  // Generator Chat Negosiasi Guru
   document.getElementById('btnGenerateChat')?.addEventListener('click', () => {
     const taskId = document.getElementById('negoTaskSelect').value;
     const reason = document.getElementById('negoReasonSelect').value;
@@ -861,6 +904,7 @@ function setupEventListeners() {
     alert('📋 Draf chat WhatsApp berhasil disalin!');
   });
 
+  // Ekspor & Impor Backup JSON
   document.getElementById('btnExportData')?.addEventListener('click', () => {
     const backup = { userProfile, tasks, schedules, gears, stats };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -881,7 +925,7 @@ function setupEventListeners() {
         const data = JSON.parse(ev.target.result);
         if (data.userProfile) userProfile = data.userProfile;
         if (data.tasks) tasks = data.tasks;
-        if (data.schedules) schedules = data.schedules;
+        if (data.schedules) schedules = sortSchedulesByDay(data.schedules);
         if (data.gears) gears = data.gears;
         if (data.stats) stats = data.stats;
         localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
@@ -939,8 +983,9 @@ function renderDropdowns() {
     });
   }
   if (quickSch) {
+    const sortedSch = sortSchedulesByDay(schedules);
     quickSch.innerHTML = '<option value="">-- Pilih Mapel dari Jadwal Tersimpan --</option>';
-    schedules.forEach(s => {
+    sortedSch.forEach(s => {
       quickSch.innerHTML += `<option value="${s.id}">[${s.day}] ${s.subject} — ${s.teacher}</option>`;
     });
   }
@@ -1039,6 +1084,9 @@ function renderAssignments() {
       ? `<div class="group-box">👥 <strong>Tim:</strong> ${t.groupMembers}</div>`
       : '';
 
+    const workText = t.workSchedule ? t.workSchedule.replace('T', ' ') : '-';
+    const deadlineText = t.deadline ? t.deadline.replace('T', ' ') : '-';
+
     return `
       <div class="task-item">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
@@ -1048,8 +1096,8 @@ function renderAssignments() {
         </div>
         <h4>${t.title}</h4>
         <small class="hint">Guru/Instruktur: ${t.teacher}</small>
-        <small class="hint">Mulai Kerja: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'}</small>
-        <small class="hint">Deadline: ${t.deadline.replace('T', ' ')}</small>
+        <small class="hint">Mulai Kerja: ${workText}</small>
+        <small class="hint">Deadline: ${deadlineText}</small>
         ${parent ? `<small class="hint">⛓️ Bergantung pada: ${parent.title}</small>` : ''}
         ${groupHtml}
         ${subTasksHtml}
@@ -1162,7 +1210,8 @@ function renderSimulator() {
 function renderScheduleAndGear() {
   const schList = document.getElementById('scheduleList');
   if (schList) {
-    schList.innerHTML = schedules.map(s => `
+    const sortedSch = sortSchedulesByDay(schedules);
+    schList.innerHTML = sortedSch.map(s => `
       <div class="alert-card" style="display:flex; justify-content:space-between; align-items:center;">
         <div>
           <strong>[${s.day}] ${s.subject}</strong>
