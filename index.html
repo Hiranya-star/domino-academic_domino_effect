@@ -34,7 +34,8 @@
       </div>
       <nav class="nav-menu">
         <button type="button" class="nav-item active" data-page="dashboard">📊 <span>Beranda</span></button>
-        <button type="button" class="nav-item" data-page="assignments">📝 <span>Tugas</span> <span class="badge-soft" id="navTaskCount">0</span></button>
+        <button type="button" class="nav-item" data-page="create-task">➕ <span>Buat Tugas</span></button>
+        <button type="button" class="nav-item" data-page="active-tasks">📋 <span>Tugas Aktif</span> <span class="badge-soft" id="navTaskCount">0</span></button>
         <button type="button" class="nav-item" data-page="simulator">🁢 <span>Domino</span></button>
         <button type="button" class="nav-item" data-page="schedule">🎒 <span>Jadwal</span></button>
         <button type="button" class="nav-item" data-page="alerts">🔔 <span>Teror</span> <span class="badge" id="alertCountBadge">0</span></button>
@@ -64,13 +65,16 @@
         </div>
       </header>
 
-      <!-- HALAMAN 1: DASHBOARD, PANIC BUTTON & ANTI-MAGER -->
+      <!-- HALAMAN 1: DASHBOARD UTAMA BERSIH, MODE UJIAN & PANIC BUTTON -->
       <section id="page-dashboard" class="page active">
         <div class="stability-banner" id="stabilityBanner">
           <div class="stability-info">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
               <span class="label">INDEKS STABILITAS & BEBAN MENTAL</span>
-              <span id="streakBadge" class="slack-pill slack-safe">🔥 Streak: 0 Tepat Waktu</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <span id="examModeBadge" class="slack-pill hidden" style="background:rgba(239,68,68,0.2); color:#fca5a5;">🎓 MODE UJIAN AKTIF</span>
+                <span id="streakBadge" class="slack-pill slack-safe">🔥 Streak: 0 Tepat Waktu</span>
+              </div>
             </div>
             <h3 id="stabilityScore">100% — Jadwal Stabil | Beban Mental: 0%</h3>
             <p id="stabilityDesc">Belum ada tugas terdaftar. Tambahkan tugas pertamamu untuk memantau efek domino dan beban mental.</p>
@@ -78,6 +82,9 @@
           <div class="dashboard-actions-grid" style="margin-top: 14px;">
             <button type="button" id="btnPanic" class="btn btn-danger">🚨 PANIC BUTTON (Rencana Darurat)</button>
             <button type="button" id="btnAntiMager" class="btn btn-warning">⚡ Anti-Mager 5 Menit</button>
+          </div>
+          <div style="margin-top: 10px;">
+            <button type="button" id="btnToggleExamMode" class="btn btn-secondary btn-block btn-sm">🎓 Aktifkan Mode Ujian / Pekan Praktik (UKK / SAS)</button>
           </div>
         </div>
 
@@ -92,23 +99,28 @@
           <button type="button" id="btnSharePanicWA" class="btn btn-secondary btn-block" style="margin-top: 12px;">📲 Bagikan Rencana Darurat ke WhatsApp</button>
         </div>
 
-        <div class="dashboard-split">
-          <div class="card">
-            <h3>🚨 Teror Guru Aktif (500+ Variasi)</h3>
-            <div id="dashboardAlertsList" class="alert-list" style="margin-top:10px;"></div>
-          </div>
-          <div class="card">
+        <!-- PENGINGAT PERLENGKAPAN BESOK (H-1) JIKA ADA -->
+        <div id="tomorrowGearAlert" class="card hidden" style="border-left: 4px solid var(--warning);">
+          <h3>🎒 Pengingat Perlengkapan Besok (<span id="tomorrowDayLabel">Besok</span>)</h3>
+          <p id="tomorrowScheduleHint" class="hint" style="margin-top:4px;"></p>
+          <div id="tomorrowGearSummary" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- URUTAN PRIORITAS & RISIKO (BERSIH TANPA KOTAK TEROR DI BERANDA) -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <h3>⛓️ Urutan Prioritas & Risiko</h3>
-            <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="navigateTo('active-tasks')">Lihat Semua Tugas →</button>
           </div>
+          <div id="todayActionList" class="alert-list" style="margin-top:10px;"></div>
         </div>
       </section>
 
-      <!-- HALAMAN 2: DAFTAR TUGAS, MICRO-TASK & KELOMPOK -->
-      <section id="page-assignments" class="page">
+      <!-- HALAMAN 2A: FORM BUAT / EDIT TUGAS (TERPISAH DI SIDEBAR) -->
+      <section id="page-create-task" class="page">
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="formModeTitle">➕ Tambah Tugas & Karakter Guru</h3>
+            <h3 id="formModeTitle">➕ Buat Tugas & Karakter Guru</h3>
             <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm hidden">Batal Edit</button>
           </div>
           <form id="taskForm" class="task-form" style="margin-top:12px;">
@@ -209,10 +221,25 @@
             </div>
           </form>
         </div>
+      </section>
 
+      <!-- HALAMAN 2B: DAFTAR TUGAS AKTIF & RIWAYAT SELESAI (MENU TERPISAH DI SIDEBAR) -->
+      <section id="page-active-tasks" class="page">
         <div class="card">
-          <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
-          <div id="assignmentsList" class="assignments-grid"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h3>📋 Daftar Tugas Aktif (<span id="totalTasksLabel">0</span>)</h3>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openNewTaskForm()">➕ Tambah Tugas Baru</button>
+          </div>
+
+          <!-- FILTER CEPAT & TAB RIWAYAT -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" class="btn btn-sm btn-primary filter-tab" data-filter="all">Semua Aktif</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="critical">🚨 Kritis (Slack ≤ 0)</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="today">📅 Deadline Hari Ini</button>
+            <button type="button" class="btn btn-sm btn-secondary filter-tab" data-filter="archive">✅ Riwayat Selesai (<span id="archiveCountLabel">0</span>)</button>
+          </div>
+
+          <div id="assignmentsList" class="assignments-grid" style="margin-top:14px;"></div>
         </div>
       </section>
 
@@ -313,7 +340,10 @@
         </div>
 
         <div class="card">
-          <h3>🔔 Pusat Notifikasi & Uji Teror Guru</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <h3>🔔 Pusat Notifikasi & Uji Teror Guru</h3>
+            <span id="notifStatusBadge" class="slack-pill slack-safe">Status: Mengecek...</span>
+          </div>
           <div class="form-group" style="margin-top:12px;">
             <label>Mode Alarm Pengingat:</label>
             <select id="alarmModeSelect">
@@ -330,7 +360,7 @@
       <section id="page-focus" class="page">
         <div class="card focus-card" style="text-align:center;">
           <h3>⏱️ Mode Fokus Pengerjaan Kustom</h3>
-          <p class="hint">Atur durasi waktumu sendiri atau gunakan mode cepat Anti-Mager 5 menit.</p>
+          <p id="focusTaskTargetLabel" class="hint" style="font-weight:600; color:var(--primary);">Fokus Umum — Atur durasi waktumu sendiri atau gunakan Anti-Mager 5 menit.</p>
           <div class="form-group" style="max-width: 260px; margin: 15px auto; text-align: left;">
             <label>Atur Durasi Fokus (Menit):</label>
             <input type="number" id="customTimerInput" min="1" max="180" value="25" />
