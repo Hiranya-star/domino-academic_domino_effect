@@ -1,8 +1,19 @@
-const TASKS_KEY = 'domifect_tasks_v1';
-const PROFILE_KEY = 'domifect_profile_v1';
-const ALARM_MODE_KEY = 'domifect_alarm_mode_v1';
+/* ==========================================================================
+   DOMIFECT v2 — Academic & Vocational Domino Effect Planner
+   Full 15-Feature Logic Engine (500+ Dynamic Teacher Terror Matrix)
+   ========================================================================== */
+
+const TASKS_KEY = 'domifect_tasks_v2';
+const PROFILE_KEY = 'domifect_profile_v2';
+const SCHEDULE_KEY = 'domifect_schedule_v2';
+const GEAR_KEY = 'domifect_gear_v2';
+const STATS_KEY = 'domifect_stats_v2';
+const ALARM_MODE_KEY = 'domifect_alarm_mode_v2';
 
 let tasks = [];
+let schedules = [];
+let gears = [];
+let stats = { onTime: 0, late: 0, streak: 0 };
 let userProfile = { name: '', className: '', school: '', targetHours: 3 };
 let swRegistration = null;
 
@@ -13,8 +24,7 @@ let isFocusRunning = false;
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   await registerServiceWorker();
-  loadProfile();
-  loadTasks();
+  loadAllData();
   setupPWAInstall();
   setupNavigation();
   setupEventListeners();
@@ -27,7 +37,9 @@ async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
       swRegistration = await navigator.serviceWorker.register('./sw.js');
-    } catch (e) { console.log('SW Error:', e); }
+    } catch (e) {
+      console.log('SW Error:', e);
+    }
   }
 }
 
@@ -52,19 +64,48 @@ function updateThemeButtonText(theme) {
   if (mobileBtn) mobileBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
-function loadProfile() {
+function loadAllData() {
   try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    if (raw) {
-      userProfile = JSON.parse(raw);
-      document.getElementById('pName').value = userProfile.name || '';
-      document.getElementById('pClass').value = userProfile.className || '';
-      document.getElementById('pSchool').value = userProfile.school || '';
-      document.getElementById('pTargetHours').value = userProfile.targetHours || 3;
+    const rawProf = localStorage.getItem(PROFILE_KEY);
+    if (rawProf) {
+      userProfile = JSON.parse(rawProf);
+      const pName = document.getElementById('pName');
+      const pClass = document.getElementById('pClass');
+      const pSchool = document.getElementById('pSchool');
+      const pTargetHours = document.getElementById('pTargetHours');
+      if (pName) pName.value = userProfile.name || '';
+      if (pClass) pClass.value = userProfile.className || '';
+      if (pSchool) pSchool.value = userProfile.school || '';
+      if (pTargetHours) pTargetHours.value = userProfile.targetHours || 3;
       updateStudentTags();
     }
   } catch (e) { console.log('Profile load error:', e); }
+
+  try {
+    const rawTasks = localStorage.getItem(TASKS_KEY);
+    tasks = rawTasks ? JSON.parse(rawTasks) : [];
+  } catch (e) { tasks = []; }
+
+  try {
+    const rawSched = localStorage.getItem(SCHEDULE_KEY);
+    schedules = rawSched ? JSON.parse(rawSched) : [];
+  } catch (e) { schedules = []; }
+
+  try {
+    const rawGear = localStorage.getItem(GEAR_KEY);
+    gears = rawGear ? JSON.parse(rawGear) : [];
+  } catch (e) { gears = []; }
+
+  try {
+    const rawStats = localStorage.getItem(STATS_KEY);
+    if (rawStats) stats = JSON.parse(rawStats);
+  } catch (e) { stats = { onTime: 0, late: 0, streak: 0 }; }
 }
+
+function saveTasks() { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); }
+function saveSchedules() { localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedules)); }
+function saveGears() { localStorage.setItem(GEAR_KEY, JSON.stringify(gears)); }
+function saveStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
 
 function updateStudentTags() {
   const tagText = userProfile.name
@@ -90,34 +131,23 @@ function saveProfile(e) {
   renderAll();
 }
 
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(TASKS_KEY);
-    tasks = raw ? JSON.parse(raw) : [];
-  } catch (e) { tasks = []; }
-}
-
-function saveTasks() {
-  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-}
-
 let deferredPrompt = null;
 function setupPWAInstall() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    document.getElementById('installBanner').classList.remove('hidden');
+    document.getElementById('installBanner')?.classList.remove('hidden');
   });
-  document.getElementById('btnInstallApp').addEventListener('click', async () => {
+  document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') document.getElementById('installBanner').classList.add('hidden');
+      if (outcome === 'accepted') document.getElementById('installBanner')?.classList.add('hidden');
       deferredPrompt = null;
     }
   });
-  document.getElementById('btnCloseInstall').addEventListener('click', () => {
-    document.getElementById('installBanner').classList.add('hidden');
+  document.getElementById('btnCloseInstall')?.addEventListener('click', () => {
+    document.getElementById('installBanner')?.classList.add('hidden');
   });
 }
 
@@ -383,7 +413,7 @@ const terrorMatrix = {
   }
 };
 
-function generateTerrorMessage(task, slack) {
+function generateTerrorMessage(task) {
   const persona = task.persona || 'killer';
   const group = terrorMatrix[persona] || terrorMatrix.killer;
 
@@ -404,6 +434,9 @@ function generateTerrorMessage(task, slack) {
     .replace(/\$\{t\.customText\}/g, customVal);
 }
 
+// =========================================================================
+// PERHITUNGAN SLACK TIME, DEPENDENCY & GRADE IMPACT
+// =========================================================================
 function calculateSlack(task) {
   if (!task.dependsOn) {
     const h = (new Date(task.deadline).getTime() - Date.now()) / 3600000;
@@ -419,6 +452,14 @@ function calculateSlack(task) {
   return Math.round(((selfDeadline - task.duration * 3600000 - parentEnd) / 3600000) * 10) / 10;
 }
 
+function getGradeLabel(weight) {
+  const w = parseInt(weight) || 1;
+  if (w === 4) return '🏆 Ujian Praktik / UKK (4x)';
+  if (w === 3) return '📕 Project / PKL (3x)';
+  if (w === 2) return '📙 Ulangan (2x)';
+  return '📘 Tugas Harian (1x)';
+}
+
 function getDownstreamTasks(taskId) {
   let affected = [];
   tasks.forEach(t => {
@@ -430,10 +471,11 @@ function getDownstreamTasks(taskId) {
   return affected;
 }
 
+// =========================================================================
+// NOTIFIKASI, POPUP HEADS-UP & PANIC MODE
+// =========================================================================
 function showScreenPopup(task) {
-  const slack = calculateSlack(task);
-  const terrorMsg = generateTerrorMessage(task, slack);
-
+  const terrorMsg = generateTerrorMessage(task);
   document.getElementById('popupTeacherTag').textContent = `${task.teacher} • ${task.subject}`;
   document.getElementById('popupTaskTitle').textContent = task.title;
   document.getElementById('popupTerrorText').textContent = terrorMsg;
@@ -441,29 +483,25 @@ function showScreenPopup(task) {
 
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   if ('vibrate' in navigator) {
-    if (mode === 'silent') {
-      navigator.vibrate([120, 60, 120]);
-    } else {
-      navigator.vibrate([300, 100, 300, 100, 300]);
-    }
+    if (mode === 'silent') navigator.vibrate([120, 60, 120]);
+    else navigator.vibrate([300, 100, 300, 100, 300]);
   }
 }
 
-document.getElementById('btnClosePopup').addEventListener('click', () => {
-  document.getElementById('popupTerrorBanner').classList.add('hidden');
-});
+window.triggerTestPopup = (taskId) => {
+  const task = tasks.find(t => t.id === taskId);
+  if (task) triggerNotifications(task);
+};
 
 async function triggerNotifications(task) {
   showScreenPopup(task);
-  const slack = calculateSlack(task);
-  const terrorMsg = generateTerrorMessage(task, slack);
+  const terrorMsg = generateTerrorMessage(task);
   const mode = document.getElementById('alarmModeSelect')?.value || localStorage.getItem(ALARM_MODE_KEY) || 'sound';
 
   if ('Notification' in window && Notification.permission === 'granted') {
     if (swRegistration && swRegistration.showNotification) {
       swRegistration.showNotification(`🚨 DOMIFECT: ${task.teacher.toUpperCase()} (${task.subject})`, {
         body: terrorMsg,
-        icon: './icon-192.png',
         vibrate: mode === 'silent' ? [120, 60, 120] : [300, 100, 300],
         silent: mode === 'silent',
         requireInteraction: true
@@ -489,9 +527,10 @@ function startWatchdog() {
         }
       }
     });
-  }, 30000);
+  }, 45000);
 }
 
+let lastPanicTextWA = '';
 function triggerPanicMode() {
   const active = tasks.filter(t => t.status === 'active');
   const panicBox = document.getElementById('panicBox');
@@ -500,11 +539,19 @@ function triggerPanicMode() {
   if (active.length === 0) {
     panicBox.classList.remove('hidden');
     panicContent.innerHTML = '<p class="hint">Tidak ada tugas aktif saat ini. Jadwalmu masih aman terkendali!</p>';
+    lastPanicTextWA = 'Jadwal DOMIFECT saat ini aman terkendali!';
     return;
   }
 
-  const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
+  // Urutkan berdasarkan prioritas gabungan: (Slack Time dibagi Bobot Nilai)
+  const sorted = [...active].sort((a, b) => {
+    const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
+    const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
+    return scoreA - scoreB;
+  });
+
   let planHtml = '<ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">';
+  let waLines = ['🚨 *RENCANA DARURAT KILAT DOMIFECT* 🚨', ''];
 
   sorted.forEach((t, idx) => {
     const slack = calculateSlack(t);
@@ -513,31 +560,39 @@ function triggerPanicMode() {
     planHtml += `
       <li>
         <strong>[Langkah ${idx + 1}] ${t.title} (${t.subject} - ${t.teacher})</strong><br/>
-        <small>Alokasi Kilat: <strong>${mins} menit</strong> • Status: <span style="color:var(--danger)">${statusText}</span></small>
+        <small>Bobot: ${getGradeLabel(t.gradeWeight)} • Alokasi Kilat: <strong>${mins} menit</strong> • Status: <span style="color:var(--danger)">${statusText}</span></small>
       </li>
     `;
+    waLines.push(`${idx + 1}. *${t.title}* (${t.subject} - ${t.teacher}) | ${mins} menit | ${statusText}`);
   });
   planHtml += '</ol>';
 
+  lastPanicTextWA = waLines.join('
+');
   panicBox.classList.remove('hidden');
   panicContent.innerHTML = planHtml;
 }
 
+// =========================================================================
+// NAVIGASI & MODE FOKUS + ANTI-MAGER 5 MENIT
+// =========================================================================
 const pageTitles = {
   dashboard: 'Dashboard Akademik & Kejuruan',
-  assignments: 'Daftar Tugas & Teror Guru',
+  assignments: 'Daftar Tugas, Micro-Task & Kelompok',
   simulator: 'Simulasi Efek Domino',
-  alerts: 'Pusat Notifikasi & Teror',
-  focus: 'Mode Fokus Kustom',
-  profile: 'Profil Siswa (SMA / SMK)'
+  schedule: 'Jadwal Pelajaran & Perlengkapan',
+  alerts: 'Pusat Teror & Chat Negosiasi Guru',
+  focus: 'Mode Fokus Pengerjaan Kustom',
+  profile: 'Profil Siswa, Statistik & Backup'
 };
 
 function navigateTo(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById(`page-${pageId}`).classList.add('active');
+  document.getElementById(`page-${pageId}`)?.classList.add('active');
   document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
-  document.getElementById('pageTitle').textContent = pageTitles[pageId] || 'DOMIFECT';
+  const titleEl = document.getElementById('pageTitle');
+  if (titleEl) titleEl.textContent = pageTitles[pageId] || 'DOMIFECT';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   renderAll();
 }
@@ -546,11 +601,43 @@ function setupNavigation() {
   document.querySelectorAll('[data-page]').forEach(btn => {
     btn.addEventListener('click', () => navigateTo(btn.dataset.page));
   });
+  document.getElementById('btnQuickAdd')?.addEventListener('click', () => {
+    resetTaskForm();
+    navigateTo('assignments');
+  });
+}
+
+function startCustomFocus(minutes) {
+  clearInterval(focusTimerInterval);
+  const input = document.getElementById('customTimerInput');
+  if (input) input.value = minutes;
+  focusSecondsRemaining = minutes * 60;
+  updateTimerDisplay();
+  isFocusRunning = true;
+
+  focusTimerInterval = setInterval(() => {
+    if (focusSecondsRemaining > 0) {
+      focusSecondsRemaining--;
+      updateTimerDisplay();
+    } else {
+      clearInterval(focusTimerInterval);
+      isFocusRunning = false;
+      const mode = document.getElementById('alarmModeSelect')?.value || 'sound';
+      if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+      if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
+        swRegistration.showNotification('⏱️ Sesi Fokus DOMIFECT Selesai!', {
+          body: 'Waktu fokusmu sudah habis. Mantap! Kamu sudah berhasil memulai.',
+          silent: mode === 'silent'
+        });
+      }
+      alert('⏱️ Waktu sesi fokus selesai!');
+    }
+  }, 1000);
 }
 
 function setupFocusTimerUI() {
   const input = document.getElementById('customTimerInput');
-  input.addEventListener('change', () => {
+  input?.addEventListener('change', () => {
     if (!isFocusRunning) {
       const mins = Math.max(1, Math.min(180, parseInt(input.value) || 25));
       input.value = mins;
@@ -559,8 +646,10 @@ function setupFocusTimerUI() {
     }
   });
 
-  document.getElementById('btnStartTimer').addEventListener('click', () => {
+  document.getElementById('btnStartTimer')?.addEventListener('click', () => {
     if (!isFocusRunning) {
+      const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
+      if (focusSecondsRemaining <= 0) focusSecondsRemaining = mins * 60;
       isFocusRunning = true;
       focusTimerInterval = setInterval(() => {
         if (focusSecondsRemaining > 0) {
@@ -569,39 +658,36 @@ function setupFocusTimerUI() {
         } else {
           clearInterval(focusTimerInterval);
           isFocusRunning = false;
-          const mode = document.getElementById('alarmModeSelect')?.value || 'sound';
-          if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
-          if ('Notification' in window && Notification.permission === 'granted' && swRegistration) {
-            swRegistration.showNotification('⏱️ Sesi Fokus DOMIFECT Selesai!', {
-              body: 'Waktu fokusmu sudah habis. Silakan istirahat sejenak sebelum lanjut tugas berikutnya.',
-              silent: mode === 'silent'
-            });
-          }
-          alert('⏱️ Waktu sesi fokus selesai! Istirahatlah sejenak.');
+          alert('⏱️ Waktu sesi fokus selesai!');
         }
       }, 1000);
     }
   });
 
-  document.getElementById('btnPauseTimer').addEventListener('click', () => {
+  document.getElementById('btnPauseTimer')?.addEventListener('click', () => {
     clearInterval(focusTimerInterval);
     isFocusRunning = false;
   });
 
-  document.getElementById('btnResetTimer').addEventListener('click', () => {
+  document.getElementById('btnResetTimer')?.addEventListener('click', () => {
     clearInterval(focusTimerInterval);
     isFocusRunning = false;
-    const mins = Math.max(1, Math.min(180, parseInt(input.value) || 25));
+    const mins = Math.max(1, Math.min(180, parseInt(input?.value) || 25));
     focusSecondsRemaining = mins * 60;
     updateTimerDisplay();
+  });
+
+  document.getElementById('btnAntiMager')?.addEventListener('click', () => {
+    navigateTo('focus');
+    startCustomFocus(5);
   });
 }
 
 function updateTimerDisplay() {
   const m = Math.floor(focusSecondsRemaining / 60);
   const s = focusSecondsRemaining % 60;
-  document.getElementById('timerDisplay').textContent =
-    `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  const disp = document.getElementById('timerDisplay');
+  if (disp) disp.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 async function requestNotificationPermission() {
@@ -613,6 +699,19 @@ async function requestNotificationPermission() {
   }
 }
 
+// =========================================================================
+// EVENT LISTENERS (FORM TUGAS, EDIT, JADWAL, GEAR, CHAT GURU, BACKUP)
+// =========================================================================
+function resetTaskForm() {
+  const form = document.getElementById('taskForm');
+  if (form) form.reset();
+  document.getElementById('editTaskId').value = '';
+  document.getElementById('formModeTitle').textContent = '➕ Tambah Tugas & Karakter Guru';
+  document.getElementById('btnSubmitTask').textContent = '💾 Simpan Tugas & Aktifkan Teror';
+  document.getElementById('btnCancelEdit').classList.add('hidden');
+  document.getElementById('customPersonaGroup').classList.add('hidden');
+}
+
 function setupEventListeners() {
   document.getElementById('btnSidebarTheme')?.addEventListener('click', toggleTheme);
   document.getElementById('btnMobileTheme')?.addEventListener('click', toggleTheme);
@@ -620,23 +719,47 @@ function setupEventListeners() {
   document.getElementById('btnMobileNotif')?.addEventListener('click', requestNotificationPermission);
   document.getElementById('btnEnableNotifMobile')?.addEventListener('click', requestNotificationPermission);
 
-  document.getElementById('profileForm').addEventListener('submit', saveProfile);
-  document.getElementById('btnPanic').addEventListener('click', triggerPanicMode);
+  document.getElementById('btnClosePopup')?.addEventListener('click', () => {
+    document.getElementById('popupTerrorBanner')?.classList.add('hidden');
+  });
 
+  document.getElementById('profileForm')?.addEventListener('submit', saveProfile);
+  document.getElementById('btnPanic')?.addEventListener('click', triggerPanicMode);
+  document.getElementById('btnClosePanic')?.addEventListener('click', () => {
+    document.getElementById('panicBox')?.classList.add('hidden');
+  });
+
+  document.getElementById('btnSharePanicWA')?.addEventListener('click', () => {
+    if (!lastPanicTextWA) return;
+    const url = `https://wa.me/?text=${encodeURIComponent(lastPanicTextWA)}`;
+    window.open(url, '_blank');
+  });
+
+  // Pilih Cepat dari Jadwal Pelajaran
+  document.getElementById('tQuickSchedule')?.addEventListener('change', (e) => {
+    const sch = schedules.find(s => s.id === e.target.value);
+    if (sch) {
+      document.getElementById('tSubject').value = sch.subject;
+      document.getElementById('tTeacher').value = sch.teacher;
+    }
+  });
+
+  // Custom Persona Toggle
   const personaSelect = document.getElementById('tPersona');
   const customGroup = document.getElementById('customPersonaGroup');
-  if (personaSelect) {
-    personaSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'custom') {
-        customGroup.classList.remove('hidden');
-        document.getElementById('tCustomText').required = true;
-      } else {
-        customGroup.classList.add('hidden');
-        document.getElementById('tCustomText').required = false;
-      }
-    });
-  }
+  personaSelect?.addEventListener('change', (e) => {
+    if (e.target.value === 'custom') {
+      customGroup.classList.remove('hidden');
+      document.getElementById('tCustomText').required = true;
+    } else {
+      customGroup.classList.add('hidden');
+      document.getElementById('tCustomText').required = false;
+    }
+  });
 
+  document.getElementById('btnCancelEdit')?.addEventListener('click', resetTaskForm);
+
+  // Mode Alarm
   const savedAlarmMode = localStorage.getItem(ALARM_MODE_KEY) || 'sound';
   const alarmSelect = document.getElementById('alarmModeSelect');
   if (alarmSelect) {
@@ -646,61 +769,209 @@ function setupEventListeners() {
     });
   }
 
-  document.getElementById('taskForm').addEventListener('submit', (e) => {
+  // Simpan / Update Tugas
+  document.getElementById('taskForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const id = document.getElementById('editTaskId').value || ('t_' + Date.now());
+    const existingId = document.getElementById('editTaskId').value;
+    const id = existingId || ('t_' + Date.now());
+
+    // Parse Micro-Task (Sub-Tasks)
+    const rawSubs = document.getElementById('tSubTasks').value.trim();
+    let parsedSubTasks = [];
+    if (rawSubs) {
+      const oldTask = tasks.find(t => t.id === existingId);
+      parsedSubTasks = rawSubs.split(',').map(s => s.trim()).filter(Boolean).map(text => {
+        const prev = oldTask?.subTasks?.find(os => os.text === text);
+        return { text, done: prev ? prev.done : false };
+      });
+    }
+
     const newTask = {
       id,
       title: document.getElementById('tTitle').value.trim(),
       subject: document.getElementById('tSubject').value.trim(),
       teacher: document.getElementById('tTeacher').value.trim(),
+      gradeWeight: document.getElementById('tGradeWeight').value,
       persona: document.getElementById('tPersona').value,
       customText: document.getElementById('tCustomText').value.trim(),
-      deadline: document.getElementById('tDeadline').value,
       workSchedule: document.getElementById('tWorkSchedule').value,
+      deadline: document.getElementById('tDeadline').value,
       duration: parseFloat(document.getElementById('tDuration').value),
       dependsOn: document.getElementById('tDependsOn').value,
+      subTasks: parsedSubTasks,
+      groupMembers: document.getElementById('tGroupMembers').value.trim(),
       status: 'active'
     };
+
     const idx = tasks.findIndex(t => t.id === id);
-    if (idx >= 0) tasks[idx] = newTask; else tasks.push(newTask);
+    if (idx >= 0) tasks[idx] = newTask;
+    else tasks.push(newTask);
+
     saveTasks();
-    e.target.reset();
-    document.getElementById('editTaskId').value = '';
-    customGroup.classList.add('hidden');
+    resetTaskForm();
     renderAll();
-    navigateTo('assignments');
   });
 
-  document.getElementById('simTaskSelect').addEventListener('change', renderSimulator);
-  document.getElementById('simDelaySlider').addEventListener('input', renderSimulator);
+  // Jadwal Pelajaran Form
+  document.getElementById('scheduleForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    schedules.push({
+      id: 's_' + Date.now(),
+      day: document.getElementById('sDay').value,
+      subject: document.getElementById('sSubject').value.trim(),
+      teacher: document.getElementById('sTeacher').value.trim()
+    });
+    saveSchedules();
+    e.target.reset();
+    renderAll();
+  });
+
+  // Checklist Perlengkapan Form
+  document.getElementById('gearForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = document.getElementById('gearInput').value.trim();
+    if (val) {
+      gears.push({ id: 'g_' + Date.now(), text: val, checked: false });
+      saveGears();
+      e.target.reset();
+      renderAll();
+    }
+  });
+
+  // Generator Chat Negosiasi Guru
+  document.getElementById('btnGenerateChat')?.addEventListener('click', () => {
+    const taskId = document.getElementById('negoTaskSelect').value;
+    const reason = document.getElementById('negoReasonSelect').value;
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      alert('Pilih tugas terlebih dahulu!');
+      return;
+    }
+
+    const studentName = userProfile.name || '[Nama Saya]';
+    const studentClass = userProfile.className || '[Kelas]';
+
+    const reasonTexts = {
+      alat: 'dikarenakan terdapat kendala teknis pada perangkat/alat praktik yang sedang dalam perbaikan',
+      sakit: 'dikarenakan kondisi kesehatan saya sedang kurang fit sehingga proses pengerjaan sedikit terhambat',
+      bertumpuk: 'dikarenakan bersamaan dengan jadwal uji kompetensi/praktik mata pelajaran lain yang cukup padat',
+      revisi: 'dikarenakan saya sedang melakukan pengecekan ulang dan penyempurnaan hasil agar sesuai dengan standar yang diminta'
+    };
+
+    const draft = `Assalamu'alaikum / Selamat pagi/siang ${task.teacher}.
+
+Mohon maaf mengganggu waktunya. Saya ${studentName} dari kelas ${studentClass}. Saya ingin mengonfirmasi terkait tugas "${task.title}" pada mata pelajaran ${task.subject}.
+
+Saat ini progres pengerjaan sudah berjalan, namun ${reasonTexts[reason]}. Saya memohon izin untuk dapat mengumpulkan tugas tersebut paling lambat pada [Sebutkan Jam/Hari].
+
+Terima kasih banyak atas pengertian dan bimbingannya, ${task.teacher}.`;
+
+    document.getElementById('negoChatOutput').value = draft;
+    document.getElementById('negoResultBox').classList.remove('hidden');
+  });
+
+  document.getElementById('btnCopyChat')?.addEventListener('click', () => {
+    const output = document.getElementById('negoChatOutput');
+    output.select();
+    navigator.clipboard?.writeText(output.value);
+    alert('📋 Draf chat WhatsApp berhasil disalin!');
+  });
+
+  // Ekspor & Impor Backup JSON
+  document.getElementById('btnExportData')?.addEventListener('click', () => {
+    const backup = { userProfile, tasks, schedules, gears, stats };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DOMIFECT_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('inputImportData')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.userProfile) userProfile = data.userProfile;
+        if (data.tasks) tasks = data.tasks;
+        if (data.schedules) schedules = data.schedules;
+        if (data.gears) gears = data.gears;
+        if (data.stats) stats = data.stats;
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
+        saveTasks(); saveSchedules(); saveGears(); saveStats();
+        loadAllData();
+        renderAll();
+        alert('✅ Data backup berhasil dipulihkan!');
+      } catch (err) {
+        alert('⚠️ File backup tidak valid!');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('simTaskSelect')?.addEventListener('change', renderSimulator);
+  document.getElementById('simDelaySlider')?.addEventListener('input', renderSimulator);
 }
 
+// =========================================================================
+// RENDER SELURUH HALAMAN & INTERAKSI ITEM
+// =========================================================================
 function renderAll() {
   renderDropdowns();
   renderDashboard();
   renderAssignments();
   renderSimulator();
+  renderScheduleAndGear();
   renderAlerts();
+  renderStats();
 }
 
 function renderDropdowns() {
   const active = tasks.filter(t => t.status === 'active');
   const dep = document.getElementById('tDependsOn');
   const sim = document.getElementById('simTaskSelect');
-  dep.innerHTML = '<option value="">-- Tugas Mandiri --</option>';
-  sim.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
-  active.forEach(t => {
-    dep.innerHTML += `<option value="${t.id}">${t.title} (${t.subject})</option>`;
-    sim.innerHTML += `<option value="${t.id}">${t.title} — ${t.teacher}</option>`;
-  });
+  const nego = document.getElementById('negoTaskSelect');
+  const quickSch = document.getElementById('tQuickSchedule');
+
+  if (dep) {
+    dep.innerHTML = '<option value="">-- Tugas Mandiri --</option>';
+    active.forEach(t => {
+      dep.innerHTML += `<option value="${t.id}">${t.title} (${t.subject})</option>`;
+    });
+  }
+  if (sim) {
+    sim.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
+    active.forEach(t => {
+      sim.innerHTML += `<option value="${t.id}">${t.title} — ${t.teacher}</option>`;
+    });
+  }
+  if (nego) {
+    nego.innerHTML = active.length ? '' : '<option value="">-- Belum ada tugas --</option>';
+    active.forEach(t => {
+      nego.innerHTML += `<option value="${t.id}">${t.title} (${t.teacher})</option>`;
+    });
+  }
+  if (quickSch) {
+    quickSch.innerHTML = '<option value="">-- Pilih Mapel dari Jadwal Tersimpan --</option>';
+    schedules.forEach(s => {
+      quickSch.innerHTML += `<option value="${s.id}">[${s.day}] ${s.subject} — ${s.teacher}</option>`;
+    });
+  }
 }
 
 function renderDashboard() {
   const active = tasks.filter(t => t.status === 'active');
-  document.getElementById('navTaskCount').textContent = active.length;
-  const critical = active.filter(t => calculateSlack(t) <= 0);
+  const navCount = document.getElementById('navTaskCount');
+  if (navCount) navCount.textContent = active.length;
 
+  const streakBadge = document.getElementById('streakBadge');
+  if (streakBadge) streakBadge.textContent = `🔥 Streak: ${stats.streak} Tepat Waktu`;
+
+  const critical = active.filter(t => calculateSlack(t) <= 0);
   const totalWorkHours = active.reduce((sum, t) => sum + (t.duration || 0), 0);
   const targetDaily = userProfile.targetHours || 3;
   const mentalLoadPercent = Math.min(100, Math.round((totalWorkHours / (targetDaily * 2)) * 100));
@@ -714,7 +985,7 @@ function renderDashboard() {
     descEl.textContent = `${greeting}Belum ada tugas terdaftar. Tekan "+ Tugas" untuk mulai mengatur jadwal teori maupun kejuruan.`;
   } else if (critical.length > 0) {
     scoreEl.textContent = `⚠️ Jalur Kritis (${critical.length} Tugas) | Beban Mental: ${mentalLoadPercent}%`;
-    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button jika waktu pengerjaan sudah mepet.`;
+    descEl.textContent = `${greeting}Waspada efek domino! Gunakan Panic Button untuk urutan penyelamatan nilai rapor.`;
   } else {
     scoreEl.textContent = `✅ Jadwal Aman | Beban Mental: ${mentalLoadPercent}%`;
     descEl.textContent = `${greeting}Total estimasi kerja: ${totalWorkHours} jam. Patuhi time-blocking agar tidak menumpuk.`;
@@ -726,19 +997,24 @@ function renderDashboard() {
     return `
       <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
         <strong>🚨 ${t.teacher} — ${t.subject}</strong>
-        <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
+        <p class="alert-msg">${generateTerrorMessage(t)}</p>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada teror pengingat aktif.</p>';
 
   const priorityList = document.getElementById('todayActionList');
-  const sorted = [...active].sort((a, b) => calculateSlack(a) - calculateSlack(b));
+  const sorted = [...active].sort((a, b) => {
+    const scoreA = calculateSlack(a) / (parseInt(a.gradeWeight) || 1);
+    const scoreB = calculateSlack(b) / (parseInt(b.gradeWeight) || 1);
+    return scoreA - scoreB;
+  });
+
   priorityList.innerHTML = sorted.slice(0, 4).map((t, i) => {
     const slack = calculateSlack(t);
     return `
       <div class="alert-card ${slack <= 0 ? 'urgent' : ''}">
         <strong>#${i + 1} ${t.title} (${t.subject})</strong>
-        <p class="hint">Pengampu: ${t.teacher} • Sisa Cadangan (Slack): ${slack} jam</p>
+        <p class="hint">${getGradeLabel(t.gradeWeight)} • Slack: ${slack} jam</p>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada daftar prioritas tugas.</p>';
@@ -748,13 +1024,44 @@ function renderAssignments() {
   const active = tasks.filter(t => t.status === 'active');
   document.getElementById('totalTasksLabel').textContent = active.length;
   const container = document.getElementById('assignmentsList');
+
   container.innerHTML = active.map(t => {
     const slack = calculateSlack(t);
     const parent = t.dependsOn ? tasks.find(p => p.id === t.dependsOn) : null;
+
+    // Micro-Tasks Progress
+    let subTasksHtml = '';
+    if (t.subTasks && t.subTasks.length > 0) {
+      const doneCount = t.subTasks.filter(s => s.done).length;
+      const pct = Math.round((doneCount / t.subTasks.length) * 100);
+      subTasksHtml = `
+        <div style="margin-top:4px;">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+            <span>Progres Micro-Task</span>
+            <strong>${pct}% (${doneCount}/${t.subTasks.length})</strong>
+          </div>
+          <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="subtask-box">
+            ${t.subTasks.map((st, sIdx) => `
+              <label class="subtask-row ${st.done ? 'done' : ''}">
+                <input type="checkbox" ${st.done ? 'checked' : ''} onchange="toggleSubTask('${t.id}', ${sIdx})" />
+                <span>${st.text}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    const groupHtml = t.groupMembers
+      ? `<div class="group-box">👥 <strong>Tim:</strong> ${t.groupMembers}</div>`
+      : '';
+
     return `
       <div class="task-item">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
           <span class="subject-pill">${t.subject}</span>
+          <span class="grade-pill">${getGradeLabel(t.gradeWeight)}</span>
           <span class="slack-pill ${slack <= 0 ? 'slack-danger' : 'slack-safe'}">Slack: ${slack}j</span>
         </div>
         <h4>${t.title}</h4>
@@ -762,65 +1069,186 @@ function renderAssignments() {
         <small class="hint">Mulai Kerja: ${t.workSchedule ? t.workSchedule.replace('T', ' ') : '-'}</small>
         <small class="hint">Deadline: ${t.deadline.replace('T', ' ')}</small>
         ${parent ? `<small class="hint">⛓️ Bergantung pada: ${parent.title}</small>` : ''}
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <button class="btn btn-sm btn-primary" style="flex:1;" onclick="completeTask('${t.id}')">✓ Selesai</button>
-          <button class="btn btn-sm btn-secondary" onclick="deleteTask('${t.id}')">Hapus</button>
+        ${groupHtml}
+        ${subTasksHtml}
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button type="button" class="btn btn-sm btn-primary" style="flex:1;" onclick="completeTask('${t.id}')">✓ Selesai</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="editTask('${t.id}')">✏️ Edit</button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">🗑️</button>
         </div>
       </div>
     `;
   }).join('') || '<p class="hint">Belum ada tugas yang ditambahkan.</p>';
 }
 
+window.toggleSubTask = (taskId, subIndex) => {
+  const t = tasks.find(item => item.id === taskId);
+  if (t && t.subTasks && t.subTasks[subIndex]) {
+    t.subTasks[subIndex].done = !t.subTasks[subIndex].done;
+    saveTasks();
+    renderAssignments();
+  }
+};
+
+window.editTask = (id) => {
+  const t = tasks.find(item => item.id === id);
+  if (!t) return;
+  document.getElementById('editTaskId').value = t.id;
+  document.getElementById('tTitle').value = t.title;
+  document.getElementById('tSubject').value = t.subject;
+  document.getElementById('tTeacher').value = t.teacher;
+  document.getElementById('tGradeWeight').value = t.gradeWeight || '1';
+  document.getElementById('tPersona').value = t.persona || 'killer';
+  document.getElementById('tCustomText').value = t.customText || '';
+  document.getElementById('tWorkSchedule').value = t.workSchedule || '';
+  document.getElementById('tDeadline').value = t.deadline || '';
+  document.getElementById('tDuration').value = t.duration || 2;
+  document.getElementById('tDependsOn').value = t.dependsOn || '';
+  document.getElementById('tSubTasks').value = t.subTasks ? t.subTasks.map(s => s.text).join(', ') : '';
+  document.getElementById('tGroupMembers').value = t.groupMembers || '';
+
+  if (t.persona === 'custom') {
+    document.getElementById('customPersonaGroup').classList.remove('hidden');
+  } else {
+    document.getElementById('customPersonaGroup').classList.add('hidden');
+  }
+
+  document.getElementById('formModeTitle').textContent = '✏️ Edit Tugas & Jadwal';
+  document.getElementById('btnSubmitTask').textContent = '💾 Simpan Perubahan Tugas';
+  document.getElementById('btnCancelEdit').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
 window.completeTask = (id) => {
-  tasks = tasks.filter(t => t.id !== id);
+  const t = tasks.find(item => item.id === id);
+  if (t) {
+    const isLate = Date.now() > new Date(t.deadline).getTime();
+    if (isLate) {
+      stats.late++;
+      stats.streak = 0;
+    } else {
+      stats.onTime++;
+      stats.streak++;
+    }
+    saveStats();
+  }
+  tasks = tasks.filter(item => item.id !== id);
   saveTasks();
   renderAll();
 };
 
 window.deleteTask = (id) => {
-  tasks = tasks.filter(t => t.id !== id);
+  tasks = tasks.filter(item => item.id !== id);
   saveTasks();
   renderAll();
 };
 
 function renderSimulator() {
-  const id = document.getElementById('simTaskSelect').value;
-  const delay = parseInt(document.getElementById('simDelaySlider').value) || 0;
-  document.getElementById('simDelayLabel').textContent = `+${delay} Jam`;
+  const id = document.getElementById('simTaskSelect')?.value;
+  const delay = parseInt(document.getElementById('simDelaySlider')?.value) || 0;
+  const label = document.getElementById('simDelayLabel');
+  if (label) label.textContent = `+${delay} Jam`;
   const box = document.getElementById('simConclusionBox');
+  if (!box) return;
+
   if (!id) {
     box.innerHTML = '<p class="hint">Tambahkan tugas terlebih dahulu untuk menjalankan simulasi.</p>';
     return;
   }
+
   const selectedTask = tasks.find(t => t.id === id);
   const downstream = getDownstreamTasks(id);
+  const gradeImpactNote = `Dampak Nilai: <strong>${getGradeLabel(selectedTask?.gradeWeight)}</strong>.`;
+
   if (delay === 0) {
-    box.innerHTML = `<div class="alert-card">✅ <strong>Jadwal Stabil:</strong> Tugas "${selectedTask?.title}" berjalan tepat waktu.</div>`;
+    box.innerHTML = `<div class="alert-card">✅ <strong>Jadwal Stabil:</strong> Tugas "${selectedTask?.title}" berjalan tepat waktu. ${gradeImpactNote}</div>`;
     return;
   }
+
   if (downstream.length === 0) {
     const slack = calculateSlack(selectedTask);
     const over = delay - slack;
     box.innerHTML = over > 0
-      ? `<div class="alert-card urgent">⚠️ <strong>Melewati Deadline:</strong> Keterlambatan +${delay} jam membuat tugas ini telat ${Math.round(over * 10) / 10} jam! ${generateTerrorMessage(selectedTask, -1)}</div>`
-      : `<div class="alert-card">⚠️ <strong>Waktu Cadangan Berkurang:</strong> Masih aman karena tertutup slack time (${slack} jam), namun tidak ada tugas lanjutan yang bergantung padanya.</div>`;
+      ? `<div class="alert-card urgent">⚠️ <strong>Melewati Deadline:</strong> Keterlambatan +${delay} jam membuat tugas ini telat ${Math.round(over * 10) / 10} jam! ${gradeImpactNote}<br/><em>"${generateTerrorMessage(selectedTask)}"</em></div>`
+      : `<div class="alert-card">⚠️ <strong>Waktu Cadangan Berkurang:</strong> Masih aman karena tertutup slack time (${slack} jam). ${gradeImpactNote}</div>`;
   } else {
     const affectedNames = downstream.map(d => `${d.title} (${d.teacher})`).join(', ');
-    box.innerHTML = `<div class="alert-card urgent">🚨 <strong>Efek Domino Terjadi!</strong> Keterlambatan +${delay} jam pada "${selectedTask?.title}" mengacaukan ${downstream.length} tugas berikutnya: <strong>${affectedNames}</strong>.</div>`;
+    box.innerHTML = `<div class="alert-card urgent">🚨 <strong>Efek Domino Terjadi!</strong> Keterlambatan +${delay} jam pada "${selectedTask?.title}" mengacaukan ${downstream.length} tugas berikutnya: <strong>${affectedNames}</strong>. ${gradeImpactNote}</div>`;
   }
 }
 
+function renderScheduleAndGear() {
+  const schList = document.getElementById('scheduleList');
+  if (schList) {
+    schList.innerHTML = schedules.map(s => `
+      <div class="alert-card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>[${s.day}] ${s.subject}</strong>
+          <p class="hint">Pengampu: ${s.teacher}</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule('${s.id}')">✕</button>
+      </div>
+    `).join('') || '<p class="hint">Belum ada jadwal pelajaran tersimpan.</p>';
+  }
+
+  const gearList = document.getElementById('gearList');
+  if (gearList) {
+    gearList.innerHTML = gears.map(g => `
+      <div class="alert-card" style="display:flex; justify-content:space-between; align-items:center;">
+        <label class="subtask-row ${g.checked ? 'done' : ''}" style="flex:1;">
+          <input type="checkbox" ${g.checked ? 'checked' : ''} onchange="toggleGear('${g.id}')" />
+          <span>${g.text}</span>
+        </label>
+        <button type="button" class="btn btn-sm btn-danger" onclick="deleteGear('${g.id}')">✕</button>
+      </div>
+    `).join('') || '<p class="hint">Belum ada daftar perlengkapan praktik.</p>';
+  }
+}
+
+window.deleteSchedule = (id) => {
+  schedules = schedules.filter(s => s.id !== id);
+  saveSchedules();
+  renderAll();
+};
+
+window.toggleGear = (id) => {
+  const g = gears.find(item => item.id === id);
+  if (g) {
+    g.checked = !g.checked;
+    saveGears();
+    renderScheduleAndGear();
+  }
+};
+
+window.deleteGear = (id) => {
+  gears = gears.filter(g => g.id !== id);
+  saveGears();
+  renderScheduleAndGear();
+};
+
 function renderAlerts() {
   const active = tasks.filter(t => t.status === 'active');
-  document.getElementById('alertCountBadge').textContent = active.length;
-  document.getElementById('fullAlertsList').innerHTML = active.map(t => {
-    const slack = calculateSlack(t);
-    return `
+  const badge = document.getElementById('alertCountBadge');
+  if (badge) badge.textContent = active.length;
+
+  const list = document.getElementById('fullAlertsList');
+  if (list) {
+    list.innerHTML = active.map(t => `
       <div class="alert-card">
         <strong>🚨 ${t.teacher} (${t.subject}) — ${t.title}</strong>
-        <p class="alert-msg">${generateTerrorMessage(t, slack)}</p>
-        <button class="btn btn-sm btn-warning btn-block" onclick='triggerNotifications(${JSON.stringify(t).replace(/'/g, "&#39;")})' style="margin-top:10px;">🔔 Tes Pop-up Teror Guru</button>
+        <p class="alert-msg">${generateTerrorMessage(t)}</p>
+        <button type="button" class="btn btn-sm btn-warning btn-block" onclick="triggerTestPopup('${t.id}')" style="margin-top:10px;">🔔 Tes Pop-up Teror Guru</button>
       </div>
-    `;
-  }).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
+    `).join('') || '<p class="hint">Belum ada teror aktif. Tambahkan tugas untuk mengaktifkan pengingat.</p>';
+  }
 }
+
+function renderStats() {
+  const onTimeEl = document.getElementById('statOnTime');
+  const lateEl = document.getElementById('statLate');
+  const streakEl = document.getElementById('statStreak');
+  if (onTimeEl) onTimeEl.textContent = stats.onTime || 0;
+  if (lateEl) lateEl.textContent = stats.late || 0;
+  if (streakEl) streakEl.textContent = `${stats.streak || 0} 🔥`;
+}
+
