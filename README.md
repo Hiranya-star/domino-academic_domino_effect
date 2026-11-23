@@ -11,11 +11,14 @@ Selain itu, **DOMIFECT** dikembangkan sebagai aplikasi mandiri (*True Standalone
 
 teknologi yang digunakan : HTML, CSS, JavaScript
 
-pemanfaatan AI : Gemini
+pemanfaatan AI : Gemini 
 
-Panduan penggunaan : - siswa menambahkan jadwal tugas baru 
+Panduan penggunaan : - siswa mengelola jadwal pelajaran
+                     - siswa mengelola tugas dari sekolah 
                      - siswa melihat leaderboard pengerjaan PR
                      - siswa melihat notifikasi dari guru 
-                     - siswa dapat notifikasi pengingat tugas 
+                     - siswa dapat notifikasi pengingat tugas
+                     - siswa dapat mengatur prioritas tugas 
+            
                      
-Identitas pengembang : Hiranya Jasmine Ramadhani
+Identitas pengembang : Hiranya Jasmine Ramadhani 
