@@ -19,6 +19,7 @@ Panduan penggunaan : - siswa mengelola jadwal pelajaran
                      - siswa melihat notifikasi dari guru 
                      - siswa dapat notifikasi pengingat tugas
                      - siswa dapat mengatur prioritas tugas 
+                     - siswa dapat mengatur durasi pengerjaan tugas 
             
                      
 Identitas pengembang : Hiranya Jasmine Ramadhani 
