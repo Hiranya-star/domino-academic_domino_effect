@@ -9,7 +9,7 @@ Untuk mengatasi hal tersebut, aplikasi ini dirancang dengan **Mesin Bank Kalimat
 
 Selain itu, **DOMIFECT** dikembangkan sebagai aplikasi mandiri (*True Standalone WebAPK*) murni yang dapat di-download langsung dari Google Chrome di HP, lengkap dengan antarmuka khusus layar ponsel (*Mobile-First*) dan kemampuan bekerja secara *offline*. Dilengkapi pula dengan fitur pendukung seperti **Panic Button**, kalkulator beban mental, dan simulator efek domino, aplikasi ini hadir sebagai solusi total bagi siswa untuk mengembalikan kendali penuh atas manajemen waktu dan produktivitas mereka.
 
-teknologi yang digunakan : HTML, CSS, JavaScript
+teknologi yang digunakan : HTML, CSS, JavaScript, JSON
 
 pemanfaatan AI : Gemini 
 
